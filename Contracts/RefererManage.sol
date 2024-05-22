@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import "./interfaces/I_Referer.sol";
+
 abstract contract RefererManage is I_Referer {
     uint256 public customernum;
     mapping(address => uint256) public customerno;
@@ -10,9 +11,7 @@ abstract contract RefererManage is I_Referer {
     constructor() {}
 
     /// @inheritdoc I_Referer
-    function addreferer(
-        address _referer
-    ) external override returns (bool is_success_) {
+    function addreferer(address _referer) external override returns (bool is_success_) {
         require(customerno[msg.sender] == 0, "U1");
         customernum += 1;
         customerno[msg.sender] = customernum;

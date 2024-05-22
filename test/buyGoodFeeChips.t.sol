@@ -35,32 +35,13 @@ contract buyGoodFeeChips is BaseSetup {
         deal(address(btc), marketcreator, 1000000000, false);
         btc.approve(address(market), 20000000);
 
-        uint256 _goodConfig = 2 ** 255 +
-            8 *
-            2 ** 245 +
-            8 *
-            2 ** 238 +
-            8 *
-            2 ** 231 +
-            8 *
-            2 ** 224 +
-            1 *
-            2 ** 214;
+        uint256 _goodConfig = 2 ** 255 + 8 * 2 ** 245 + 8 * 2 ** 238 + 8 * 2 ** 231 + 8 * 2 ** 224 + 1 * 2 ** 214;
 
         snapStart("init metagood with fee with config");
-        (metagood, ) = market.initMetaGood(
-            address(btc),
-            toBalanceUINT256(20000000, 20000000),
-            _goodConfig
-        );
+        (metagood,) = market.initMetaGood(address(btc), toBalanceUINT256(20000000, 20000000), _goodConfig);
 
         snapEnd();
-        uint256 _marketConfig = (50 << 250) +
-            (5 << 244) +
-            (10 << 238) +
-            (15 << 232) +
-            (20 << 226) +
-            (20 << 220);
+        uint256 _marketConfig = (50 << 250) + (5 << 244) + (10 << 238) + (15 << 232) + (20 << 226) + (20 << 220);
         snapStart("market config");
         market.setMarketConfig(_marketConfig);
         snapEnd();
@@ -75,25 +56,10 @@ contract buyGoodFeeChips is BaseSetup {
         btc.approve(address(market), 20000000);
         deal(token, users[3], 100000000, false);
         MyToken(token).approve(address(market), 20000000);
-        uint256 _goodConfig = 0 *
-            2 ** 255 +
-            8 *
-            2 ** 245 +
-            8 *
-            2 ** 238 +
-            8 *
-            2 ** 231 +
-            8 *
-            2 ** 224;
+        uint256 _goodConfig = 0 * 2 ** 255 + 8 * 2 ** 245 + 8 * 2 ** 238 + 8 * 2 ** 231 + 8 * 2 ** 224;
         _goodConfig += 1 * 2 ** 214;
 
-        (normalgood, ) = market.initGood(
-            metagood,
-            toBalanceUINT256(20000000, 20000000),
-            token,
-            _goodConfig,
-            msg.sender
-        );
+        (normalgood,) = market.initGood(metagood, toBalanceUINT256(20000000, 20000000), token, _goodConfig, msg.sender);
         vm.stopPrank();
     }
 
@@ -113,23 +79,13 @@ contract buyGoodFeeChips is BaseSetup {
         uint128 goodid2FeeQuanitity_;
         snapStart("buygood cross 4 chips with fee first");
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            1000000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 1000000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
         snapEnd();
 
         snapStart("buygood cross 4 chips with fee second");
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            1000000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 1000000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
         snapEnd();
         console2.log(goodid2Quanitity_, goodid2FeeQuanitity_);
@@ -139,12 +95,7 @@ contract buyGoodFeeChips is BaseSetup {
         GoodUtil.showGood(s2);
 
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            quan,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, quan, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
     }
 
@@ -161,80 +112,40 @@ contract buyGoodFeeChips is BaseSetup {
         uint128 goodid2FeeQuanitity_;
         snapStart("buygood cross 1 chips with fee first");
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            100000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 100000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
         snapEnd();
 
         snapStart("buygood cross 1 chips with fee second");
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            100000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 100000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
         snapEnd();
 
         snapStart("buygood cross 27 chips with fee second");
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            10000000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 10000000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
         snapEnd();
         snapStart("buygood cross 3 chips with fee second");
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            1000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 1000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
         snapEnd();
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            10000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 10000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
 
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            100000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 100000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
 
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            1000000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 1000000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
 
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            10000000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 10000000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
     }
 }

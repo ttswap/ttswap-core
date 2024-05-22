@@ -36,11 +36,7 @@ contract buyGoodNoFee is BaseSetup {
         btc.approve(address(market), 30000);
 
         uint256 _goodConfig = 2 ** 255;
-        (metagood, ) = market.initMetaGood(
-            address(btc),
-            toBalanceUINT256(20000, 20000),
-            _goodConfig
-        );
+        (metagood,) = market.initMetaGood(address(btc), toBalanceUINT256(20000, 20000), _goodConfig);
 
         //market.updatetoValueGood(metagood);
         vm.stopPrank();
@@ -57,13 +53,7 @@ contract buyGoodNoFee is BaseSetup {
         console2.log("12121", metagood);
         L_Good.S_GoodTmpState memory aa = market.getGoodState(metagood);
         console2.log("12121", aa.goodConfig.isvaluegood());
-        (normalgood, ) = market.initGood(
-            metagood,
-            toBalanceUINT256(20000, 20000),
-            token,
-            _goodConfig,
-            msg.sender
-        );
+        (normalgood,) = market.initGood(metagood, toBalanceUINT256(20000, 20000), token, _goodConfig, msg.sender);
         vm.stopPrank();
     }
 
@@ -81,12 +71,7 @@ contract buyGoodNoFee is BaseSetup {
         uint128 goodid2FeeQuanitity_;
         snapStart("buygood without fee without chips first");
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            10000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            msg.sender
+            normalgoodusdt, metagood, 10000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, msg.sender
         );
         snapEnd();
         console2.log(goodid2Quanitity_, goodid2FeeQuanitity_);
@@ -96,12 +81,7 @@ contract buyGoodNoFee is BaseSetup {
         GoodUtil.showGood(s2);
         console2.log(goodid2Quanitity_, goodid2FeeQuanitity_);
         market.buyGood(
-            normalgoodusdt,
-            metagood,
-            10000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            msg.sender
+            normalgoodusdt, metagood, 10000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, msg.sender
         );
         s1 = market.getGoodState(metagood);
         s2 = market.getGoodState(normalgoodusdt);
@@ -109,12 +89,7 @@ contract buyGoodNoFee is BaseSetup {
         GoodUtil.showGood(s2);
         snapStart("buygood without fee without chips second");
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            10,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            msg.sender
+            normalgoodusdt, metagood, 10, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, msg.sender
         );
         snapEnd();
     }

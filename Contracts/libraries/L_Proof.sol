@@ -31,8 +31,9 @@ library L_Proof {
         }
         _self.state = _self.state + _state;
         _self.invest = _self.invest + _invest;
-        if (_valuegood != 0)
+        if (_valuegood != 0) {
             _self.valueinvest = _self.valueinvest + _valueinvest;
+        }
     }
 
     function burnProof(S_ProofState storage _self, uint128 _value) internal {
@@ -45,27 +46,15 @@ library L_Proof {
 
         if (_self.valuegood != 0) {
             T_BalanceUINT256 burnResult2_ = toBalanceUINT256(
-                mulDiv(
-                    _self.valueinvest.amount0(),
-                    _value,
-                    _self.state.amount0()
-                ),
-                mulDiv(
-                    _self.valueinvest.amount1(),
-                    _value,
-                    _self.state.amount0()
-                )
+                mulDiv(_self.valueinvest.amount0(), _value, _self.state.amount0()),
+                mulDiv(_self.valueinvest.amount1(), _value, _self.state.amount0())
             );
             _self.valueinvest = _self.valueinvest - burnResult2_;
         }
         _self.state = _self.state - toBalanceUINT256(_value, 0);
     }
 
-    function mulDiv(
-        uint256 config,
-        uint256 amount,
-        uint256 domitor
-    ) internal pure returns (uint128 a) {
+    function mulDiv(uint256 config, uint256 amount, uint256 domitor) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := mul(config, amount)
@@ -78,15 +67,10 @@ library L_Proof {
         _self.approval = to;
     }
 
-    function collectProofFee(
-        S_ProofState storage _self,
-        T_BalanceUINT256 profit
-    ) internal {
+    function collectProofFee(S_ProofState storage _self, T_BalanceUINT256 profit) internal {
         _self.invest = _self.invest + toBalanceUINT256(profit.amount0(), 0);
         if (_self.valuegood != 0) {
-            _self.valueinvest =
-                _self.valueinvest +
-                toBalanceUINT256(profit.amount1(), 0);
+            _self.valueinvest = _self.valueinvest + toBalanceUINT256(profit.amount1(), 0);
         }
     }
 }

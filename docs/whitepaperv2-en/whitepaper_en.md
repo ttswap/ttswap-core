@@ -26,6 +26,9 @@ The logic behind the constant value trading model is simple, resulting in low co
 
 5. Fee Distribution Based on Roles for Everyone
 Fees are distributed based on roles, allowing anyone to become a good investor (liquidity provider), merchant, portal, referrer, user, or platform role, sharing in the platform's growth earnings.
+
+6. Support Native ETH Exchange and Invest
+anyone can you native ETH without wrap to swap, invest easily.
 ---
 
 # 3 Principle of Value Conservation Trading Mode

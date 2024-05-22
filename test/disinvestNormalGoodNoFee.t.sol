@@ -36,11 +36,7 @@ contract disinvestNormalGoodNoFee is BaseSetup {
         btc.approve(address(market), 30000);
 
         uint256 _goodConfig = 2 ** 255;
-        (metagood, ) = market.initMetaGood(
-            address(btc),
-            toBalanceUINT256(20000, 20000),
-            _goodConfig
-        );
+        (metagood,) = market.initMetaGood(address(btc), toBalanceUINT256(20000, 20000), _goodConfig);
 
         //market.updatetoValueGood(metagood);
         vm.stopPrank();
@@ -54,21 +50,13 @@ contract disinvestNormalGoodNoFee is BaseSetup {
         MyToken(token).approve(address(market), 20000);
 
         uint256 _goodConfig = 0;
-        (normalgood, ) = market.initGood(
-            metagood,
-            toBalanceUINT256(20000, 20000),
-            token,
-            _goodConfig,
-            msg.sender
-        );
+        (normalgood,) = market.initGood(metagood, toBalanceUINT256(20000, 20000), token, _goodConfig, msg.sender);
         vm.stopPrank();
     }
 
     function testdisinvestNormalGood(uint256) public {
         vm.startPrank(users[3]);
-        L_Good.S_GoodTmpState memory normal = market.getGoodState(
-            normalgoodusdt
-        );
+        L_Good.S_GoodTmpState memory normal = market.getGoodState(normalgoodusdt);
         L_Good.S_GoodTmpState memory meta = market.getGoodState(metagood);
         deal(meta.erc20address, users[3], 100000, false);
         deal(normal.erc20address, users[3], 100000, false);
@@ -79,9 +67,7 @@ contract disinvestNormalGoodNoFee is BaseSetup {
         market.disinvestGood(normalgoodusdt, metagood, 10000, address(1));
         snapEnd();
         // market.investGood(normalgoodusdt,metagood, 10000, _ralate);
-        uint256 p_ = market.proofseq(
-            S_ProofKey(users[3], normalgoodusdt, metagood).toId()
-        );
+        uint256 p_ = market.proofseq(S_ProofKey(users[3], normalgoodusdt, metagood).toId());
         L_Good.S_GoodTmpState memory aa = market.getGoodState(normalgoodusdt);
         L_Proof.S_ProofState memory _s = market.getProofState(p_);
 
@@ -89,52 +75,17 @@ contract disinvestNormalGoodNoFee is BaseSetup {
         assertEq(_s.invest.amount0(), 0, "proof's contruct quantity is error");
         assertEq(_s.invest.amount1(), 10000, "proof's quantity is error");
 
-        assertEq(
-            aa.currentState.amount0(),
-            10000,
-            "currentState's value is error"
-        );
-        assertEq(
-            aa.currentState.amount1(),
-            10000,
-            "currentState's quantity is error"
-        );
+        assertEq(aa.currentState.amount0(), 10000, "currentState's value is error");
+        assertEq(aa.currentState.amount1(), 10000, "currentState's quantity is error");
 
-        assertEq(
-            aa.investState.amount0(),
-            10000,
-            "investState's value is error"
-        );
-        assertEq(
-            aa.investState.amount1(),
-            10000,
-            "investState's quantity is error"
-        );
-        console2.log(
-            uint256(aa.feeQunitityState.amount0()),
-            uint256(aa.feeQunitityState.amount1())
-        );
-        assertEq(
-            aa.feeQunitityState.amount0(),
-            0,
-            "feeQunitityState's feeamount is error"
-        );
-        assertEq(
-            aa.feeQunitityState.amount1(),
-            0,
-            "feeQunitityState's contruct fee is error"
-        );
+        assertEq(aa.investState.amount0(), 10000, "investState's value is error");
+        assertEq(aa.investState.amount1(), 10000, "investState's quantity is error");
+        console2.log(uint256(aa.feeQunitityState.amount0()), uint256(aa.feeQunitityState.amount1()));
+        assertEq(aa.feeQunitityState.amount0(), 0, "feeQunitityState's feeamount is error");
+        assertEq(aa.feeQunitityState.amount1(), 0, "feeQunitityState's contruct fee is error");
 
-        assertEq(
-            uint256(market.getGoodsFee(metagood, users[3])),
-            0,
-            "customer fee"
-        );
-        assertEq(
-            uint256(market.getGoodsFee(metagood, marketcreator)),
-            0,
-            "seller fee"
-        );
+        assertEq(uint256(market.getGoodsFee(metagood, users[3])), 0, "customer fee");
+        assertEq(uint256(market.getGoodsFee(metagood, marketcreator)), 0, "seller fee");
         assertEq(market.getGoodsFee(metagood, address(1)), 0, "gater fee");
         assertEq(market.getGoodsFee(metagood, address(2)), 0, "refer fee");
         snapStart("disinvest Normal good without fee second");
@@ -145,18 +96,14 @@ contract disinvestNormalGoodNoFee is BaseSetup {
 
     function testdisinvestNormalProof(uint256) public {
         vm.startPrank(users[3]);
-        L_Good.S_GoodTmpState memory normal = market.getGoodState(
-            normalgoodusdt
-        );
+        L_Good.S_GoodTmpState memory normal = market.getGoodState(normalgoodusdt);
         L_Good.S_GoodTmpState memory meta = market.getGoodState(metagood);
         deal(meta.erc20address, users[3], 100000, false);
         deal(normal.erc20address, users[3], 100000, false);
         MyToken(meta.erc20address).approve(address(market), 20000);
         MyToken(normal.erc20address).approve(address(market), 20000);
 
-        uint256 p_ = market.proofseq(
-            S_ProofKey(users[3], normalgoodusdt, metagood).toId()
-        );
+        uint256 p_ = market.proofseq(S_ProofKey(users[3], normalgoodusdt, metagood).toId());
         snapStart("disinvest Normal proof without fee first");
         market.disinvestProof(p_, 10000, address(1));
         snapEnd();
@@ -169,52 +116,17 @@ contract disinvestNormalGoodNoFee is BaseSetup {
         assertEq(_s.invest.amount0(), 0, "proof's contruct quantity is error");
         assertEq(_s.invest.amount1(), 10000, "proof's quantity is error");
 
-        assertEq(
-            aa.currentState.amount0(),
-            10000,
-            "currentState's value is error"
-        );
-        assertEq(
-            aa.currentState.amount1(),
-            10000,
-            "currentState's quantity is error"
-        );
+        assertEq(aa.currentState.amount0(), 10000, "currentState's value is error");
+        assertEq(aa.currentState.amount1(), 10000, "currentState's quantity is error");
 
-        assertEq(
-            aa.investState.amount0(),
-            10000,
-            "investState's value is error"
-        );
-        assertEq(
-            aa.investState.amount1(),
-            10000,
-            "investState's quantity is error"
-        );
-        console2.log(
-            uint256(aa.feeQunitityState.amount0()),
-            uint256(aa.feeQunitityState.amount1())
-        );
-        assertEq(
-            aa.feeQunitityState.amount0(),
-            0,
-            "feeQunitityState's feeamount is error"
-        );
-        assertEq(
-            aa.feeQunitityState.amount1(),
-            0,
-            "feeQunitityState's contruct fee is error"
-        );
+        assertEq(aa.investState.amount0(), 10000, "investState's value is error");
+        assertEq(aa.investState.amount1(), 10000, "investState's quantity is error");
+        console2.log(uint256(aa.feeQunitityState.amount0()), uint256(aa.feeQunitityState.amount1()));
+        assertEq(aa.feeQunitityState.amount0(), 0, "feeQunitityState's feeamount is error");
+        assertEq(aa.feeQunitityState.amount1(), 0, "feeQunitityState's contruct fee is error");
 
-        assertEq(
-            uint256(market.getGoodsFee(metagood, users[3])),
-            0,
-            "customer fee"
-        );
-        assertEq(
-            uint256(market.getGoodsFee(metagood, marketcreator)),
-            0,
-            "seller fee"
-        );
+        assertEq(uint256(market.getGoodsFee(metagood, users[3])), 0, "customer fee");
+        assertEq(uint256(market.getGoodsFee(metagood, marketcreator)), 0, "seller fee");
         assertEq(market.getGoodsFee(metagood, address(1)), 0, "gater fee");
         assertEq(market.getGoodsFee(metagood, address(2)), 0, "refer fee");
         snapStart("disinvest Normal proof without fee second");
@@ -225,18 +137,14 @@ contract disinvestNormalGoodNoFee is BaseSetup {
 
     function testdisinvestNormalProof1(uint256) public {
         vm.startPrank(users[3]);
-        L_Good.S_GoodTmpState memory normal = market.getGoodState(
-            normalgoodusdt
-        );
+        L_Good.S_GoodTmpState memory normal = market.getGoodState(normalgoodusdt);
         L_Good.S_GoodTmpState memory meta = market.getGoodState(metagood);
         deal(meta.erc20address, users[3], 100000, false);
         deal(normal.erc20address, users[3], 100000, false);
         MyToken(meta.erc20address).approve(address(market), 20000);
         MyToken(normal.erc20address).approve(address(market), 20000);
 
-        uint256 p_ = market.proofseq(
-            S_ProofKey(users[3], normalgoodusdt, metagood).toId()
-        );
+        uint256 p_ = market.proofseq(S_ProofKey(users[3], normalgoodusdt, metagood).toId());
         market.disinvestProof(p_, 5000, address(1));
         // market.investGood(normalgoodusdt,metagood, 10000, _ralate);
 
@@ -245,9 +153,7 @@ contract disinvestNormalGoodNoFee is BaseSetup {
 
     function testdisinvestNormalGood1(uint256) public {
         vm.startPrank(users[3]);
-        L_Good.S_GoodTmpState memory normal = market.getGoodState(
-            normalgoodusdt
-        );
+        L_Good.S_GoodTmpState memory normal = market.getGoodState(normalgoodusdt);
         L_Good.S_GoodTmpState memory meta = market.getGoodState(metagood);
         deal(meta.erc20address, users[3], 100000, false);
         deal(normal.erc20address, users[3], 100000, false);

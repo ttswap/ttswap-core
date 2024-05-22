@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
+
 import {T_BalanceUINT256} from "./L_BalanceUINT256.sol";
 
 struct S_GoodKey {

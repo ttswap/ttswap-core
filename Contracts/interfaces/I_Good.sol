@@ -64,26 +64,18 @@ interface I_Good {
     /// @param _owner   seller address~卖家地址
     /// @param _seq   seller's good index~第几个商品
     /// @return  goods No~商品编号
-    function getGoodIdByAddress(
-        address _owner,
-        uint256 _seq
-    ) external view returns (uint256);
+    function getGoodIdByAddress(address _owner, uint256 _seq) external view returns (uint256);
 
     /// @notice get good's state 获取商品状态
     /// @param _goodid  good's id  商品的商品编号
     /// @return good_ goodinfo 商品的状态信息
-    function getGoodState(
-        uint256 _goodid
-    ) external view returns (L_Good.S_GoodTmpState memory good_);
+    function getGoodState(uint256 _goodid) external view returns (L_Good.S_GoodTmpState memory good_);
 
     /// @notice  update good's config 更新商品配置
     /// @param _goodid   good's id 商品的商品ID
     /// @param _goodConfig   商品配置
     /// @return the result  更新结果
-    function updateGoodConfig(
-        uint256 _goodid,
-        uint256 _goodConfig
-    ) external returns (bool);
+    function updateGoodConfig(uint256 _goodid, uint256 _goodConfig) external returns (bool);
 
     /// @notice  update normal good to value good 更新普通商品为价值商品
     /// @param _goodid   good's id 商品的商品ID
@@ -99,20 +91,13 @@ interface I_Good {
     /// @param _payquanity   数量
     /// @param _recipent   接收者
     /// @return the result
-    function payGood(
-        uint256 _goodid,
-        uint256 _payquanity,
-        address _recipent
-    ) external returns (bool);
+    function payGood(uint256 _goodid, uint256 _payquanity, address _recipent) external returns (bool);
 
     /// @notice set good's Owner 改变商品的拥有者
     /// @param _goodid  good's id 商品的商品ID
     /// @param _to  recipent 接收者
     /// @return the result
-    function changeGoodOwner(
-        uint256 _goodid,
-        address _to
-    ) external returns (bool);
+    function changeGoodOwner(uint256 _goodid, address _to) external returns (bool);
     /// @notice collect protocalFee 收益协议手续费
     /// @param _goodid  good's id 商品的商品ID
     /// @return the result 手续费数量
@@ -130,8 +115,5 @@ interface I_Good {
     /// @param _goodid   商品编号
     /// @param _user   用户地址
     /// @return fee_ 是否成功
-    function getGoodsFee(
-        uint256 _goodid,
-        address _user
-    ) external view returns (uint256 fee_);
+    function getGoodsFee(uint256 _goodid, address _user) external view returns (uint256 fee_);
 }

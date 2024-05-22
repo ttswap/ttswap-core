@@ -30,11 +30,7 @@ contract investValueGoodNoFee is BaseSetup {
         deal(address(btc), marketcreator, 100000, false);
         btc.approve(address(market), 30000);
         uint256 _goodconfig = 2 ** 255;
-        (metagood, ) = market.initMetaGood(
-            address(btc),
-            toBalanceUINT256(20000, 20000),
-            _goodconfig
-        );
+        (metagood,) = market.initMetaGood(address(btc), toBalanceUINT256(20000, 20000), _goodconfig);
 
         // market.updatetoValueGood(metagood);
         vm.stopPrank();
@@ -42,16 +38,8 @@ contract investValueGoodNoFee is BaseSetup {
 
     function testinvestValueGood(uint256) public {
         vm.startPrank(users[2]);
-        deal(
-            market.getGoodState(metagood).erc20address,
-            users[2],
-            100000,
-            false
-        );
-        MyToken(market.getGoodState(metagood).erc20address).approve(
-            address(market),
-            200000
-        );
+        deal(market.getGoodState(metagood).erc20address, users[2], 100000, false);
+        MyToken(market.getGoodState(metagood).erc20address).approve(address(market), 200000);
 
         snapStart("invest value good no fee first");
         market.investGood(metagood, 0, 20000, address(1));
@@ -63,52 +51,17 @@ contract investValueGoodNoFee is BaseSetup {
         assertEq(_s.invest.amount0(), 0, "proof's contruct quantity is error");
         assertEq(_s.invest.amount1(), 20000, "proof's quantity is error");
 
-        assertEq(
-            aa.currentState.amount0(),
-            40000,
-            "currentState's value is error"
-        );
-        assertEq(
-            aa.currentState.amount1(),
-            40000,
-            "currentState's quantity is error"
-        );
+        assertEq(aa.currentState.amount0(), 40000, "currentState's value is error");
+        assertEq(aa.currentState.amount1(), 40000, "currentState's quantity is error");
 
-        assertEq(
-            aa.investState.amount0(),
-            40000,
-            "investState's value is error"
-        );
-        assertEq(
-            aa.investState.amount1(),
-            40000,
-            "investState's quantity is error"
-        );
-        console2.log(
-            uint256(aa.feeQunitityState.amount0()),
-            uint256(aa.feeQunitityState.amount1())
-        );
-        assertEq(
-            aa.feeQunitityState.amount1(),
-            0,
-            "feeQunitityState's feeamount is error"
-        );
-        assertEq(
-            aa.feeQunitityState.amount0(),
-            0,
-            "feeQunitityState's contruct fee is error"
-        );
+        assertEq(aa.investState.amount0(), 40000, "investState's value is error");
+        assertEq(aa.investState.amount1(), 40000, "investState's quantity is error");
+        console2.log(uint256(aa.feeQunitityState.amount0()), uint256(aa.feeQunitityState.amount1()));
+        assertEq(aa.feeQunitityState.amount1(), 0, "feeQunitityState's feeamount is error");
+        assertEq(aa.feeQunitityState.amount0(), 0, "feeQunitityState's contruct fee is error");
 
-        assertEq(
-            uint256(market.getGoodsFee(metagood, users[2])),
-            0,
-            "customer fee"
-        );
-        assertEq(
-            uint256(market.getGoodsFee(metagood, marketcreator)),
-            0,
-            "seller fee"
-        );
+        assertEq(uint256(market.getGoodsFee(metagood, users[2])), 0, "customer fee");
+        assertEq(uint256(market.getGoodsFee(metagood, marketcreator)), 0, "seller fee");
         assertEq(market.getGoodsFee(metagood, address(1)), 0, "gater fee");
         assertEq(market.getGoodsFee(metagood, address(2)), 0, "refer fee");
         snapStart("invest value good no fee second");

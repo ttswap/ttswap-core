@@ -18,37 +18,16 @@ library GoodUtil {
         console2.log("good currentState:", uint256(p_.currentState.amount1()));
         console2.log("good investState:", uint256(p_.investState.amount0()));
         console2.log("good investState:", uint256(p_.investState.amount1()));
-        console2.log(
-            "good feeQunitityState:",
-            uint256(p_.feeQunitityState.amount0())
-        );
-        console2.log(
-            "good feeQunitityState:",
-            uint256(p_.feeQunitityState.amount1())
-        );
+        console2.log("good feeQunitityState:", uint256(p_.feeQunitityState.amount0()));
+        console2.log("good feeQunitityState:", uint256(p_.feeQunitityState.amount1()));
     }
 
     function showconfig(uint256 _goodConfig) public pure {
         console2.log("good goodConfig:isvaluegood:", _goodConfig.isvaluegood());
-        console2.log(
-            "good goodConfig:getInvestFee:",
-            uint256(_goodConfig.getInvestFee())
-        );
-        console2.log(
-            "good goodConfig:getDisinvestFee:",
-            uint256(_goodConfig.getDisinvestFee())
-        );
-        console2.log(
-            "good goodConfig:getBuyFee:",
-            uint256(_goodConfig.getBuyFee())
-        );
-        console2.log(
-            "good goodConfig:getSellFee:",
-            uint256(_goodConfig.getSellFee())
-        );
-        console2.log(
-            "good goodConfig:getSwapChips:",
-            uint256(_goodConfig.getSwapChips())
-        );
+        console2.log("good goodConfig:getInvestFee:", uint256(_goodConfig.getInvestFee()));
+        console2.log("good goodConfig:getDisinvestFee:", uint256(_goodConfig.getDisinvestFee()));
+        console2.log("good goodConfig:getBuyFee:", uint256(_goodConfig.getBuyFee()));
+        console2.log("good goodConfig:getSellFee:", uint256(_goodConfig.getSellFee()));
+        console2.log("good goodConfig:getSwapChips:", uint256(_goodConfig.getSwapChips()));
     }
 }

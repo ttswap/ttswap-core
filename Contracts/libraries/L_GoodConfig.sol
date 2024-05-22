@@ -20,10 +20,7 @@ library L_GoodConfigLibrary {
         }
     }
 
-    function getInvestFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+    function getInvestFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(249, shl(4, config))
@@ -33,10 +30,7 @@ library L_GoodConfigLibrary {
         }
     }
 
-    function getInvestFulFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+    function getInvestFulFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(249, shl(4, config))
@@ -54,10 +48,7 @@ library L_GoodConfigLibrary {
         }
     }
 
-    function getDisinvestFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+    function getDisinvestFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(249, shl(11, config))
@@ -75,10 +66,7 @@ library L_GoodConfigLibrary {
         }
     }
 
-    function getBuyFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+    function getBuyFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(249, shl(18, config))
@@ -96,10 +84,7 @@ library L_GoodConfigLibrary {
         }
     }
 
-    function getSellFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+    function getSellFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(249, shl(25, config))
@@ -117,10 +102,7 @@ library L_GoodConfigLibrary {
         return a * 64;
     }
 
-    function getSwapChips(
-        uint256 config,
-        uint128 amount
-    ) internal pure returns (uint128) {
+    function getSwapChips(uint256 config, uint128 amount) internal pure returns (uint128) {
         uint128 a;
         assembly {
             a := shr(246, shl(32, config))
@@ -130,19 +112,14 @@ library L_GoodConfigLibrary {
     }
 
     // get disinvest Chips
-    function getDisinvestChips(
-        uint256 config
-    ) internal pure returns (uint16 a) {
+    function getDisinvestChips(uint256 config) internal pure returns (uint16 a) {
         assembly {
             a := shr(246, shl(42, config))
         }
         return a;
     }
 
-    function getDisinvestChips(
-        uint256 config,
-        uint128 amount
-    ) internal pure returns (uint128) {
+    function getDisinvestChips(uint256 config, uint128 amount) internal pure returns (uint128) {
         uint128 a;
         assembly {
             a := shr(246, shl(42, config))

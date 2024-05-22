@@ -36,34 +36,17 @@ contract buyGoodFee is BaseSetup {
         btc.mint(1000000000);
         btc.approve(address(market), 1000000000);
 
-        uint256 _goodConfig = (2 ** 255) +
-            8 *
-            2 ** 245 +
-            8 *
-            2 ** 238 +
-            8 *
-            2 ** 231 +
-            8 *
-            2 ** 224;
+        uint256 _goodConfig = (2 ** 255) + 8 * 2 ** 245 + 8 * 2 ** 238 + 8 * 2 ** 231 + 8 * 2 ** 224;
 
         console2.log("btc", btc.balanceOf(marketcreator));
-        (metagood, ) = market.initMetaGood(
-            address(btc),
-            toBalanceUINT256(20000000, 20000000),
-            _goodConfig
-        );
+        (metagood,) = market.initMetaGood(address(btc), toBalanceUINT256(20000000, 20000000), _goodConfig);
 
         console2.log(1, _goodConfig);
         console2.log(2, (1 * 10 ** 18) * 2 ** 128 + 3100 * 10 ** 6);
         console2.log(3, 10000 * 10 ** 6);
         console2.log(address(0));
 
-        uint256 _marketConfig = (50 << 250) +
-            (5 << 244) +
-            (10 << 238) +
-            (15 << 232) +
-            (20 << 226) +
-            (20 << 220);
+        uint256 _marketConfig = (50 << 250) + (5 << 244) + (10 << 238) + (15 << 232) + (20 << 226) + (20 << 220);
         console2.log("marketconfig", _marketConfig);
 
         market.setMarketConfig(_marketConfig);
@@ -78,24 +61,9 @@ contract buyGoodFee is BaseSetup {
 
         MyToken(token).mint(100000000000);
         MyToken(token).approve(address(market), 100000000000);
-        uint256 _goodConfig = 0 *
-            2 ** 255 +
-            8 *
-            2 ** 245 +
-            8 *
-            2 ** 238 +
-            8 *
-            2 ** 231 +
-            8 *
-            2 ** 224;
+        uint256 _goodConfig = 0 * 2 ** 255 + 8 * 2 ** 245 + 8 * 2 ** 238 + 8 * 2 ** 231 + 8 * 2 ** 224;
 
-        (normalgood, ) = market.initGood(
-            metagood,
-            toBalanceUINT256(20000000, 20000000),
-            token,
-            _goodConfig,
-            msg.sender
-        );
+        (normalgood,) = market.initGood(metagood, toBalanceUINT256(20000000, 20000000), token, _goodConfig, msg.sender);
         vm.stopPrank();
     }
 
@@ -119,12 +87,7 @@ contract buyGoodFee is BaseSetup {
         uint128 goodid2FeeQuanitity_;
         snapStart("buygood with fee without chips first");
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            1000000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 1000000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
         snapEnd();
         console2.log(goodid2Quanitity_, goodid2FeeQuanitity_);
@@ -135,12 +98,7 @@ contract buyGoodFee is BaseSetup {
 
         snapStart("buygood with fee without chips second");
         (goodid2Quanitity_, goodid2FeeQuanitity_) = market.buyGood(
-            normalgoodusdt,
-            metagood,
-            1000000,
-            T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)),
-            false,
-            address(1)
+            normalgoodusdt, metagood, 1000000, T_BalanceUINT256.unwrap(toBalanceUINT256(2, 1)), false, address(1)
         );
         snapEnd();
     }

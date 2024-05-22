@@ -29,18 +29,12 @@ contract testInitMetaGood is BaseSetup {
         btc.approve(address(market), 30000);
         snapStart("init metagood");
         console2.log("aa:", btc.balanceOf(marketcreator));
-        (metagood, ) = market.initMetaGood(
-            address(btc),
-            toBalanceUINT256(20000, 20000),
-            goodconfig
-        );
+        (metagood,) = market.initMetaGood(address(btc), toBalanceUINT256(20000, 20000), goodconfig);
         snapEnd();
 
         L_Good.S_GoodTmpState memory good_ = market.getGoodState(metagood);
         GoodUtil.showGood(good_);
-        uint256 normalproof = market.proofseq(
-            S_ProofKey(marketcreator, metagood, 0).toId()
-        );
+        uint256 normalproof = market.proofseq(S_ProofKey(marketcreator, metagood, 0).toId());
         ProofUtil.showproof(market.getProofState(normalproof));
         vm.stopPrank();
     }

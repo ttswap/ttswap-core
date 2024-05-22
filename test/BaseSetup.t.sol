@@ -25,9 +25,9 @@ contract BaseSetup is Test, GasSnapshot {
         users[6] = payable(address(16));
         users[7] = payable(address(17));
         marketcreator = payable(address(6));
-        btc = new MyToken("BTC", "BTC",8);
-        usdt = new MyToken("USDT", "USDT",6);
-        eth = new MyToken("ETH", "ETH",18 );
+        btc = new MyToken("BTC", "BTC", 8);
+        usdt = new MyToken("USDT", "USDT", 6);
+        eth = new MyToken("ETH", "ETH", 18);
         snapStart("depoly Market Manager");
         market = new MarketManager(marketcreator, m_marketconfig);
         snapEnd();

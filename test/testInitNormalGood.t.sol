@@ -28,16 +28,10 @@ contract testinvestGood is BaseSetup {
         deal(address(btc), marketcreator, 100000, false);
         btc.approve(address(market), 30000);
         uint256 _goodconfig = 2 ** 255;
-        (metagood, ) = market.initMetaGood(
-            address(btc),
-            toBalanceUINT256(20000, 20000),
-            _goodconfig
-        );
+        (metagood,) = market.initMetaGood(address(btc), toBalanceUINT256(20000, 20000), _goodconfig);
         // market.updatetoValueGood(metagood);
         GoodUtil.showGood(market.getGoodState(metagood));
-        uint256 normalproof = market.proofseq(
-            S_ProofKey(msg.sender, metagood, 0).toId()
-        );
+        uint256 normalproof = market.proofseq(S_ProofKey(msg.sender, metagood, 0).toId());
         ProofUtil.showproof(market.getProofState(normalproof));
         vm.stopPrank();
     }
@@ -51,13 +45,7 @@ contract testinvestGood is BaseSetup {
         usdt.approve(address(market), 10000);
         console2.log(usdt.balanceOf(users[1]));
         snapStart("init normalgood");
-        market.initGood(
-            metagood,
-            toBalanceUINT256(1000, 1000),
-            address(usdt),
-            1,
-            msg.sender
-        );
+        market.initGood(metagood, toBalanceUINT256(1000, 1000), address(usdt), 1, msg.sender);
         snapEnd();
         vm.stopPrank();
     }

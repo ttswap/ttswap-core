@@ -6,7 +6,9 @@ import {MyToken} from "../src/testtoken/ERC20.sol";
 import "../Contracts/MarketManager.sol";
 import {BaseSetup} from "./BaseSetup3.t.sol";
 import {S_GoodKey, S_Ralate, S_ProofKey} from "../Contracts/libraries/L_Struct.sol";
-import {T_BalanceUINT256, L_BalanceUINT256Library, toBalanceUINT256} from "../Contracts/libraries/L_BalanceUINT256.sol";
+import {
+    T_BalanceUINT256, L_BalanceUINT256Library, toBalanceUINT256
+} from "../Contracts/libraries/L_BalanceUINT256.sol";
 
 import {L_ProofIdLibrary, L_Proof} from "../Contracts/libraries/L_Proof.sol";
 import {L_GoodIdLibrary, L_Good} from "../Contracts/libraries/L_Good.sol";
@@ -27,6 +29,7 @@ contract subgraph is Test, BaseSetup {
     uint256 normalgoodbtc;
     uint256 normalgoodeth;
     uint256 metaproofid;
+
     function setUp() public override {
         BaseSetup.setUp();
         initmetagood();
@@ -53,20 +56,8 @@ contract subgraph is Test, BaseSetup {
         vm.startPrank(marketcreator);
         deal(address(usdt), marketcreator, 10000000 * 10 ** 6, false);
         usdt.approve(address(market), 10000000 * 10 ** 6);
-        uint256 _goodConfig = 2 ** 255 +
-            8 *
-            2 ** 245 +
-            8 *
-            2 ** 238 +
-            8 *
-            2 ** 231 +
-            8 *
-            2 ** 224;
-        market.initMetaGood(
-            address(usdt),
-            toBalanceUINT256(1 * 10 ** 6 * 10 ** 6, 1 * 10 ** 6 * 10 ** 6),
-            _goodConfig
-        );
+        uint256 _goodConfig = 2 ** 255 + 8 * 2 ** 245 + 8 * 2 ** 238 + 8 * 2 ** 231 + 8 * 2 ** 224;
+        market.initMetaGood(address(usdt), toBalanceUINT256(1 * 10 ** 6 * 10 ** 6, 1 * 10 ** 6 * 10 ** 6), _goodConfig);
         vm.stopPrank();
     }
 
@@ -78,22 +69,9 @@ contract subgraph is Test, BaseSetup {
         deal(address(btc), marketcreator, 1000 * 10 ** 8, false);
         btc.approve(address(market), 1000 * 10 ** 8);
 
-        uint256 _goodConfig = 8 *
-            2 ** 245 +
-            8 *
-            2 ** 238 +
-            8 *
-            2 ** 231 +
-            8 *
-            2 ** 224;
+        uint256 _goodConfig = 8 * 2 ** 245 + 8 * 2 ** 238 + 8 * 2 ** 231 + 8 * 2 ** 224;
 
-        market.initGood(
-            1,
-            toBalanceUINT256(10 * 10 ** 8, 65000 * 10 * 10 ** 6),
-            address(btc),
-            _goodConfig,
-            msg.sender
-        );
+        market.initGood(1, toBalanceUINT256(10 * 10 ** 8, 65000 * 10 * 10 ** 6), address(btc), _goodConfig, msg.sender);
         vm.stopPrank();
     }
 
@@ -101,12 +79,7 @@ contract subgraph is Test, BaseSetup {
         vm.startPrank(marketcreator);
         deal(address(usdt), marketcreator, 10000000000, false);
         usdt.approve(address(market), 10000000000);
-        market.investGood(
-            1,
-            0,
-            10000000000,
-            0x45A0eA517208a68c68A0f7D894d0D126649a75a9
-        );
+        market.investGood(1, 0, 10000000000, 0x45A0eA517208a68c68A0f7D894d0D126649a75a9);
         vm.stopPrank();
     }
 
@@ -118,36 +91,21 @@ contract subgraph is Test, BaseSetup {
 
         deal(address(btc), marketcreator, 100000000, false);
         btc.approve(address(market), 100000000);
-        market.investGood(
-            2,
-            1,
-            100000000,
-            0x45A0eA517208a68c68A0f7D894d0D126649a75a9
-        );
+        market.investGood(2, 1, 100000000, 0x45A0eA517208a68c68A0f7D894d0D126649a75a9);
         vm.stopPrank();
     }
 
     function disInvestValueGood() public {
         vm.startPrank(marketcreator);
 
-        market.disinvestGood(
-            1,
-            0,
-            1000000000,
-            0x45A0eA517208a68c68A0f7D894d0D126649a75a9
-        );
+        market.disinvestGood(1, 0, 1000000000, 0x45A0eA517208a68c68A0f7D894d0D126649a75a9);
         vm.stopPrank();
     }
 
     function disInvestNormalGood() public {
         vm.startPrank(marketcreator);
 
-        market.disinvestGood(
-            2,
-            1,
-            1000000,
-            0x45A0eA517208a68c68A0f7D894d0D126649a75a9
-        );
+        market.disinvestGood(2, 1, 1000000, 0x45A0eA517208a68c68A0f7D894d0D126649a75a9);
         vm.stopPrank();
     }
 
@@ -195,112 +153,51 @@ contract subgraph is Test, BaseSetup {
 
     function goodInfo(uint256 _good1) public view {
         console2.log(_good1, "************************");
-        console2.log(
-            "price good1's value",
-            market.getGoodState(_good1).currentState.amount0()
-        );
-        console2.log(
-            "price good1's quantity",
-            market.getGoodState(_good1).currentState.amount1()
-        );
+        console2.log("price good1's value", market.getGoodState(_good1).currentState.amount0());
+        console2.log("price good1's quantity", market.getGoodState(_good1).currentState.amount1());
 
-        console2.log(
-            "price good1's invest value",
-            market.getGoodState(_good1).investState.amount0()
-        );
-        console2.log(
-            "price good1's invest quantity",
-            market.getGoodState(_good1).investState.amount1()
-        );
+        console2.log("price good1's invest value", market.getGoodState(_good1).investState.amount0());
+        console2.log("price good1's invest quantity", market.getGoodState(_good1).investState.amount1());
 
-        console2.log(
-            "price good1's fee",
-            market.getGoodState(_good1).feeQunitityState.amount0()
-        );
+        console2.log("price good1's fee", market.getGoodState(_good1).feeQunitityState.amount0());
 
-        console2.log(
-            "price good1's contrunct fee",
-            market.getGoodState(_good1).feeQunitityState.amount1()
-        );
-        console2.log(
-            "price good1's goodConfig",
-            market.getGoodState(_good1).goodConfig
-        );
+        console2.log("price good1's contrunct fee", market.getGoodState(_good1).feeQunitityState.amount1());
+        console2.log("price good1's goodConfig", market.getGoodState(_good1).goodConfig);
     }
 
     function proofInfo(uint256 _proofid) public view {
         console2.log(_proofid, "*********proof***************");
-        console2.log(
-            "getProofState's state amount0",
-            market.getProofState(_proofid).state.amount0()
-        );
-        console2.log(
-            "getProofState's state amount1 ",
-            market.getProofState(_proofid).state.amount1()
-        );
+        console2.log("getProofState's state amount0", market.getProofState(_proofid).state.amount0());
+        console2.log("getProofState's state amount1 ", market.getProofState(_proofid).state.amount1());
 
-        console2.log(
-            "getProofState's invest amount0",
-            market.getProofState(_proofid).invest.amount0()
-        );
-        console2.log(
-            "getProofState's invest amount1",
-            market.getProofState(_proofid).invest.amount1()
-        );
+        console2.log("getProofState's invest amount0", market.getProofState(_proofid).invest.amount0());
+        console2.log("getProofState's invest amount1", market.getProofState(_proofid).invest.amount1());
 
-        console2.log(
-            "getProofState's valueinvest amount0",
-            market.getProofState(_proofid).valueinvest.amount0()
-        );
+        console2.log("getProofState's valueinvest amount0", market.getProofState(_proofid).valueinvest.amount0());
 
-        console2.log(
-            "getProofState's valueinvest amount1",
-            market.getProofState(_proofid).valueinvest.amount1()
-        );
+        console2.log("getProofState's valueinvest amount1", market.getProofState(_proofid).valueinvest.amount1());
 
-        console2.log(
-            "getProofState's currentgood",
-            market.getProofState(_proofid).currentgood
-        );
+        console2.log("getProofState's currentgood", market.getProofState(_proofid).currentgood);
 
-        console2.log(
-            "getProofState's valuegood",
-            market.getProofState(_proofid).valuegood
-        );
+        console2.log("getProofState's valuegood", market.getProofState(_proofid).valuegood);
     }
 
     function showconfig(uint256 _goodConfig) public pure {
         console2.log("good goodConfig:isvaluegood:", _goodConfig.isvaluegood());
-        console2.log(
-            "good goodConfig:getInvestFee:",
-            uint256(_goodConfig.getInvestFee())
-        );
-        console2.log(
-            "good goodConfig:getDisinvestFee:",
-            uint256(_goodConfig.getDisinvestFee())
-        );
-        console2.log(
-            "good goodConfig:getBuyFee:",
-            uint256(_goodConfig.getBuyFee())
-        );
-        console2.log(
-            "good goodConfig:getSellFee:",
-            uint256(_goodConfig.getSellFee())
-        );
-        console2.log(
-            "good goodConfig:getSwapChips:",
-            uint256(_goodConfig.getSwapChips())
-        );
+        console2.log("good goodConfig:getInvestFee:", uint256(_goodConfig.getInvestFee()));
+        console2.log("good goodConfig:getDisinvestFee:", uint256(_goodConfig.getDisinvestFee()));
+        console2.log("good goodConfig:getBuyFee:", uint256(_goodConfig.getBuyFee()));
+        console2.log("good goodConfig:getSellFee:", uint256(_goodConfig.getSellFee()));
+        console2.log("good goodConfig:getSwapChips:", uint256(_goodConfig.getSwapChips()));
     }
 
     function getcompareprice(uint256 good1, uint256 good2) public view {
         console2.log(
-            market.getGoodState(good1).currentState.amount0() *
-                market.getGoodState(good2).currentState.amount1(),
-            market.getGoodState(good1).currentState.amount1() *
-                market.getGoodState(good2).currentState.amount0()
+            market.getGoodState(good1).currentState.amount0() * market.getGoodState(good2).currentState.amount1(),
+            market.getGoodState(good1).currentState.amount1() * market.getGoodState(good2).currentState.amount0()
         );
     }
+
     function testsub() public {
         emit log("1");
     }

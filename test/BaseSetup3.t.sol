@@ -15,12 +15,7 @@ contract BaseSetup is Test, GasSnapshot {
     MarketManager market;
 
     function setUp() public virtual {
-        uint256 m_marketconfig = (50 << 250) +
-            (5 << 244) +
-            (10 << 238) +
-            (15 << 232) +
-            (20 << 226) +
-            (20 << 220);
+        uint256 m_marketconfig = (50 << 250) + (5 << 244) + (10 << 238) + (15 << 232) + (20 << 226) + (20 << 220);
         users[0] = payable(address(1));
         users[1] = payable(address(2));
         users[2] = payable(address(3));

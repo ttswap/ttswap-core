@@ -36,11 +36,7 @@ contract disinvestValueGoodNoFee is BaseSetup {
         deal(address(btc), marketcreator, 100000, false);
         btc.approve(address(market), 30000);
         uint256 _goodconfig = 2 ** 255;
-        (metagood, ) = market.initMetaGood(
-            address(btc),
-            toBalanceUINT256(20000, 20000),
-            _goodconfig
-        );
+        (metagood,) = market.initMetaGood(address(btc), toBalanceUINT256(20000, 20000), _goodconfig);
 
         //market.updatetoValueGood(metagood);
         vm.stopPrank();
@@ -48,18 +44,10 @@ contract disinvestValueGoodNoFee is BaseSetup {
 
     function investValueGood() public returns (uint256 p_) {
         vm.startPrank(users[2]);
-        deal(
-            market.getGoodState(metagood).erc20address,
-            users[2],
-            200000,
-            false
-        );
-        MyToken(market.getGoodState(metagood).erc20address).approve(
-            address(market),
-            100000
-        );
+        deal(market.getGoodState(metagood).erc20address, users[2], 200000, false);
+        MyToken(market.getGoodState(metagood).erc20address).approve(address(market), 100000);
 
-        market.investGood(metagood,0, 20000, address(1));
+        market.investGood(metagood, 0, 20000, address(1));
         p_ = market.proofseq(S_ProofKey(users[2], metagood, 0).toId());
         vm.stopPrank();
     }
@@ -70,57 +58,20 @@ contract disinvestValueGoodNoFee is BaseSetup {
         uint128 quanity = uint128(aquanity);
 
         snapStart("disinvest Value good No Fee first");
-        (L_Good.S_GoodDisinvestReturn memory result, , ) = market.disinvestGood(
-            metagood,
-            0,
-            quanity,
-            address(1)
-        );
+        (L_Good.S_GoodDisinvestReturn memory result,,) = market.disinvestGood(metagood, 0, quanity, address(1));
         snapEnd();
         L_Good.S_GoodTmpState memory aa = market.getGoodState(metagood);
-        assertEq(
-            result.actualDisinvestValue,
-            aquanity,
-            "disinvest proof 's value is error"
-        );
-        assertEq(
-            result.actualDisinvestQuantity,
-            aquanity,
-            "disinvest proof 's quantity is error"
-        );
-        assertEq(
-            aa.currentState.amount0(),
-            40000 - quanity,
-            "currentState's value is error"
-        );
-        assertEq(
-            aa.currentState.amount1(),
-            40000 - quanity,
-            "currentState's quantity is error"
-        );
+        assertEq(result.actualDisinvestValue, aquanity, "disinvest proof 's value is error");
+        assertEq(result.actualDisinvestQuantity, aquanity, "disinvest proof 's quantity is error");
+        assertEq(aa.currentState.amount0(), 40000 - quanity, "currentState's value is error");
+        assertEq(aa.currentState.amount1(), 40000 - quanity, "currentState's quantity is error");
 
-        assertEq(
-            aa.investState.amount0(),
-            40000 - quanity,
-            "investState's value is error"
-        );
-        assertEq(
-            aa.investState.amount1(),
-            40000 - quanity,
-            "investState's quantity is error"
-        );
-        assertEq(
-            aa.feeQunitityState.amount1(),
-            0,
-            "feeQunitityState's feeamount is error"
-        );
-        assertEq(
-            aa.feeQunitityState.amount0(),
-            0,
-            "feeQunitityState's contruct fee is error"
-        );
+        assertEq(aa.investState.amount0(), 40000 - quanity, "investState's value is error");
+        assertEq(aa.investState.amount1(), 40000 - quanity, "investState's quantity is error");
+        assertEq(aa.feeQunitityState.amount1(), 0, "feeQunitityState's feeamount is error");
+        assertEq(aa.feeQunitityState.amount0(), 0, "feeQunitityState's contruct fee is error");
         snapStart("disinvest Value good No Fee second");
-        (result, , ) = market.disinvestGood(metagood, 0, quanity, address(1));
+        (result,,) = market.disinvestGood(metagood, 0, quanity, address(1));
         snapEnd();
 
         vm.stopPrank();
@@ -134,56 +85,20 @@ contract disinvestValueGoodNoFee is BaseSetup {
         uint256 p_ = market.proofseq(S_ProofKey(users[2], metagood, 0).toId());
 
         snapStart("disinvest Value proof No Fee first");
-        (L_Good.S_GoodDisinvestReturn memory result, ) = market.disinvestProof(
-            p_,
-            quanity,
-            address(1)
-        );
+        (L_Good.S_GoodDisinvestReturn memory result,) = market.disinvestProof(p_, quanity, address(1));
         snapEnd();
         L_Good.S_GoodTmpState memory aa = market.getGoodState(metagood);
-        assertEq(
-            result.actualDisinvestValue,
-            aquanity,
-            "disinvest proof 's value is error"
-        );
-        assertEq(
-            result.actualDisinvestQuantity,
-            aquanity,
-            "disinvest proof 's quantity is error"
-        );
-        assertEq(
-            aa.currentState.amount0(),
-            40000 - quanity,
-            "currentState's value is error"
-        );
-        assertEq(
-            aa.currentState.amount1(),
-            40000 - quanity,
-            "currentState's quantity is error"
-        );
+        assertEq(result.actualDisinvestValue, aquanity, "disinvest proof 's value is error");
+        assertEq(result.actualDisinvestQuantity, aquanity, "disinvest proof 's quantity is error");
+        assertEq(aa.currentState.amount0(), 40000 - quanity, "currentState's value is error");
+        assertEq(aa.currentState.amount1(), 40000 - quanity, "currentState's quantity is error");
 
-        assertEq(
-            aa.investState.amount0(),
-            40000 - quanity,
-            "investState's value is error"
-        );
-        assertEq(
-            aa.investState.amount1(),
-            40000 - quanity,
-            "investState's quantity is error"
-        );
-        assertEq(
-            aa.feeQunitityState.amount1(),
-            0,
-            "feeQunitityState's feeamount is error"
-        );
-        assertEq(
-            aa.feeQunitityState.amount0(),
-            0,
-            "feeQunitityState's contruct fee is error"
-        );
+        assertEq(aa.investState.amount0(), 40000 - quanity, "investState's value is error");
+        assertEq(aa.investState.amount1(), 40000 - quanity, "investState's quantity is error");
+        assertEq(aa.feeQunitityState.amount1(), 0, "feeQunitityState's feeamount is error");
+        assertEq(aa.feeQunitityState.amount0(), 0, "feeQunitityState's contruct fee is error");
         snapStart("disinvest Value proof No Fee second");
-        (result, ) = market.disinvestProof(p_, 10, address(1));
+        (result,) = market.disinvestProof(p_, 10, address(1));
         snapEnd();
         vm.stopPrank();
     }

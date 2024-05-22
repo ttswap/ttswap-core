@@ -11,10 +11,8 @@ library L_MarketConfigLibrary {
             a := shr(250, config)
         }
     }
-    function getLiquidFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+
+    function getLiquidFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(250, config)
@@ -32,10 +30,7 @@ library L_MarketConfigLibrary {
         }
     }
 
-    function getSellerFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+    function getSellerFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(250, shl(6, config))
@@ -55,10 +50,7 @@ library L_MarketConfigLibrary {
         }
     }
 
-    function getGaterFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+    function getGaterFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(250, shl(12, config))
@@ -78,10 +70,7 @@ library L_MarketConfigLibrary {
         }
     }
 
-    function getReferFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+    function getReferFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(250, shl(18, config))
@@ -101,10 +90,7 @@ library L_MarketConfigLibrary {
         }
     }
 
-    function getCustomerFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+    function getCustomerFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(250, shl(24, config))
@@ -124,10 +110,7 @@ library L_MarketConfigLibrary {
         }
     }
 
-    function getPlatFee128(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+    function getPlatFee128(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(251, shl(30, config))
@@ -137,10 +120,7 @@ library L_MarketConfigLibrary {
         }
     }
 
-    function getPlatFee256(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint256 a) {
+    function getPlatFee256(uint256 config, uint256 amount) internal pure returns (uint256 a) {
         unchecked {
             assembly {
                 config := shr(251, shl(30, config))
@@ -151,11 +131,8 @@ library L_MarketConfigLibrary {
     }
 
     function checkAllocate(uint256 config) internal pure returns (bool) {
-        uint8 a = getLiquidFee(config) +
-            getSellerFee(config) +
-            getGaterFee(config) +
-            getReferFee(config) +
-            getCustomerFee(config);
+        uint8 a = getLiquidFee(config) + getSellerFee(config) + getGaterFee(config) + getReferFee(config)
+            + getCustomerFee(config);
         return a == 100 ? true : false;
     }
 }

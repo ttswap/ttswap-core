@@ -9,6 +9,7 @@ contract testMarketConfig is Test, GasSnapshot {
     using L_MarketConfigLibrary for uint256;
 
     uint256 marketconfig;
+
     function setUp() public {}
 
     function test_getLiquidFee() public {

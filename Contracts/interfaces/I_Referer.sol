@@ -8,5 +8,6 @@ interface I_Referer {
     /// @notice user addrefer~ 用户添加推荐人
     /// @param _user User address,用户地址
     /// @param _referer referer address,推荐人地址
+
     event e_addreferer(address _user, address _referer);
 }

@@ -7,7 +7,13 @@ import "./I_Good.sol";
 import {S_GoodKey, S_ProofKey, S_Ralate} from "../libraries/L_Struct.sol";
 import {L_Good} from "../libraries/L_Good.sol";
 
-import {T_BalanceUINT256, L_BalanceUINT256Library, toBalanceUINT256, addsub, subadd} from "../libraries/L_BalanceUINT256.sol";
+import {
+    T_BalanceUINT256,
+    L_BalanceUINT256Library,
+    toBalanceUINT256,
+    addsub,
+    subadd
+} from "../libraries/L_BalanceUINT256.sol";
 
 /// @title 市场管理接口 market manage interface
 /// @notice 市场管理接口 market manage interface
@@ -20,11 +26,7 @@ interface I_MarketManage is I_Good, I_Proof {
     /// @param _goodConfig   metagood's config refer white paper~元商品的配置,具体参见白皮书
     /// @param _initial   market intial para: amount0 value  amount1:quantity~市场初始化参数:amount0为价值,amount1为数量.
     event e_initMetaGood(
-        uint256 indexed _proofNo,
-        uint256 _goodNo,
-        address _erc20address,
-        uint256 _goodConfig,
-        T_BalanceUINT256 _initial
+        uint256 indexed _proofNo, uint256 _goodNo, address _erc20address, uint256 _goodConfig, T_BalanceUINT256 _initial
     );
 
     /// @notice emit when  good create :当用户创建初始化商品时
@@ -130,11 +132,9 @@ interface I_MarketManage is I_Good, I_Proof {
     /// @param _goodconfig   good config (detail config according to the whitepaper)~商品配置(详细配置参见技术白皮书)
     /// @return metagood_no_  good_no~商品编号
     /// @return proof_no_  proof_no~投资证明编号
-    function initMetaGood(
-        address _erc20address,
-        T_BalanceUINT256 _initial,
-        uint256 _goodconfig
-    ) external payable returns (uint256 metagood_no_, uint256 proof_no_);
+    function initMetaGood(address _erc20address, T_BalanceUINT256 _initial, uint256 _goodconfig)
+        external
+        returns (uint256 metagood_no_, uint256 proof_no_);
 
     /// @notice initial the normal good~初始化市场中的普通商品
     /// @param _valuegood   valuegood_no:measure the normal good value~价值商品编号:衡量普通商品价值
@@ -169,7 +169,7 @@ interface I_MarketManage is I_Good, I_Proof {
         uint256 _limitprice,
         bool _istotal,
         address _gater
-    ) external returns (uint128 goodid2Quantity_, uint128 goodid2FeeQuantity_);
+    ) external payable returns (uint128 goodid2Quantity_, uint128 goodid2FeeQuantity_);
 
     /// @notice buy _swapQuantity units of good to sell good2 and send good1 to recipent~用户购买_swapQuantity个_goodid1去出售 _goodid2并且把商品转给RECIPENT
     /// @param _goodid1 good1's No~商品1的编号
@@ -187,7 +187,7 @@ interface I_MarketManage is I_Good, I_Proof {
         uint256 _limitprice,
         address _recipent,
         address _gater
-    ) external returns (uint128 goodid1Quantity_, uint128 goodid1FeeQuantity_);
+    ) external payable returns (uint128 goodid1Quantity_, uint128 goodid1FeeQuantity_);
 
     /// @notice invest normal good~投资普通商品
     /// @param _togood  normal good No~普通商品的编号
@@ -205,13 +205,9 @@ interface I_MarketManage is I_Good, I_Proof {
     ///  valueInvest_.actualinvestValue //value of invest 实际投资价值
     ///  valueInvest_.actualinvestQuantity //the quantity of invest 实际投资数量
     /// @return normalProofno_  证明编号
-    function investGood(
-        uint256 _togood,
-        uint256 _valuegood,
-        uint128 _quantity,
-        address _gater
-    )
+    function investGood(uint256 _togood, uint256 _valuegood, uint128 _quantity, address _gater)
         external
+        payable
         returns (
             L_Good.S_GoodInvestReturn memory normalInvest_,
             L_Good.S_GoodInvestReturn memory valueInvest_,
@@ -234,12 +230,7 @@ interface I_MarketManage is I_Good, I_Proof {
     /// disinvestResult2_.actualDisinvestValue; // disinvest value  撤资价值
     /// disinvestResult2_.actualDisinvestQuantity; //disinvest quantity 撤资数量
     /// @return proofno_  证明编号
-    function disinvestGood(
-        uint256 _togood,
-        uint256 _valuegood,
-        uint128 _goodQuantity,
-        address _gater
-    )
+    function disinvestGood(uint256 _togood, uint256 _valuegood, uint128 _goodQuantity, address _gater)
         external
         returns (
             L_Good.S_GoodDisinvestReturn memory disinvestResult1_,
@@ -261,11 +252,7 @@ interface I_MarketManage is I_Good, I_Proof {
     /// disinvestResult2_.actual_fee; // actual fee 实际手续费
     /// disinvestResult2_.actualDisinvestValue; // disinvest value  撤资价值
     /// disinvestResult2_.actualDisinvestQuantity; //disinvest quantity 撤资数量
-    function disinvestProof(
-        uint256 _proofid,
-        uint128 _goodQuantity,
-        address _gater
-    )
+    function disinvestProof(uint256 _proofid, uint128 _goodQuantity, address _gater)
         external
         returns (
             L_Good.S_GoodDisinvestReturn memory disinvestResult1_,
@@ -275,7 +262,5 @@ interface I_MarketManage is I_Good, I_Proof {
     /// @notice collect the profit of normal proof~提取普通投资证明的收益
     /// @param _proofid   the proof No of invest normal good~普通投资证明编号
     /// @return profit_   amount0 普通商品的投资收益 amount1价值商品的投资收益
-    function collectProofFee(
-        uint256 _proofid
-    ) external returns (T_BalanceUINT256 profit_);
+    function collectProofFee(uint256 _proofid) external returns (T_BalanceUINT256 profit_);
 }

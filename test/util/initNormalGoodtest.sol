@@ -27,12 +27,6 @@ contract initNormalGoodtest is initMetaGoodtest, Test {
         USDT.approve(address(market), 100000);
         btc.approve(address(market), 100000);
         market.updatetoValueGood(metagood);
-        market.initGood(
-            metagood,
-            toBalanceUINT256(2000, 2000),
-            address(USDT),
-            0,
-            msg.sender
-        );
+        market.initGood(metagood, toBalanceUINT256(2000, 2000), address(USDT), 0, msg.sender);
     }
 }
