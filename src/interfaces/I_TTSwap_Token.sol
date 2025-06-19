@@ -72,11 +72,7 @@ interface I_TTSwap_Token {
      */
     function userConfig(address recipent) external view returns (uint256 _auth);
     function setEnv(address _marketcontract) external; // Sets the environment variables for normal good ID, value good ID, and market contract address
-    /**
-     * @dev Changes the DAO admin to the specified recipient address
-     * @param _recipient user's address
-     */
-    function changeDAOAdmin(address _recipient) external;
+  
     /**
      * @dev Adds a new mint share to the contract
      * @param _share The share structure containing recipient, amount, metric, and chips
@@ -117,7 +113,7 @@ interface I_TTSwap_Token {
     /// @notice Add a referral relationship
     /// @param user The address of the user being referred
     /// @param referral The address of the referrer
-    function addreferral(address user, address referral) external;
+    function setReferral(address user, address referral) external;
 
     /// @notice Stake tokens
     /// @param staker The address of the staker
@@ -135,7 +131,7 @@ interface I_TTSwap_Token {
     /// @return referral The address of the referrer
     function getreferral(address _customer) external view returns ( address referral);
 
-    function permitShare(s_share memory _share, uint128 dealline, bytes calldata signature) external;
+    function permitShare(s_share memory _share, uint128 dealline, bytes calldata signature,address signer) external;
 
     function shareHash(s_share memory _share, address owner, uint128 leftamount, uint128 deadline, uint256 nonce)
         external

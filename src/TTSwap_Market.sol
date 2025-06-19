@@ -336,7 +336,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         ) revert TTSwapError(35);
         if (_tradetimes < 100) {
             if (_recipent != address(0) && _recipent != msg.sender) {
-                officialTokenContract.addreferral(msg.sender, _recipent);
+                officialTokenContract.setReferral(msg.sender, _recipent);
             }
 
             L_Good.swapCache memory swapcache = L_Good.swapCache({

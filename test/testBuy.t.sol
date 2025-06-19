@@ -51,12 +51,14 @@ contract testBuy123 is Test {
         tts_token = new TTSwap_Token(address(usdt), marketcreator, 2 ** 255);
         market = new TTSwap_Market(
             81562183917421901855786361352751156561780156203962646020495653018153967943680,
-            address(tts_token),
-            marketcreator,
+            tts_token,
             marketcreator
         );
-        tts_token.addauths(address(market), 1);
-        tts_token.addauths(marketcreator, 3);
+       
+        tts_token.setTokenAdmin(marketcreator,true);
+        tts_token.setTokenManager(marketcreator,true);
+        tts_token.setCallMintTTS(address(market), true);
+        tts_token.setMarketAdmin(marketcreator,true);
         //81562183917421901855786361352751956561780156203962646020495653018153967943680
         //            (45*2**250+5*2**244+10*2**238+15*2**232+25*2**226+20*2**221)
 

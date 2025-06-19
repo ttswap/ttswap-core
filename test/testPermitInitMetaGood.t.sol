@@ -72,10 +72,12 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
         vm.startPrank(marketcreator);
         tts_token = new TTSwap_Token(address(usdt), marketcreator, 2 ** 255);
         snapStart("depoly Market Manager");
-        market = new TTSwap_Market(m_marketconfig, address(tts_token), marketcreator, marketcreator);
+        market = new TTSwap_Market(m_marketconfig, tts_token, marketcreator);
         snapEnd();
-        tts_token.addauths(address(market), 1);
-        tts_token.addauths(marketcreator, 3);
+        tts_token.setTokenAdmin(marketcreator,true);
+        tts_token.setTokenManager(marketcreator,true);
+        tts_token.setCallMintTTS(address(market), true);
+        tts_token.setMarketAdmin(marketcreator,true);
         kkkk = new MyToken("USDT", "USDT", 6);
 
         ownerPrivateKey = 0xA11CE;

@@ -21,7 +21,7 @@ import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
 import {L_MarketConfigLibrary} from "../src/libraries/L_MarketConfig.sol";
 import {L_UserConfigLibrary} from "../src/libraries/L_UserConfig.sol";
 
-contract addbanlist is BaseSetup {
+contract addRefer is BaseSetup {
     using L_MarketConfigLibrary for uint256;
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
@@ -37,15 +37,15 @@ contract addbanlist is BaseSetup {
         BaseSetup.setUp();
     }
 
-    function testaddbanlist() public {
+    function testaddRefer() public {
         vm.startPrank(marketcreator);
         tts_token.setTokenAdmin(marketcreator,true);
         tts_token.setTokenManager(marketcreator,true);
         tts_token.setCallMintTTS(marketcreator, true);
-        tts_token.setBan(users[4], true);
-        assertEq(tts_token.userConfig(users[4]).isBan(), true, "banlist error");
-        tts_token.setBan(users[4], false);
-        assertEq(tts_token.userConfig(users[4]).isBan(), false, "banlist error");
+        tts_token.setReferral(users[4], 0xa50eb0d081E986c280efF32dae089939Ea07bd22);
+        assertEq(tts_token.userConfig(users[4]).referral(), 0xa50eb0d081E986c280efF32dae089939Ea07bd22, "refer error");
+        tts_token.setReferral(users[4], address(3));
+        assertEq(tts_token.userConfig(users[4]).referral(), 0xa50eb0d081E986c280efF32dae089939Ea07bd22, "refer error");
         vm.stopPrank();
     }
 }

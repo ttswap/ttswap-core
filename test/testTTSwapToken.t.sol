@@ -42,18 +42,21 @@ contract testTTSwapToken is Test, GasSnapshot {
         vm.startPrank(marketcreator);
         tts_token = new TTSwap_Token(address(usdt), marketcreator, 2 ** 255 + 10000);
         snapStart("depoly Market Manager");
-        market = new TTSwap_Market(m_marketconfig, address(tts_token), marketcreator, marketcreator);
+        market = new TTSwap_Market(m_marketconfig, tts_token, marketcreator);
         snapEnd();
 
-        tts_token.addauths(address(market), 1);
-        tts_token.addauths(marketcreator, 3);
+        tts_token.setTokenAdmin(marketcreator,true);
+        tts_token.setTokenManager(marketcreator,true);
+        tts_token.setCallMintTTS(address(market), true);
+        tts_token.setMarketAdmin(marketcreator,true);
         vm.stopPrank();
     }
 
     function teststake() public {
         vm.warp(1728211156);
         vm.startPrank(marketcreator);
-        tts_token.addauths(users[1], 1);
+
+        tts_token.setCallMintTTS(users[1], true);
         vm.stopPrank();
         vm.startPrank(users[1]);
         tts_token.stake(users[2], 100000);
@@ -82,7 +85,7 @@ contract testTTSwapToken is Test, GasSnapshot {
 
     function testSetRatio() public {
         vm.startPrank(marketcreator);
-        tts_token.addauths(marketcreator, 2);
+        tts_token.setTokenAdmin(marketcreator, true);
         tts_token.setRatio(10000);
         uint256 result = tts_token.ttstokenconfig().getratio(10000);
         assertEq(10000, result, "Ratio error");
@@ -138,7 +141,7 @@ contract testTTSwapToken is Test, GasSnapshot {
         vm.stopPrank();
 
         vm.startPrank(users[5]);
-        tts_token.permitShare(_share, dealline, bytes.concat(r, s, bytes1(v)));
+        tts_token.permitShare(_share, dealline, bytes.concat(r, s, bytes1(v)),marketcreator);
         (uint128 leftamount, uint128 metric, uint8 chips) = tts_token.shares(users[5]);
         assertEq(20000, leftamount, "left amount error");
         assertEq(5, metric, "left metric error");

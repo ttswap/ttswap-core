@@ -34,7 +34,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
 
     // mapping(uint32 => s_chain) public chains;
 
-    address private dao_admin;
+  
     address private marketcontract;
     uint128 public left_share = 45_000_000_000_000;
     /// @inheritdoc I_TTSwap_Token
@@ -61,9 +61,10 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     constructor(address _usdt, address _dao_admin, uint256 _ttsconfig) ERC20("TTSwap Token", "TTS", 6) {
         usdt = _usdt;
         stakestate = toTTSwapUINT256(uint128(block.timestamp), 0);
-        dao_admin = _dao_admin;
         ttstokenconfig = _ttsconfig;
+        userConfig[_dao_admin]=userConfig[_dao_admin].setDAOAdmin(true);
     }
+
 
     /**
      * @dev Modifier to ensure function is only called on the main chain
@@ -71,6 +72,56 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     modifier onlymain() {
         if (!ttstokenconfig.ismain()) revert TTSwapError(15);
         _;
+    }
+    //**************************priv partition*/
+
+    function setDAOAdmin(address _recipient) external { 
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
+        userConfig[msg.sender]=userConfig[msg.sender].setDAOAdmin(false);
+        userConfig[_recipient]=userConfig[_recipient].setDAOAdmin(true);
+    }
+    function setTokenAdmin(address _recipient,bool result) external{
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
+        userConfig[_recipient]=userConfig[_recipient].setTokenAdmin(result);
+    }
+
+    function setTokenManager(address _recipient,bool result)external{
+        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(16);
+        userConfig[_recipient]=userConfig[_recipient].setTokenManager(result);
+    }
+
+    function setCallMintTTS(address _recipient,bool result)external{
+        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(16);
+        userConfig[_recipient]=userConfig[_recipient].setCallMintTTS(result);
+    }
+
+    function setMarketAdmin(address _recipient,bool result)external{
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
+        userConfig[_recipient]=userConfig[_recipient].setMarketAdmin(result);
+    }
+
+    function setMarketManager(address _recipient,bool result)external{
+        if (!userConfig[msg.sender].isMarketAdmin()) revert TTSwapError(16);
+        userConfig[_recipient]=userConfig[_recipient].setMarketManager(result);
+    }
+
+    function setBan(address _recipient,bool result)external{
+         if (!userConfig[msg.sender].isTokenManager()) revert TTSwapError(16);
+        userConfig[_recipient]=userConfig[_recipient].setBan(result);
+    }
+
+    /**
+     * @dev Adds a referral relationship between a user and a referrer
+     * @param user The address of the user being referred
+     * @param referral The address of the referrer
+     * @notice Only callable by authorized addresses (auths[msg.sender] == 1)
+     * @notice Will only set the referral if the user doesn't already have one
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function setReferral(address user, address referral) external override {
+        if (userConfig[msg.sender].isCallMintTTS() && userConfig[user].referral() == address(0) && user != referral) {
+            userConfig[user] = userConfig[user].setReferral(referral);
+        }
     }
 
     /**
@@ -91,24 +142,10 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     /// @inheritdoc I_TTSwap_Token
 
     function setEnv(address _marketcontract) external override {
-        if (msg.sender != dao_admin) revert TTSwapError(16);
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
         marketcontract = _marketcontract;
         emit e_setenv(marketcontract);
     }
-
-    /**
-     * @dev Changes the DAO admin address
-     * @param _recipient The address of the new DAO admin
-     * @notice Only the current DAO admin can call this function
-     */
-    /// @inheritdoc I_TTSwap_Token
-    function changeDAOAdmin(address _recipient) external override {
-        if (userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(19);
-        dao_admin = _recipient;
-    }
-
-
-
     /**
      * @dev Adds a new mint share to the contract
      * @param _share The share structure containing recipient, amount, metric, and chips
@@ -119,14 +156,15 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function addShare(s_share memory _share, address owner) external override onlymain {
-        if (left_share < _share.leftamount || msg.sender != dao_admin) {
+       
+        if (left_share < _share.leftamount || !userConfig[msg.sender].isTokenAdmin()) {
             revert TTSwapError(18);
         }
         _addShare(_share, owner);
     }
 
     function _addShare(s_share memory _share, address owner) internal {
-        require(left_share<=uint64(_share.leftamount));
+        require(left_share>=uint64(_share.leftamount));
         left_share -= uint64(_share.leftamount);
         if (shares[owner].leftamount == 0) {
             shares[owner] = _share;
@@ -149,7 +187,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function burnShare(address owner) external override onlymain {
-        if (msg.sender != dao_admin) revert TTSwapError(22);
+        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(22);
         left_share += uint64(shares[owner].leftamount);
         emit e_burnShare(owner);
         delete shares[owner];
@@ -177,20 +215,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         emit e_shareMint(mintamount, msg.sender);
     }
 
-    /**
-     * @dev Adds a referral relationship between a user and a referrer
-     * @param user The address of the user being referred
-     * @param referral The address of the referrer
-     * @notice Only callable by authorized addresses (auths[msg.sender] == 1)
-     * @notice Will only set the referral if the user doesn't already have one
-     */
-    /// @inheritdoc I_TTSwap_Token
-    function addreferral(address user, address referral) external override {
-        if (userConfig[msg.sender].isCallMintTTS() && userConfig[user].refer() == address(0) && user != referral) {
-            userConfig[user] = userConfig[user].setRefer(referral);
-         
-        }
-    }
+
 
     /**
      * @dev Retrieves both the DAO admin address and the referrer address for a given customer
@@ -199,7 +224,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function getreferral(address _customer) external view override returns (address) {
-        return  userConfig[_customer].refer();
+        return  userConfig[_customer].referral();
     }
 
     /**
@@ -234,7 +259,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function withdrawPublicSell(uint256 amount, address recipient) external onlymain {
-        if (msg.sender != dao_admin) revert TTSwapError(25);
+        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(25);
         usdt.safeTransfer(recipient, amount);
     }
 
@@ -338,12 +363,12 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         emit Transfer(from, address(0), amount);
     }
 
-    function permitShare(s_share memory _share, uint128 dealline, bytes calldata signature) external override {
+    function permitShare(s_share memory _share, uint128 dealline, bytes calldata signature,address signer) external override {
         if (block.timestamp > dealline) revert TTSwapError(36);
         // Verify the signer address from the signature.
         signature.verify(
             _hashTypedData(shareHash(_share, msg.sender, shares[msg.sender].leftamount, dealline, nonces[msg.sender]++)),
-            dao_admin
+            userConfig[signer].isTokenAdmin()?signer:address(0)
         );
         _addShare(_share, msg.sender);
     }
