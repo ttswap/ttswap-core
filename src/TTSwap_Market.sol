@@ -12,7 +12,6 @@ import {L_GoodConfigLibrary} from "./libraries/L_GoodConfig.sol";
 import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
 import {L_MarketConfigLibrary} from "./libraries/L_MarketConfig.sol";
 import {L_CurrencyLibrary} from "./libraries/L_Currency.sol";
-import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
 import {
     L_TTSwapUINT256Library,
     toTTSwapUINT256,
@@ -27,6 +26,7 @@ import {IERC3156FlashLender} from "./interfaces/IERC3156FlashLender.sol";
 import {IMulticall_v4} from "./interfaces/IMulticall_v4.sol";
 import {ERC6909} from "./base/ERC6909.sol";
 import {I_TTSwap_StakeETH} from "./interfaces/I_TTSwap_StakeETH.sol";
+import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
 
 /**
  * @title TTSwap_Market
@@ -88,14 +88,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
      */
     mapping(uint256 proofid => S_ProofState) private proofs;
 
-    /**
-     * @dev Mapping of user addresses to their configuration settings
-     * @notice Manages user permissions and restrictions:
-     * - Market maker status (creation and management rights)
-     * - Ban status (operation restrictions)
-     * - Special permissions (admin, emergency control)
-     */
-    mapping(address => uint256) public override userConfig;
 
     /**
      * @dev Total amount of tokens currently being restaked
@@ -115,15 +107,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
      */
     uint256 public override marketconfig;
 
-    /**
-     * @dev Address of the contract deployer with admin privileges
-     * @notice Has authority to:
-     * - Change market configuration
-     * - Modify user permissions
-     * - Update protocol parameters
-     * - Emergency controls
-     */
-    address public marketcreator;
+
 
     /**
      * @dev Address of the official TTS token contract
@@ -133,7 +117,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
      * - Referral tracking and rewards
      * - Governance token functionality
      */
-    address private immutable officialTokenContract;
+    I_TTSwap_Token private immutable officialTokenContract;
 
     /**
      * @dev Emergency security control address
@@ -159,29 +143,26 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
      * @dev Constructor for TTSwap_Market
      * @param _marketconfig The market configuration
      * @param _officialTokenContract The address of the official token contract
-     * @param _marketcreator The address of the official contract
      */
     constructor(
         uint256 _marketconfig,
-        address _officialTokenContract,
-        address _marketcreator,
+        I_TTSwap_Token _officialTokenContract,
         address _securitykeeper
     ) {
         officialTokenContract = _officialTokenContract;
         marketconfig = _marketconfig;
-        marketcreator = _marketcreator;
         securitykeeper = _securitykeeper;
     }
 
     /// onlydao admin can execute
-    modifier onlyDAOadmin() {
-        if (marketcreator != msg.sender) revert TTSwapError(1);
+    modifier onlyMarketadmin() {
+        if (!officialTokenContract.userConfig(msg.sender).isMarketAdmin()) revert TTSwapError(1);
         _;
     }
 
     /// onlydao manager can execute
     modifier onlyMarketor() {
-        if (!userConfig[msg.sender].isMarketor()) revert TTSwapError(2);
+        if (!officialTokenContract.userConfig(msg.sender).isMarketManager()) revert TTSwapError(2);
         _;
     }
 
@@ -218,31 +199,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         }
     }
 
-    /// change daoadmin
-    function changemarketcreator(address _newmarketor) external onlyDAOadmin {
-        marketcreator = _newmarketor;
-        emit e_changemarketcreator(_newmarketor);
-    }
-
-    /// set user auth
-    function setAuth(address _newmarketor, uint256 auth) external onlyDAOadmin {
-        userConfig[_newmarketor] = auth;
-        emit e_modifiedUserConfig(_newmarketor, auth);
-    }
-
-    /// @inheritdoc I_TTSwap_Market
-    function addbanlist(address _user) external override onlyMarketor returns (bool) {
-        userConfig[_user] = userConfig[_user] | 1;
-        emit e_modifiedUserConfig(_user, userConfig[_user]);
-        return true;
-    }
-
-    /// @inheritdoc I_TTSwap_Market
-    function removebanlist(address _user) external override onlyMarketor returns (bool) {
-        userConfig[_user] = userConfig[_user] & ~uint256(1);
-        emit e_modifiedUserConfig(_user, userConfig[_user]);
-        return true;
-    }
     /**
      * @dev Initializes a meta good with initial liquidity
      * @param _erc20address The address of the ERC20 token to be used as the meta good
@@ -269,7 +225,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
     function initMetaGood(address _erc20address, uint256 _initial, uint256 _goodConfig, bytes calldata data)
         external
         payable
-        onlyDAOadmin
+        onlyMarketadmin
         msgValue
         returns (bool)
     {
@@ -380,7 +336,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         ) revert TTSwapError(35);
         if (_tradetimes < 100) {
             if (_recipent != address(0) && _recipent != msg.sender) {
-                I_TTSwap_Token(officialTokenContract).addreferral(msg.sender, _recipent);
+                officialTokenContract.addreferral(msg.sender, _recipent);
             }
 
             L_Good.swapCache memory swapcache = L_Good.swapCache({
@@ -632,14 +588,14 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         address valuegood = proofs[_proofid].valuegood;
 
         uint128 divestvalue;
-        (address dao_admin, address referal) = I_TTSwap_Token(officialTokenContract).getreferralanddaoadmin(msg.sender);
-        _gate = userConfig[_gate].isBan() ? dao_admin : _gate;
-        referal = _gate == referal ? dao_admin : referal;
-        referal = userConfig[referal].isBan() ? dao_admin : referal;
+        address referal = I_TTSwap_Token(officialTokenContract).getreferral(msg.sender);
+        _gate = officialTokenContract.userConfig(_gate).isBan() ? address(0) : _gate;
+        referal = _gate == referal ? address(0) : referal;
+        referal = officialTokenContract.userConfig(referal).isBan() ? address(0) : referal;
         (disinvestNormalResult1_, disinvestValueResult2_, divestvalue) = goods[normalgood].disinvestGood(
             goods[valuegood],
             proofs[_proofid],
-            L_Good.S_GoodDisinvestParam(_goodQuantity, _gate, referal, marketconfig, dao_admin)
+            L_Good.S_GoodDisinvestParam(_goodQuantity, _gate, referal, marketconfig, address(0))
         );
 
         uint256 tranferamount = goods[normalgood].commission[msg.sender];
@@ -753,16 +709,17 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
     /// @inheritdoc I_TTSwap_Market
 
     function collectCommission(address[] memory _goodid) external override noReentrant msgValue {
+        address recipent = officialTokenContract.userConfig(msg.sender).isDAOAdmin()?address(0):msg.sender;
         if (_goodid.length > 100) revert TTSwapError(11);
         uint256[] memory commissionamount = new uint256[](_goodid.length);
         for (uint256 i = 0; i < _goodid.length; i++) {
-            commissionamount[i] = goods[_goodid[i]].commission[msg.sender];
+            commissionamount[i] = goods[_goodid[i]].commission[recipent];
             if (commissionamount[i] < 2) {
                 commissionamount[i] = 0;
                 continue;
             } else {
                 commissionamount[i] = commissionamount[i] - 1;
-                goods[_goodid[i]].commission[msg.sender] = 1;
+                goods[_goodid[i]].commission[recipent] = 1;
                 _goodid[i].safeTransfer(msg.sender, commissionamount[i]);
             }
         }
@@ -827,7 +784,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
     }
 
     /// @inheritdoc I_TTSwap_Market
-    function setMarketConfig(uint256 _marketconfig) external override onlyDAOadmin returns (bool) {
+    function setMarketConfig(uint256 _marketconfig) external override onlyMarketadmin returns (bool) {
         marketconfig = _marketconfig;
         emit e_setMarketConfig(_marketconfig);
         return true;
@@ -912,7 +869,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
      * @custom:security Reverts if caller is not the DAO admin
      */
     function removeSecurityKeeper() external {
-        require(msg.sender == marketcreator);
+        require(officialTokenContract.userConfig(msg.sender).isDAOAdmin());
         securitykeeper = address(0);
     }
     /**
@@ -1003,7 +960,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
      * - New contract does not implement required interface
      */
     /// @inheritdoc I_TTSwap_Market
-    function changeReStakingContrat(address _target) external onlyDAOadmin {
+    function changeReStakingContrat(address _target) external onlyMarketadmin {
         restakeContract = I_TTSwap_StakeETH(_target);
     }
 

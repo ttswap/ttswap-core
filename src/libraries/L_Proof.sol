@@ -85,8 +85,8 @@ library L_Proof {
      * @param proofvalue The amount of proof value to stake
      * @return The staked amount
      */
-    function stake(address contractaddress, address to, uint128 proofvalue) internal returns (uint128) {
-        return I_TTSwap_Token(contractaddress).stake(to, proofvalue);
+    function stake(I_TTSwap_Token contractaddress, address to, uint128 proofvalue) internal returns (uint128) {
+        return contractaddress.stake(to, proofvalue);
     }
 
     /**
@@ -95,8 +95,8 @@ library L_Proof {
      * @param from The address to unstake from
      * @param divestvalue The amount of proof value to unstake
      */
-    function unstake(address contractaddress, address from, uint128 divestvalue) internal {
-        I_TTSwap_Token(contractaddress).unstake(from, divestvalue);
+    function unstake(I_TTSwap_Token contractaddress, address from, uint128 divestvalue) internal {
+        contractaddress.unstake(from, divestvalue);
     }
 }
 
