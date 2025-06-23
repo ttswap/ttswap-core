@@ -44,6 +44,8 @@ contract BaseSetup is Test, GasSnapshot {
         tts_token.setTokenManager(marketcreator,true);
         tts_token.setCallMintTTS(address(market), true);
         tts_token.setMarketAdmin(marketcreator,true);
+        tts_token.setStakeAdmin(marketcreator,true);
+        tts_token.setStakeManager(marketcreator,true);
         vm.stopPrank();
     }
 }

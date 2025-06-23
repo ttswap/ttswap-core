@@ -50,8 +50,6 @@ contract DeployMarket is Script {
         ttstoken.setCallMintTTS(address(ttsmarket), true);
         ttstoken.setMarketAdmin(msg.sender,true);
 
-   
-
         UsdtToken.approve(address(ttsmarket), 10000000000000);
 
         ttsmarket.initMetaGood(

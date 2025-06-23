@@ -51,6 +51,22 @@ library L_UserConfigLibrary {
         return config&~(uint256(2**250))|(a?uint256(2**250):0);
     }
 
+    function isStakeAdmin(uint256 config)internal pure returns(bool a){
+        return (config&uint256(2**249))>0;
+    }
+
+    function setStakeAdmin(uint256 config,bool a)internal pure returns(uint256 e){
+        return config&~(uint256(2**249))|(a?uint256(2**249):0);
+    }
+
+    function isStakeManager(uint256 config)internal pure returns(bool a){
+        return (config&uint256(2**248))>0;
+    }
+
+    function setStakeManager(uint256 config,bool a)internal pure returns(uint256 e){
+        return config&~(uint256(2**248))|(a?uint256(2**248):0);
+    }
+
     function isTrue(uint256 config,uint8 b)internal pure returns(bool a){
         return (config&uint256(2**b))>0;
     }

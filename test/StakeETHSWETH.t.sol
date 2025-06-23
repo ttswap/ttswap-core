@@ -49,7 +49,7 @@ contract StakeETHSWETH is BaseSetup {
         BaseSetup.setUp();
         initRethToken();
         ttswapstake = new TTSwap_StakeETH(
-            marketcreator, market, IERC20(address(tts_token)), IRocketTokenRETH(reth), IRocketStorage(reth)
+             market, tts_token, IRocketTokenRETH(reth), IRocketStorage(reth)
         );
         weth1 = new MyToken("WETH", "WETH", 18);
         vm.etch(weth, address(weth1).code);

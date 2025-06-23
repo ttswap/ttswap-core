@@ -75,37 +75,49 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     }
     //**************************priv partition*/
 
-    function setDAOAdmin(address _recipient) external { 
+    function setDAOAdmin(address _recipient) external  { 
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
         userConfig[msg.sender]=userConfig[msg.sender].setDAOAdmin(false);
         userConfig[_recipient]=userConfig[_recipient].setDAOAdmin(true);
     }
-    function setTokenAdmin(address _recipient,bool result) external{
+    function setTokenAdmin(address _recipient,bool result) external   {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setTokenAdmin(result);
     }
 
-    function setTokenManager(address _recipient,bool result)external{
+    function setTokenManager(address _recipient,bool result)external   {
         if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setTokenManager(result);
     }
 
-    function setCallMintTTS(address _recipient,bool result)external{
+    function setCallMintTTS(address _recipient,bool result)external   {
         if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setCallMintTTS(result);
     }
 
-    function setMarketAdmin(address _recipient,bool result)external{
+    function setMarketAdmin(address _recipient,bool result)external   {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setMarketAdmin(result);
     }
 
-    function setMarketManager(address _recipient,bool result)external{
+    function setMarketManager(address _recipient,bool result)external   {
         if (!userConfig[msg.sender].isMarketAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setMarketManager(result);
     }
 
-    function setBan(address _recipient,bool result)external{
+
+    function setStakeAdmin(address _recipient,bool result)external   {
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
+        userConfig[_recipient]=userConfig[_recipient].setStakeAdmin(result);
+    }
+
+    function setStakeManager(address _recipient,bool result)external  {
+        if (!userConfig[msg.sender].isStakeAdmin()) revert TTSwapError(16);
+        userConfig[_recipient]=userConfig[_recipient].setStakeManager(result);
+    }
+
+
+    function setBan(address _recipient,bool result)external  {
          if (!userConfig[msg.sender].isTokenManager()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setBan(result);
     }
