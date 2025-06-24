@@ -63,6 +63,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         stakestate = toTTSwapUINT256(uint128(block.timestamp), 0);
         ttstokenconfig = _ttsconfig;
         userConfig[_dao_admin]=userConfig[_dao_admin].setDAOAdmin(true);
+        emit e_updateUserConfig(_dao_admin,userConfig[_dao_admin]);
     }
 
 
@@ -75,51 +76,60 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     }
     //**************************priv partition*/
 
-    function setDAOAdmin(address _recipient) external  { 
+    function setDAOAdmin(address _recipient,bool result) external  { 
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
-        userConfig[msg.sender]=userConfig[msg.sender].setDAOAdmin(false);
-        userConfig[_recipient]=userConfig[_recipient].setDAOAdmin(true);
+        userConfig[msg.sender]=userConfig[msg.sender].setDAOAdmin(result);
+        userConfig[_recipient]=userConfig[_recipient].setDAOAdmin(result);
+        emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
     function setTokenAdmin(address _recipient,bool result) external   {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setTokenAdmin(result);
+        emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
     function setTokenManager(address _recipient,bool result)external   {
         if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setTokenManager(result);
+        emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
     function setCallMintTTS(address _recipient,bool result)external   {
         if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setCallMintTTS(result);
+        emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
     function setMarketAdmin(address _recipient,bool result)external   {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setMarketAdmin(result);
+        emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
     function setMarketManager(address _recipient,bool result)external   {
         if (!userConfig[msg.sender].isMarketAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setMarketManager(result);
+        emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
 
     function setStakeAdmin(address _recipient,bool result)external   {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setStakeAdmin(result);
+        emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
     function setStakeManager(address _recipient,bool result)external  {
         if (!userConfig[msg.sender].isStakeAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setStakeManager(result);
+        emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
 
     function setBan(address _recipient,bool result)external  {
          if (!userConfig[msg.sender].isTokenManager()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setBan(result);
+        emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
     /**
@@ -134,6 +144,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         if (userConfig[msg.sender].isCallMintTTS() && userConfig[user].referral() == address(0) && user != referral) {
             userConfig[user] = userConfig[user].setReferral(referral);
         }
+        emit e_addreferral(user,referral);
     }
 
     /**

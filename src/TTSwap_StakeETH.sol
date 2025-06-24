@@ -94,7 +94,7 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @notice Restricts function access to the protocol creator only.
      */
     modifier onlyCreator() {
-        require(tts_token.userConfig(msg.sender).isStakeAdmin());
+        if(!tts_token.userConfig(msg.sender).isStakeAdmin())  revert TTSwapError(38);
         _;
     }
 
@@ -102,7 +102,7 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @notice Restricts function access to the protocol manager only.
      */
     modifier onlyManager() {
-        require(tts_token.userConfig(msg.sender).isStakeManager());
+        if(!tts_token.userConfig(msg.sender).isStakeManager())  revert TTSwapError(39);
         _;
     }
 
@@ -160,7 +160,6 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
             reward = totalState.getamount1fromamount0(unstakeshare);
             sethState = sub(sethState, toTTSwapUINT256(unstakeshare, reward));
             totalState = sub(totalState, toTTSwapUINT256(unstakeshare, reward));
-   
             token.safeTransfer(msg.sender, reward + amount);
             emit e_unstakeSETH(totalStake, totalState, sethState, rethStaking, toTTSwapUINT256(reward, amount));
         } else {

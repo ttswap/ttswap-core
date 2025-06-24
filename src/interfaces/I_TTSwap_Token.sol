@@ -10,7 +10,8 @@ interface I_TTSwap_Token {
     /// @param marketcontract The address of the market contract
     event e_setenv(address marketcontract);
 
-  
+    event e_updateUserConfig(address user, uint256 config);
+    event e_addreferral(address user, address referal);
 
 
     /// @notice Emitted when minting is added

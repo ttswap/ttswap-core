@@ -18,7 +18,7 @@ import {
 } from "../src/libraries/L_TTSwapUINT256.sol";
 
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
-import {L_MarketConfigLibrary} from "../src/libraries/L_MarketConfig.sol";
+
 import {IERC20} from "../src/interfaces/IERC20.sol";
 
 import {rocketpoolmock} from "../src/test/rocketpoolmock.sol";
@@ -29,7 +29,6 @@ import {IRocketTokenRETH} from "../src/interfaces/IRocketTokenRETH.sol";
 import {IRocketStorage} from "../src/interfaces/IRocketStorage.sol";
 
 contract StakeETHSWETH is BaseSetup {
-    using L_MarketConfigLibrary for uint256;
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 

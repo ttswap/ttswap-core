@@ -16,7 +16,7 @@ import {ProofUtil} from "./util/ProofUtil.sol";
 import {GoodUtil} from "./util/GoodUtil.sol";
 
 contract testBuy11 is Test {
-    using L_MarketConfigLibrary for uint256;
+   
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 

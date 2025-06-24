@@ -16,10 +16,9 @@ import {L_CurrencyLibrary} from "../src/libraries/L_Currency.sol";
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
 import {ProofUtil} from "./util/ProofUtil.sol";
 import {GoodUtil} from "./util/GoodUtil.sol";
-import {L_MarketConfigLibrary} from "../src/libraries/L_MarketConfig.sol";
 
 contract testBuy123 is Test {
-    using L_MarketConfigLibrary for uint256;
+   
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 
@@ -50,7 +49,7 @@ contract testBuy123 is Test {
         eth = new MyToken("ETH", "ETH", 18);
         tts_token = new TTSwap_Token(address(usdt), marketcreator, 2 ** 255);
         market = new TTSwap_Market(
-            81562183917421901855786361352751156561780156203962646020495653018153967943680,
+            
             tts_token,
             marketcreator
         );

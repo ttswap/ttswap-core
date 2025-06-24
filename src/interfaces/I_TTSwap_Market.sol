@@ -41,10 +41,6 @@ interface I_TTSwap_Market {
     /// @param feeamount The amount of fee collected
     event e_collectProtocolFee(address goodid, uint256 feeamount);
 
-    /// @notice Emitted when proofid deleted when proofid is transfer.
-    /// @param delproofid fromproofid which will be deleted
-    /// @param existsproofid conbine to existsproofid
-    event e_transferdel(uint256 delproofid, uint256 existsproofid);
 
     /// @notice Emitted when a meta good is created and initialized
     /// @dev The decimal precision of _initial.amount0() defaults to 6
@@ -213,16 +209,6 @@ interface I_TTSwap_Market {
     function getProofState(uint256 proofid) external view returns (S_ProofState memory);
 
     function getGoodState(address goodkey) external view returns (S_GoodTmpState memory);
-
-    /// @notice Returns the market configuration
-    /// @dev Can be changed by the market manager
-    /// @return marketconfig_ The market configuration
-    function marketconfig() external view returns (uint256 marketconfig_);
-
-    /// @notice Sets the market configuration
-    /// @param _marketconfig The new market configuration
-    /// @return Success status
-    function setMarketConfig(uint256 _marketconfig) external returns (bool);
 
     /// @notice Updates a good's configuration
     /// @param _goodid The ID of the good

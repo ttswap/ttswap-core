@@ -18,10 +18,10 @@ import {
 } from "../src/libraries/L_TTSwapUINT256.sol";
 
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
-import {L_MarketConfigLibrary} from "../src/libraries/L_MarketConfig.sol";
+
 
 contract investERC20NormalGood is BaseSetup {
-    using L_MarketConfigLibrary for uint256;
+   
     using L_GoodConfigLibrary for uint256;
 
     using L_ProofIdLibrary for S_ProofKey;
@@ -159,7 +159,7 @@ contract investERC20NormalGood is BaseSetup {
 
         assertEq(
             good_.goodConfig,
-            (2 ** 255) + 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197,
+             uint256(1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197 + 92709122 *2** 229),
             "after invest erc20_normalgood:metagood goodConfig error"
         );
 
@@ -274,7 +274,7 @@ contract investERC20NormalGood is BaseSetup {
 
         assertEq(
             good_.goodConfig,
-            (2 ** 255) + 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197,
+             uint256(1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197 + 92709122 *2** 229),
             "after invest erc20_normalgood:metagood goodConfig error"
         );
 

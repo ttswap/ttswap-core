@@ -16,7 +16,7 @@ import {ProofUtil} from "./util/ProofUtil.sol";
 import {GoodUtil} from "./util/GoodUtil.sol";
 
 contract testBuy11 is Test {
-    using L_MarketConfigLibrary for uint256;
+   
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 
@@ -34,7 +34,7 @@ contract testBuy11 is Test {
         good1.updateGoodConfig(_goodConfig);
         assertEq(_goodConfig, good1.goodConfig, "update goodconfig error");
 
-        uint256 _goodConfig1 = 1 * 2 ** 32;
+        uint256 _goodConfig1 =  92709122<<229;
         good1.modifyGoodConfig(_goodConfig1);
         console2.log(good1.goodConfig);
         console2.log(_goodConfig);

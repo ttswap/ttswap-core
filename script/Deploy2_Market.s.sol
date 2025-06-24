@@ -39,7 +39,6 @@ contract DeployMarket is Script {
         );
 
         TTSwap_Market ttsmarket = new TTSwap_Market(
-            108704010472773140011700138523653147769830858893921003965728532553194253844480,
             ttstoken,
             msg.sender
         );

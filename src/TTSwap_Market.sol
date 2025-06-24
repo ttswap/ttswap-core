@@ -10,7 +10,6 @@ import {TTSwapError} from "./libraries/L_Error.sol";
 import {L_Proof, L_ProofIdLibrary} from "./libraries/L_Proof.sol";
 import {L_GoodConfigLibrary} from "./libraries/L_GoodConfig.sol";
 import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
-import {L_MarketConfigLibrary} from "./libraries/L_MarketConfig.sol";
 import {L_CurrencyLibrary} from "./libraries/L_Currency.sol";
 import {
     L_TTSwapUINT256Library,
@@ -47,7 +46,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
     using L_Good for S_GoodState;
     using L_Proof for S_ProofState;
     using L_CurrencyLibrary for address;
-    using L_MarketConfigLibrary for uint256;
     /**
      * @dev The loan token is not valid.
      */
@@ -98,15 +96,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
      */
     uint256 restakingamount;
 
-    /**
-     * @dev Global market configuration parameters
-     * @notice Controls system-wide settings:
-     * - Fee distribution ratios (protocol, market makers, referrers)
-     * - Trading limits (min/max amounts, price impact)
-     * - Protocol parameters (staking requirements, rewards)
-     */
-    uint256 public override marketconfig;
-
 
 
     /**
@@ -141,16 +130,13 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
 
     /**
      * @dev Constructor for TTSwap_Market
-     * @param _marketconfig The market configuration
      * @param _officialTokenContract The address of the official token contract
      */
     constructor(
-        uint256 _marketconfig,
         I_TTSwap_Token _officialTokenContract,
         address _securitykeeper
     ) {
         officialTokenContract = _officialTokenContract;
-        marketconfig = _marketconfig;
         securitykeeper = _securitykeeper;
     }
 
@@ -199,6 +185,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         }
     }
 
+    event debuggaa(uint256);
     /**
      * @dev Initializes a meta good with initial liquidity
      * @param _erc20address The address of the ERC20 token to be used as the meta good
@@ -231,11 +218,11 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
     {
         if (!_goodConfig.isvaluegood() || goods[_erc20address].owner != address(0)) revert TTSwapError(4);
         _erc20address.transferFrom(msg.sender, _initial.amount1(), data);
+
         goods[_erc20address].init(_initial, _goodConfig);
         /// update good to value good
-        goods[_erc20address].modifyGoodConfig(67108864); //2**26
+        goods[_erc20address].modifyGoodConfig(92709122<<229); //2**26+6*2**22+ 1*2**18+ 5*2**15+8*2**10+8*2**5+2
         uint256 proofid = S_ProofKey(msg.sender, _erc20address, address(0)).toId();
-
         proofs[proofid].updateInvest(
             _erc20address, address(0), toTTSwapUINT256(_initial.amount0(), 0), _initial.amount1(), 0
         );
@@ -595,7 +582,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         (disinvestNormalResult1_, disinvestValueResult2_, divestvalue) = goods[normalgood].disinvestGood(
             goods[valuegood],
             proofs[_proofid],
-            L_Good.S_GoodDisinvestParam(_goodQuantity, _gate, referal, marketconfig, address(0))
+            L_Good.S_GoodDisinvestParam(_goodQuantity, _gate, referal)
         );
 
         uint256 tranferamount = goods[normalgood].commission[msg.sender];
@@ -783,12 +770,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         emit e_goodWelfare(goodid, welfare);
     }
 
-    /// @inheritdoc I_TTSwap_Market
-    function setMarketConfig(uint256 _marketconfig) external override onlyMarketadmin returns (bool) {
-        marketconfig = _marketconfig;
-        emit e_setMarketConfig(_marketconfig);
-        return true;
-    }
+ 
 
     /// @inheritdoc IERC3156FlashLender
     function maxFlashLoan(address good) public view override returns (uint256) {

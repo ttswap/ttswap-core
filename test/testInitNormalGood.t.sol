@@ -76,6 +76,12 @@ contract testInitNormalGood is BaseSetup {
 
         S_GoodTmpState memory metagoodkeystate = market.getGoodState(metagoodkey);
         assertEq(
+            metagoodkeystate.goodConfig,
+            uint256(1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197 + 92709122 *2** 229),
+            "1after initial normalgood:metagoodkey goodConfig error"
+        );
+
+        assertEq(
             metagoodkeystate.currentState,
             toTTSwapUINT256(
                 50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2, 50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
@@ -97,8 +103,8 @@ contract testInitNormalGood is BaseSetup {
 
         assertEq(
             metagoodkeystate.goodConfig,
-            (2 ** 255) + 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197,
-            "after initial normalgood:metagoodkey goodConfig error"
+            uint256(1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197 + 92709122 *2** 229),
+            "2after initial normalgood:metagoodkey goodConfig error"
         );
 
         assertEq(metagoodkeystate.owner, marketcreator, "after initial normalgood:metagoodkey marketcreator error");
@@ -125,7 +131,7 @@ contract testInitNormalGood is BaseSetup {
 
         assertEq(
             normalgoodstate.goodConfig,
-            1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197,
+            1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197+25600258*2**229,
             "after initial normalgood:normalgood goodConfig error"
         );
 
@@ -198,8 +204,8 @@ contract testInitNormalGood is BaseSetup {
 
         assertEq(
             metagoodkeystate.goodConfig,
-            (2 ** 255) + 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197,
-            "after initial normalgood:metagoodkey goodConfig error"
+             uint256(1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197 + 92709122 *2** 229),
+            "4after initial normalgood:metagoodkey goodConfig error"
         );
 
         assertEq(metagoodkeystate.owner, marketcreator, "after initial normalgood:metagoodkey marketcreator error");
@@ -223,7 +229,7 @@ contract testInitNormalGood is BaseSetup {
 
         assertEq(
             normalgoodstate.goodConfig,
-            1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197,
+            1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197+25600258*2**229,
             "after initial normalgood:normalgood goodConfig error"
         );
 
@@ -299,8 +305,8 @@ contract testInitNormalGood is BaseSetup {
 
         assertEq(
             metagoodkeystate.goodConfig,
-            (2 ** 255) + 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197,
-            "after initial normalgood:metagoodkey goodConfig error"
+             uint256(1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197 + 92709122 *2** 229),
+            "3after initial normalgood:metagoodkey goodConfig error"
         );
 
         assertEq(metagoodkeystate.owner, marketcreator, "after initial normalgood:metagoodkey marketcreator error");
@@ -324,8 +330,8 @@ contract testInitNormalGood is BaseSetup {
 
         assertEq(
             normalgoodstate.goodConfig,
-            1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197,
-            "after initial normalgood:normalgood goodConfig error"
+            1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197+25600258*2**229,
+            "1after initial normalgood:normalgood goodConfig error"
         );
 
         assertEq(normalgoodstate.owner, users[1], "after initial normalgood:normalgood owner error");
