@@ -469,7 +469,7 @@ library L_Good {
      * @param _goodconfig The new configuration value to be applied
      */
     function modifyGoodConfig(S_GoodState storage _self, uint256 _goodconfig) internal {
-        if(!_goodconfig.checkGoodConfig()) revert TTSwapError(40);
+        if(!_goodconfig.checkGoodConfig()) revert TTSwapError(39);
         _goodconfig=_goodconfig>>229<<229;
         _goodconfig=_goodconfig+_self.goodConfig % (2 ** 229);
         _self.goodConfig = _goodconfig;

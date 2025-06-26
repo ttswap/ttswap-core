@@ -338,7 +338,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
             });
 
             L_Good.swapCompute1(swapcache, _tradetimes);
-            if ((swapcache.remainQuantity + swapcache.feeQuantity) >= _swapQuantity || swapcache.swapvalue < 10_000_000)
+            if ((swapcache.remainQuantity + swapcache.feeQuantity) >= _swapQuantity || swapcache.swapvalue < 1_000_000)
             {
                 revert TTSwapError(34);
             }
@@ -357,7 +357,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
             _goodid2.safeTransfer(msg.sender, good2change.amount1());
             emit e_buyGood(_goodid1, _goodid2, swapcache.swapvalue, good1change, good2change);
         } else {
-            if (_recipent == address(0)) revert TTSwapError(35);
+            if (_recipent == address(0)) revert TTSwapError(40);
             L_Good.swapCache memory swapcache = L_Good.swapCache({
                 remainQuantity: _swapQuantity,
                 outputQuantity: 0,
@@ -370,7 +370,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
             });
             L_Good.swapCompute2(swapcache, _tradetimes);
 
-            if (swapcache.remainQuantity > 0 || swapcache.swapvalue < 10_000_000) revert TTSwapError(33);
+            if (swapcache.remainQuantity > 0 || swapcache.swapvalue < 1_000_000) revert TTSwapError(33);
 
             good1change = toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity);
             good2change = toTTSwapUINT256(
@@ -440,7 +440,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
 
             L_Good.swapCompute1(swapcache, _tradetimes);
 
-            if ((swapcache.remainQuantity + swapcache.feeQuantity) >= _swapQuantity) revert TTSwapError(34);
+            if ((swapcache.remainQuantity + swapcache.feeQuantity) >= _swapQuantity || swapcache.swapvalue < 1_000_000) revert TTSwapError(34);
 
             good1change = toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity - swapcache.remainQuantity);
 
@@ -460,7 +460,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
                 good2config: goods[_goodid2].goodConfig
             });
             L_Good.swapCompute2(swapcache, _tradetimes);
-            if (swapcache.remainQuantity > 0) revert TTSwapError(33);
+            if (swapcache.remainQuantity > 0 || swapcache.swapvalue < 1_000_000) revert TTSwapError(33);
             good1change = toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity);
             good2change = toTTSwapUINT256(
                 swapcache.good2config.getBuyFee(swapcache.outputQuantity),
