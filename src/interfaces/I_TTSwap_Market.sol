@@ -7,9 +7,7 @@ import {toTTSwapUINT256, addsub, subadd} from "../libraries/L_TTSwapUINT256.sol"
 /// @notice Defines the interface for managing market operations
 interface I_TTSwap_Market {
    
-    /// @notice Emitted when market configuration is set
-    /// @param _marketconfig The market configuration
-    event e_setMarketConfig(uint256 _marketconfig);
+
 
     /// @notice Emitted when a good's configuration is updated
     /// @param _goodid The ID of the good

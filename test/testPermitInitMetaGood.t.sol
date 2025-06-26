@@ -56,8 +56,7 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
         marketcreatorkey = 0xA121;
         marketcreator = vm.addr(marketcreatorkey);
         aabbpermit = new Permit2();
-        uint256 m_marketconfig = (45 << 250) + (5 << 244) + (10 << 238) + (15 << 232) + (25 << 226) + (20 << 220);
-
+    
         users[0] = payable(address(1));
         users[1] = payable(address(2));
         users[2] = payable(address(3));
