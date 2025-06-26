@@ -4,27 +4,15 @@ pragma solidity ^0.8.29;
 /// @title Investment Proof Interface
 /// @notice Contains a series of interfaces for goods
 interface I_TTSwap_Token {
-    /// @notice Emitted when a referral is added
-    /// @param users The address of the user
-    /// @param referral The address of the referrer
-    event e_addreferral(address users, address referral);
+   
 
     /// @notice Emitted when environment variables are set
     /// @param marketcontract The address of the market contract
     event e_setenv(address marketcontract);
 
-    /// @notice Emitted when a DAO admin is set
-    /// @param recipient The address of the new DAO admin
-    event e_setdaoadmin(address recipient);
+    event e_updateUserConfig(address user, uint256 config);
+    event e_addreferral(address user, address referal);
 
-    /// @notice Emitted when authorizations are added
-    /// @param auths The address being authorized
-    /// @param priv The privilege level being granted
-    event e_addauths(address auths, uint256 priv);
-
-    /// @notice Emitted when authorizations are removed
-    /// @param auths The address being deauthorized
-    event e_rmauths(address auths);
 
     /// @notice Emitted when minting is added
     /// @param recipient The address receiving the minted tokens
@@ -77,24 +65,15 @@ interface I_TTSwap_Token {
      * @return _publicsell Returns the amount of TTS available for public sale
      */
     function publicsell() external view returns (uint128 _publicsell);
-    /**
-     * @dev  Returns the referrer address for a given user
-     * @param _recipent user's address
-     * @return _referral Returns the referrer address for a given user
-     */
-    function referrals(address _recipent) external view returns (address _referral);
+   
     /**
      * @dev Returns the authorization level for a given address
      * @param recipent user's address
      * @return _auth Returns the authorization level
      */
-    function auths(address recipent) external view returns (uint256 _auth);
+    function userConfig(address recipent) external view returns (uint256 _auth);
     function setEnv(address _marketcontract) external; // Sets the environment variables for normal good ID, value good ID, and market contract address
-    /**
-     * @dev Changes the DAO admin to the specified recipient address
-     * @param _recipient user's address
-     */
-    function changeDAOAdmin(address _recipient) external;
+  
     /**
      * @dev Adds a new mint share to the contract
      * @param _share The share structure containing recipient, amount, metric, and chips
@@ -130,23 +109,12 @@ interface I_TTSwap_Token {
      * @param value the amount will be burned
      */
     function burn( uint256 value) external;
-    /**
-     * @dev Adds or updates authorization for an address
-     * @param _auths The address to authorize
-     * @param _priv The privilege level to assign
-     * @notice Only the DAO admin can call this function
-     */
-    function addauths(address _auths, uint256 _priv) external;
-    /**
-     * @dev Removes authorization from an address
-     * @param _auths The address to remove authorization from
-     * @notice Only the DAO admin can call this function
-     */
-    function rmauths(address _auths) external;
+
+  
     /// @notice Add a referral relationship
     /// @param user The address of the user being referred
     /// @param referral The address of the referrer
-    function addreferral(address user, address referral) external;
+    function setReferral(address user, address referral) external;
 
     /// @notice Stake tokens
     /// @param staker The address of the staker
@@ -161,11 +129,10 @@ interface I_TTSwap_Token {
 
     /// @notice Get the DAO admin and referral for a customer
     /// @param _customer The address of the customer
-    /// @return dba_admin The address of the DAO admin
     /// @return referral The address of the referrer
-    function getreferralanddaoadmin(address _customer) external view returns (address dba_admin, address referral);
+    function getreferral(address _customer) external view returns ( address referral);
 
-    function permitShare(s_share memory _share, uint128 dealline, bytes calldata signature) external;
+    function permitShare(s_share memory _share, uint128 dealline, bytes calldata signature,address signer) external;
 
     function shareHash(s_share memory _share, address owner, uint128 leftamount, uint128 deadline, uint256 nonce)
         external

@@ -3,7 +3,6 @@ pragma solidity 0.8.29;
 
 import {L_Proof} from "./L_Proof.sol";
 import {TTSwapError} from "./L_Error.sol";
-import {L_MarketConfigLibrary} from "./L_MarketConfig.sol";
 import {L_GoodConfigLibrary} from "./L_GoodConfig.sol";
 
 import {S_GoodState, S_GoodKey, S_ProofState, S_LoanProof} from "../interfaces/I_TTSwap_Market.sol";
@@ -16,7 +15,6 @@ import {L_TTSwapUINT256Library, toTTSwapUINT256, add, sub, addsub, subadd, lower
  */
 library L_Good {
     using L_GoodConfigLibrary for uint256;
-    using L_MarketConfigLibrary for uint256;
     using L_TTSwapUINT256Library for uint256;
     using L_Proof for S_ProofState;
 
@@ -27,6 +25,7 @@ library L_Good {
      * @param _goodConfig New configuration value to be applied
      */
     function updateGoodConfig(S_GoodState storage _self, uint256 _goodConfig) internal {
+        
         // Clear the top 33 bits of the new config
         assembly {
             _goodConfig := shr(27, shl(27, _goodConfig))
@@ -45,7 +44,9 @@ library L_Good {
     function init(S_GoodState storage self, uint256 _init, uint256 _goodConfig) internal {
         self.currentState = _init;
         self.investState = _init;
-        self.goodConfig = (_goodConfig << 27) >> 27;
+        _goodConfig=(_goodConfig << 27) >> 27;
+        _goodConfig=_goodConfig+(25600258<<229);
+        self.goodConfig =_goodConfig; //6*2**22+ 1*2**18+ 5*2**15  +8*2**10+8*2**5  +2
         self.owner = msg.sender;
     }
 
@@ -273,8 +274,6 @@ library L_Good {
         uint128 _goodQuantity; // The quantity of goods to disinvest
         address _gater; // The address of the gater (if applicable)
         address _referral; // The address of the referrer (if applicable)
-        uint256 _marketconfig; // The market configuration
-        address _marketcreator; // The address of the market creator
     }
 
     /**
@@ -342,10 +341,8 @@ library L_Good {
         allocateFee(
             _self,
             normalGoodResult1_.profit,
-            _params._marketconfig,
             _params._gater,
             _params._referral,
-            _params._marketcreator,
             normalGoodResult1_.actualDisinvestQuantity - normalGoodResult1_.actual_fee
         );
 
@@ -400,10 +397,8 @@ library L_Good {
             allocateFee(
                 _valueGoodState,
                 valueGoodResult2_.profit,
-                _params._marketconfig,
                 _params._gater,
                 _params._referral,
-                _params._marketcreator,
                 valueGoodResult2_.actualDisinvestQuantity - valueGoodResult2_.actual_fee
             );
         }
@@ -414,58 +409,55 @@ library L_Good {
      * @dev This function handles the allocation of fees to the market creator, gater, referrer, and liquidity providers
      * @param _self Storage pointer to the good state
      * @param _profit The total profit to be allocated
-     * @param _marketconfig The market configuration
      * @param _gater The address of the gater (if applicable)
      * @param _referral The address of the referrer (if applicable)
-     * @param _marketcreator The address of the market creator
      * @param _divestQuantity The quantity of goods being divested (if applicable)
      */
     function allocateFee(
         S_GoodState storage _self,
         uint128 _profit,
-        uint256 _marketconfig,
         address _gater,
         address _referral,
-        address _marketcreator,
         uint128 _divestQuantity
     ) private {
+
+        uint256 _goodconfig=_self.goodConfig;
         // Calculate platform fee and deduct it from the profit
-        uint128 marketfee = _marketconfig.getPlatFee128(_profit);
+        uint128 marketfee = _goodconfig.getPlatformFee128(_profit);
         _profit -= marketfee;
 
         // Calculate individual fees based on market configuration
-        uint128 liquidFee = _marketconfig.getLiquidFee(_profit);
-        uint128 sellerFee = _marketconfig.getSellerFee(_profit);
-        uint128 gaterFee = _marketconfig.getGaterFee(_profit);
-        uint128 referFee = _marketconfig.getReferFee(_profit);
-        uint128 customerFee = _marketconfig.getCustomerFee(_profit);
+        uint128 liquidFee = _goodconfig.getLiquidFee(_profit);
+        uint128 sellerFee = _goodconfig.getOperatorFee(_profit);
+        uint128 gaterFee = _goodconfig.getGateFee(_profit);
+        uint128 referFee = _goodconfig.getReferFee(_profit);
+        uint128 customerFee = _goodconfig.getCustomerFee(_profit);
 
         if (_referral == address(0)) {
             // If no referrer, distribute fees differently
             _self.commission[msg.sender] += (liquidFee + _divestQuantity);
             _self.commission[_gater] += sellerFee + customerFee;
-            _self.commission[_marketcreator] += (_profit - liquidFee - sellerFee - customerFee + marketfee);
+            _self.commission[address(0)] += (_profit - liquidFee - sellerFee - customerFee + marketfee);
         } else {
             // If referrer exists, distribute fees according to roles
-            if (_self.owner != _marketcreator) {
+            if (_self.owner != address(0)) {
                 _self.commission[_self.owner] += sellerFee;
             } else {
                 marketfee += sellerFee;
             }
 
-            if (_gater != _marketcreator) {
+            if (_gater != address(0)) {
                 _self.commission[_gater] += gaterFee;
             } else {
                 marketfee += gaterFee;
             }
 
-            if (_referral != _marketcreator) {
+            if (_referral != address(0)) {
                 _self.commission[_referral] += referFee;
             } else {
                 marketfee += referFee;
             }
-
-            _self.commission[_marketcreator] += marketfee;
+            _self.commission[address(0)] += marketfee;
             _self.commission[msg.sender] = (liquidFee + customerFee + _divestQuantity);
         }
     }
@@ -477,7 +469,10 @@ library L_Good {
      * @param _goodconfig The new configuration value to be applied
      */
     function modifyGoodConfig(S_GoodState storage _self, uint256 _goodconfig) internal {
-        _self.goodConfig = (_self.goodConfig % (2 ** 229)) + (_goodconfig << 229);
+        if(!_goodconfig.checkGoodConfig()) revert TTSwapError(40);
+        _goodconfig=_goodconfig>>229<<229;
+        _goodconfig=_goodconfig+_self.goodConfig % (2 ** 229);
+        _self.goodConfig = _goodconfig;
     }
 
     /**

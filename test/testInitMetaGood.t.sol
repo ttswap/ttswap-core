@@ -61,7 +61,7 @@ contract testInitMetaGood is BaseSetup {
         );
         assertEq(market.getGoodState(metagood).feeQuantityState, 0, "after initial metagood:metagood feequnitity error");
 
-        assertEq(market.getGoodState(metagood).goodConfig, 2 ** 255, "after initial metagood:metagood goodConfig error");
+        assertEq(market.getGoodState(metagood).goodConfig, 79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
 
         assertEq(
             market.getGoodState(metagood).owner, marketcreator, "after initial metagood:metagood marketcreator error"
@@ -115,7 +115,7 @@ contract testInitMetaGood is BaseSetup {
         );
         assertEq(good_.feeQuantityState, 0, "after initial metagood:metagood feequnitity error");
 
-        assertEq(good_.goodConfig, 2 ** 255, "after initial metagood:metagood goodConfig error");
+        assertEq(good_.goodConfig, 79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
 
         assertEq(good_.owner, marketcreator, "after initial metagood:metagood marketcreator error");
 

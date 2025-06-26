@@ -39,13 +39,15 @@ contract DeployMarket is Script {
         );
 
         TTSwap_Market ttsmarket = new TTSwap_Market(
-            108704010472773140011700138523653147769830858893921003965728532553194253844480,
-            address(ttstoken),
-            msg.sender,
+            ttstoken,
             msg.sender
         );
-        ttstoken.addauths(address(ttsmarket), 1);
-        ttstoken.addauths(msg.sender, 3);
+
+
+        ttstoken.setTokenAdmin(msg.sender,true);
+        ttstoken.setTokenManager(msg.sender,true);
+        ttstoken.setCallMintTTS(address(ttsmarket), true);
+        ttstoken.setMarketAdmin(msg.sender,true);
 
         UsdtToken.approve(address(ttsmarket), 10000000000000);
 

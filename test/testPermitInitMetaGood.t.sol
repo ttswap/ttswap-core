@@ -56,8 +56,7 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
         marketcreatorkey = 0xA121;
         marketcreator = vm.addr(marketcreatorkey);
         aabbpermit = new Permit2();
-        uint256 m_marketconfig = (45 << 250) + (5 << 244) + (10 << 238) + (15 << 232) + (25 << 226) + (20 << 220);
-
+    
         users[0] = payable(address(1));
         users[1] = payable(address(2));
         users[2] = payable(address(3));
@@ -72,10 +71,12 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
         vm.startPrank(marketcreator);
         tts_token = new TTSwap_Token(address(usdt), marketcreator, 2 ** 255);
         snapStart("depoly Market Manager");
-        market = new TTSwap_Market(m_marketconfig, address(tts_token), marketcreator, marketcreator);
+        market = new TTSwap_Market( tts_token, marketcreator);
         snapEnd();
-        tts_token.addauths(address(market), 1);
-        tts_token.addauths(marketcreator, 3);
+        tts_token.setTokenAdmin(marketcreator,true);
+        tts_token.setTokenManager(marketcreator,true);
+        tts_token.setCallMintTTS(address(market), true);
+        tts_token.setMarketAdmin(marketcreator,true);
         kkkk = new MyToken("USDT", "USDT", 6);
 
         ownerPrivateKey = 0xA11CE;
@@ -132,7 +133,7 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
         );
         assertEq(good_.feeQuantityState, 0, "after initial metagood:metagood feequnitity error");
 
-        assertEq(good_.goodConfig, 2 ** 255, "after initial metagood:metagood goodConfig error");
+        assertEq(good_.goodConfig,79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
 
         assertEq(good_.owner, marketcreator, "after initial metagood:metagood marketcreator error");
 
@@ -184,7 +185,7 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
         );
         assertEq(market.getGoodState(metagood).feeQuantityState, 0, "after initial metagood:metagood feequnitity error");
 
-        assertEq(market.getGoodState(metagood).goodConfig, 2 ** 255, "after initial metagood:metagood goodConfig error");
+        assertEq(market.getGoodState(metagood).goodConfig, 79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
 
         assertEq(
             market.getGoodState(metagood).owner, marketcreator, "after initial metagood:metagood marketcreator error"

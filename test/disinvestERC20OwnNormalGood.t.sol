@@ -18,10 +18,10 @@ import {
 } from "../src/libraries/L_TTSwapUINT256.sol";
 
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
-import {L_MarketConfigLibrary} from "../src/libraries/L_MarketConfig.sol";
+
 
 contract disinvestERC20OwnNormalGood is BaseSetup {
-    using L_MarketConfigLibrary for uint256;
+   
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 

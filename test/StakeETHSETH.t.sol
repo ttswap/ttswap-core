@@ -18,7 +18,7 @@ import {
 } from "../src/libraries/L_TTSwapUINT256.sol";
 
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
-import {L_MarketConfigLibrary} from "../src/libraries/L_MarketConfig.sol";
+
 import {IERC20} from "../src/interfaces/IERC20.sol";
 
 import {rocketpoolmock} from "../src/test/rocketpoolmock.sol";
@@ -29,7 +29,6 @@ import {IRocketStorage} from "../src/interfaces/IRocketStorage.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
 
 contract StakeETHSETH is BaseSetup {
-    using L_MarketConfigLibrary for uint256;
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 
@@ -50,7 +49,7 @@ contract StakeETHSETH is BaseSetup {
         BaseSetup.setUp();
         initRethToken();
         ttswapstake = new TTSwap_StakeETH(
-            marketcreator, market, IERC20(address(tts_token)), IRocketTokenRETH(reth), IRocketStorage(reth)
+        market, tts_token, IRocketTokenRETH(reth), IRocketStorage(reth)
         );
         weth1 = new MyToken("WETH", "WETH", 18);
         vm.etch(weth, address(weth1).code);
