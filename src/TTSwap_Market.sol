@@ -185,7 +185,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         }
     }
 
-    event debuggaa(uint256);
     /**
      * @dev Initializes a meta good with initial liquidity
      * @param _erc20address The address of the ERC20 token to be used as the meta good
@@ -872,9 +871,15 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
             revert TTSwapError(36);
         }
         if (token.isNative()) {
+            if (goods[token].currentState.amount0()/5*4<restakingamount.amount1()) {
+                revert TTSwapError(36);
+            }
             restakingamount = add(restakingamount, toTTSwapUINT256(0, amount));
             restakeContract.stakeEth{value: amount}(token, amount);
         } else {
+            if (goods[token].currentState.amount0()/5*4<restakingamount.amount0()) {
+                revert TTSwapError(36);
+            }
             restakingamount = add(restakingamount, toTTSwapUINT256(amount, 0));
             token.approve(address(restakeContract), amount);
             restakeContract.stakeEth(token, amount);
@@ -904,7 +909,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         } else {
             restakingamount = sub(restakingamount, toTTSwapUINT256(amount, 0));
         }
-        goods[token].feeQuantityState = sub(goods[token].feeQuantityState, toTTSwapUINT256(fee, 0));
+        goods[token].feeQuantityState = add(goods[token].feeQuantityState, toTTSwapUINT256(fee, 0));
     }
     /**
      * @dev Synchronizes rewards for a specific good and its associated value good

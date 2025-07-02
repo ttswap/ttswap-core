@@ -8,9 +8,7 @@ pragma solidity 0.8.29;
  *      Provides role-based access control for protocol creator and manager.
  */
 import {TTSwapError} from "./libraries/L_Error.sol";
-import {
-    toTTSwapUINT256, L_TTSwapUINT256Library, add, sub, subadd, addsub, mulDiv
-} from "./libraries/L_TTSwapUINT256.sol";
+import {toTTSwapUINT256, L_TTSwapUINT256Library, add, sub, subadd, addsub, mulDiv} from "./libraries/L_TTSwapUINT256.sol";
 import {L_Strings} from "./libraries/L_Strings.sol";
 import {L_CurrencyLibrary} from "./libraries/L_Currency_Stake.sol";
 import {L_Transient} from "./libraries/L_Transient_Stake.sol";
@@ -21,10 +19,9 @@ import {IRocketStorage} from "./interfaces/IRocketStorage.sol";
 import {I_TTSwap_Market, S_ProofKey} from "./interfaces/I_TTSwap_Market.sol";
 import {I_TTSwap_StakeETH} from "./interfaces/I_TTSwap_StakeETH.sol";
 import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
-import {IERC20 } from "./interfaces/IERC20.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
 import {L_ProofIdLibrary} from "./libraries/L_Proof.sol";
 import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
-
 
 contract TTSwap_StakeETH is I_TTSwap_StakeETH {
     using L_TTSwapUINT256Library for uint256;
@@ -58,7 +55,6 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @dev amount0: rETH invested, amount1: reward
      */
     uint256 public override rethStaking;
-
 
     // Rocket Pool rETH token contract
     IRocketTokenRETH internal immutable ROCKET_TOKEN_RETH;
@@ -94,7 +90,8 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @notice Restricts function access to the protocol creator only.
      */
     modifier onlyCreator() {
-        if(!tts_token.userConfig(msg.sender).isStakeAdmin())  revert TTSwapError(38);
+        if (!tts_token.userConfig(msg.sender).isStakeAdmin())
+            revert TTSwapError(38);
         _;
     }
 
@@ -102,7 +99,8 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @notice Restricts function access to the protocol manager only.
      */
     modifier onlyManager() {
-        if(!tts_token.userConfig(msg.sender).isStakeManager())  revert TTSwapError(39);
+        if (!tts_token.userConfig(msg.sender).isStakeManager())
+            revert TTSwapError(39);
         _;
     }
 
@@ -117,28 +115,53 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
         L_Transient.set(address(0));
     }
 
-
     /**
      * @notice Stake ETH or restakable tokens into the protocol.
      * @dev Only callable by the TTSwap market contract. Handles both sETH and swETH logic.
      * @param token The token address to stake (sETH or swETH)
      * @param _stakeamount The amount to stake
      */
-    function stakeEth(address token, uint128 _stakeamount) external payable override noReentrant {
+    function stakeEth(
+        address token,
+        uint128 _stakeamount
+    ) external payable override noReentrant {
         if (!token.canRestake() || address(TTSWAP_MARKET) != msg.sender) {
             revert TTSwapError(37);
         }
         token.transferFrom(address(TTSWAP_MARKET), address(this), _stakeamount);
-        uint128 _stakeshare = totalState != 0 ? totalState.getamount0fromamount1(_stakeamount) : _stakeamount;
+        uint128 _stakeshare = totalState != 0
+            ? totalState.getamount0fromamount1(_stakeamount)
+            : _stakeamount;
 
-        totalState = add(totalState, toTTSwapUINT256(_stakeshare, _stakeamount));
+        totalState = add(
+            totalState,
+            toTTSwapUINT256(_stakeshare, _stakeamount)
+        );
         if (token == seth) {
-            sethState = add(sethState, toTTSwapUINT256(_stakeshare, _stakeamount));
-            emit e_stakeSETH(totalStake, totalState, sethState, rethStaking, _stakeamount);
+            sethState = add(
+                sethState,
+                toTTSwapUINT256(_stakeshare, _stakeamount)
+            );
+            emit e_stakeSETH(
+                totalStake,
+                totalState,
+                sethState,
+                rethStaking,
+                _stakeamount
+            );
         } else {
-            swethState = add(swethState, toTTSwapUINT256(_stakeshare, _stakeamount));
+            swethState = add(
+                swethState,
+                toTTSwapUINT256(_stakeshare, _stakeamount)
+            );
             token.withdraw(_stakeamount);
-            emit e_stakeSWETH(totalStake, totalState, swethState, rethStaking, _stakeamount);
+            emit e_stakeSWETH(
+                totalStake,
+                totalState,
+                swethState,
+                rethStaking,
+                _stakeamount
+            );
         }
     }
 
@@ -149,7 +172,10 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @param amount The amount to unstake
      * @return reward The reward amount distributed to the user
      */
-    function unstakeEthSome(address token, uint128 amount) external override noReentrant returns (uint128 reward) {
+    function unstakeEthSome(
+        address token,
+        uint128 amount
+    ) external override noReentrant returns (uint128 reward) {
         if (!token.canRestake() || address(TTSWAP_MARKET) != msg.sender) {
             revert TTSwapError(37);
         }
@@ -161,16 +187,28 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
             sethState = sub(sethState, toTTSwapUINT256(unstakeshare, reward));
             totalState = sub(totalState, toTTSwapUINT256(unstakeshare, reward));
             token.safeTransfer(msg.sender, reward + amount);
-            emit e_unstakeSETH(totalStake, totalState, sethState, rethStaking, toTTSwapUINT256(reward, amount));
+            emit e_unstakeSETH(
+                totalStake,
+                totalState,
+                sethState,
+                rethStaking,
+                toTTSwapUINT256(reward, amount)
+            );
         } else {
             unstakeshare = swethState.getamount0fromamount1(amount);
             reward = totalState.getamount1fromamount0(unstakeshare);
             swethState = sub(swethState, toTTSwapUINT256(unstakeshare, reward));
             totalState = sub(totalState, toTTSwapUINT256(unstakeshare, reward));
             token.deposit(amount + reward);
- 
+
             token.safeTransfer(msg.sender, reward + amount);
-            emit e_unstakeSWETH(totalStake, totalState, swethState, rethStaking, toTTSwapUINT256(reward, amount));
+            emit e_unstakeSWETH(
+                totalStake,
+                totalState,
+                swethState,
+                rethStaking,
+                toTTSwapUINT256(reward, amount)
+            );
         }
     }
 
@@ -180,31 +218,48 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @param token The token address to claim rewards for (sETH or swETH)
      * @return reward The reward amount distributed to the user
      */
-    function syncReward(address token) external override noReentrant returns (uint128 reward) {
+    function syncReward(
+        address token
+    ) external override noReentrant returns (uint128 reward) {
         if (!token.canRestake() || address(TTSWAP_MARKET) != msg.sender) {
             revert TTSwapError(37);
         }
         internalReward();
         uint128 share;
         if (token == seth) {
-            reward = totalState.getamount1fromamount0(sethState.amount0()) - sethState.amount1();
+            reward =
+                totalState.getamount1fromamount0(sethState.amount0()) -
+                sethState.amount1();
             share = totalState.getamount0fromamount1(reward);
             totalState = sub(totalState, toTTSwapUINT256(share, reward));
             sethState = sub(sethState, toTTSwapUINT256(share, 0));
 
-  
             token.safeTransfer(msg.sender, reward);
-            emit e_unstakeSETH(totalStake, totalState, sethState, rethStaking, toTTSwapUINT256(reward, 0));
+            emit e_unstakeSETH(
+                totalStake,
+                totalState,
+                sethState,
+                rethStaking,
+                toTTSwapUINT256(reward, 0)
+            );
         } else {
-            reward = totalState.getamount1fromamount0(swethState.amount0()) - swethState.amount1();
+            reward =
+                totalState.getamount1fromamount0(swethState.amount0()) -
+                swethState.amount1();
 
             share = totalState.getamount0fromamount1(reward);
             totalState = sub(totalState, toTTSwapUINT256(share, reward));
             swethState = sub(swethState, toTTSwapUINT256(share, 0));
             token.deposit(reward);
-        
+
             token.safeTransfer(msg.sender, reward);
-            emit e_unstakeSWETH(totalStake, totalState, swethState, rethStaking, toTTSwapUINT256(reward, 0));
+            emit e_unstakeSWETH(
+                totalStake,
+                totalState,
+                swethState,
+                rethStaking,
+                toTTSwapUINT256(reward, 0)
+            );
         }
     }
 
@@ -213,9 +268,14 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @dev Updates totalStake, totalState, and rethStaking if new rewards are available.
      */
     function internalReward() internal {
-        uint128 reth = uint128(IERC20(address(ROCKET_TOKEN_RETH)).balanceOf(address(this)) + rethStaking.amount0());
+        uint128 reth = uint128(
+            IERC20(address(ROCKET_TOKEN_RETH)).balanceOf(address(this)) +
+                rethStaking.amount0()
+        );
         uint128 eth1 = uint128(ROCKET_TOKEN_RETH.getEthValue(reth));
-        uint128 reward = eth1 >= totalStake.amount0() ? eth1 - totalStake.amount0() : 0;
+        uint128 reward = eth1 >= totalStake.amount0()
+            ? eth1 - totalStake.amount0()
+            : 0;
         if (reward > 0) {
             totalStake = add(totalStake, toTTSwapUINT256(reward, 0));
             totalState = add(totalState, toTTSwapUINT256(0, reward));
@@ -228,21 +288,39 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @param stakeamount The amount of ETH to stake
      * @return rethAmount The amount of rETH received
      */
-    function stakeRocketPoolETH(uint128 stakeamount) external override onlyManager returns (uint128 rethAmount) {
+    function stakeRocketPoolETH(
+        uint128 stakeamount
+    ) external override onlyManager returns (uint128 rethAmount) {
         IRocketDAOProtocolSettingsDeposit ROCKET_DAO_SETTINGS_DEPOSIT = IRocketDAOProtocolSettingsDeposit(
+                rocketstorage.getAddress(
+                    keccak256(
+                        abi.encodePacked(
+                            "contract.address",
+                            "rocketDAOProtocolSettingsDeposit"
+                        )
+                    )
+                )
+            );
+        IRocketDepositPool ROCKET_DEPOSIT_POOL = IRocketDepositPool(
             rocketstorage.getAddress(
-                keccak256(abi.encodePacked("contract.address", "rocketDAOProtocolSettingsDeposit"))
+                keccak256(
+                    abi.encodePacked("contract.address", "rocketDepositPool")
+                )
             )
         );
-        IRocketDepositPool ROCKET_DEPOSIT_POOL = IRocketDepositPool(
-            rocketstorage.getAddress(keccak256(abi.encodePacked("contract.address", "rocketDepositPool")))
+        require(
+            ROCKET_DAO_SETTINGS_DEPOSIT.getDepositEnabled(),
+            "Rocket Pool deposits are currently disabled"
         );
-        require(ROCKET_DAO_SETTINGS_DEPOSIT.getDepositEnabled(), "Rocket Pool deposits are currently disabled");
 
         uint256 depositPoolBalance = ROCKET_DEPOSIT_POOL.getBalance();
-        uint256 maxDepositPoolSize = ROCKET_DAO_SETTINGS_DEPOSIT.getMaximumDepositPoolSize();
+        uint256 maxDepositPoolSize = ROCKET_DAO_SETTINGS_DEPOSIT
+            .getMaximumDepositPoolSize();
 
-        require(depositPoolBalance + stakeamount <= maxDepositPoolSize, "Deposit pool size exceeded");
+        require(
+            depositPoolBalance + stakeamount <= maxDepositPoolSize,
+            "Deposit pool size exceeded"
+        );
 
         rethAmount = uint128(ROCKET_TOKEN_RETH.getRethValue(stakeamount));
         address(ROCKET_DEPOSIT_POOL).deposit(stakeamount);
@@ -256,11 +334,17 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @notice Unstake rETH from Rocket Pool and update protocol state. Only callable by the manager.
      * @param rethAmount The amount of rETH to unstake
      */
-    function unstakeRocketPoolETH(uint128 rethAmount) external override onlyManager {
+    function unstakeRocketPoolETH(
+        uint128 rethAmount
+    ) external override onlyManager {
         require(rethAmount > 0, "Amount must be greater than 0");
         uint128 ethAmount = totalStake.getamount0fromamount1(rethAmount);
         uint128 unstakeeth = uint128(ROCKET_TOKEN_RETH.getEthValue(rethAmount));
-        require(IERC20(address(ROCKET_TOKEN_RETH)).balanceOf(address(this)) >= rethAmount, "Insufficient rETH balance");
+        require(
+            IERC20(address(ROCKET_TOKEN_RETH)).balanceOf(address(this)) >=
+                rethAmount,
+            "Insufficient rETH balance"
+        );
         uint128 reward = unstakeeth - ethAmount;
         ROCKET_TOKEN_RETH.burn(rethAmount);
         totalState = add(totalState, toTTSwapUINT256(0, unstakeeth));
@@ -281,20 +365,41 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @param _goodQuantity The amount of rETH to invest
      */
     function invest(uint128 _goodQuantity) external override onlyManager {
-        uint256 proofid = S_ProofKey(address(this), address(ROCKET_TOKEN_RETH), address(0)).toId();
+        uint256 proofid = S_ProofKey(
+            address(this),
+            address(ROCKET_TOKEN_RETH),
+            address(0)
+        ).toId();
         require(
-            (
-                _goodQuantity
-                    >= (
-                        TTSWAP_MARKET.getProofState(proofid).invest.amount0() == 0
-                            ? 0
-                            : (TTSWAP_MARKET.getProofState(proofid).invest.amount0() * 2) / 10
-                    )
-            ) && (_goodQuantity <= (uint128(IERC20(address(ROCKET_TOKEN_RETH)).balanceOf(address(this))) * 8) / 10)
+            (_goodQuantity >=
+                (
+                    TTSWAP_MARKET.getProofState(proofid).invest.amount0() == 0
+                        ? 0
+                        : (TTSWAP_MARKET
+                            .getProofState(proofid)
+                            .invest
+                            .amount0() * 2) / 10
+                )) &&
+                (_goodQuantity <=
+                    (uint128(
+                        IERC20(address(ROCKET_TOKEN_RETH)).balanceOf(
+                            address(this)
+                        )
+                    ) * 8) /
+                        10)
         );
         rethStaking = add(rethStaking, toTTSwapUINT256(_goodQuantity, 0));
-        IERC20(address(ROCKET_TOKEN_RETH)).approve(address(TTSWAP_MARKET), _goodQuantity);
-        TTSWAP_MARKET.investGood(address(ROCKET_TOKEN_RETH), address(0), _goodQuantity, "", "");
+        IERC20(address(ROCKET_TOKEN_RETH)).approve(
+            address(TTSWAP_MARKET),
+            _goodQuantity
+        );
+        TTSWAP_MARKET.investGood(
+            address(ROCKET_TOKEN_RETH),
+            address(0),
+            _goodQuantity,
+            "",
+            ""
+        );
         emit e_stakeeth_invest(rethStaking);
     }
 
@@ -303,8 +408,15 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @param _goodQuantity The amount of rETH to divest
      */
     function divest(uint128 _goodQuantity) external override onlyManager {
-        uint256 proofid = S_ProofKey(address(this), address(ROCKET_TOKEN_RETH), address(0)).toId();
-        require(_goodQuantity <= TTSWAP_MARKET.getProofState(proofid).invest.amount0());
+        uint256 proofid = S_ProofKey(
+            address(this),
+            address(ROCKET_TOKEN_RETH),
+            address(0)
+        ).toId();
+        require(
+            _goodQuantity <=
+                TTSWAP_MARKET.getProofState(proofid).invest.amount0()
+        );
 
         TTSWAP_MARKET.disinvestProof(proofid, _goodQuantity, address(0));
 
@@ -316,11 +428,19 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
      * @notice Collect TTS token rewards and swap for rETH via the TTSwap market. Only callable by the manager.
      */
     function collectTTSReward() external override onlyManager {
-        uint128 amount = uint128(IERC20(address(tts_token)).balanceOf(address(this)));
+        uint128 amount = uint128(
+            IERC20(address(tts_token)).balanceOf(address(this))
+        );
         if (amount > 0) {
             IERC20(address(tts_token)).approve(address(TTSWAP_MARKET), amount);
-            (, uint256 getamount) =
-                TTSWAP_MARKET.buyGood(address(tts_token), address(ROCKET_TOKEN_RETH), amount, 1, address(0), "");
+            (, uint256 getamount) = TTSWAP_MARKET.buyGood(
+                address(tts_token),
+                address(ROCKET_TOKEN_RETH),
+                amount,
+                1,
+                address(0),
+                ""
+            );
             emit e_collecttts(toTTSwapUINT256(amount, getamount.amount1()));
         }
     }
