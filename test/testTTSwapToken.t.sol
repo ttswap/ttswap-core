@@ -96,7 +96,10 @@ contract testTTSwapToken is Test, GasSnapshot {
         s_share memory _share = s_share(10000, 5, 6);
         tts_token.addShare(_share, users[5]);
 
-        (uint128 leftamount, uint128 metric, uint8 chips) = tts_token.shares(users[5]);
+        s_share memory share = tts_token.usershares(users[5]);
+        uint128 leftamount = share.leftamount;
+        uint128 metric = share.metric;
+        uint8 chips = share.chips;
         assertEq(10000, leftamount, "left amount error");
         assertEq(5, metric, "left metric error");
         assertEq(6, chips, "left chips error");
@@ -104,7 +107,10 @@ contract testTTSwapToken is Test, GasSnapshot {
         _share = s_share(20000, 7, 5);
         tts_token.addShare(_share, users[5]);
 
-        (leftamount, metric, chips) = tts_token.shares(users[5]);
+        share = tts_token.usershares(users[5]);
+        leftamount = share.leftamount;
+        metric = share.metric;
+        chips = share.chips;
         assertEq(30000, leftamount, "left amount error");
         assertEq(7, metric, "left metric error");
         assertEq(6, chips, "left chips error");
@@ -141,7 +147,10 @@ contract testTTSwapToken is Test, GasSnapshot {
 
         vm.startPrank(users[5]);
         tts_token.permitShare(_share, dealline, bytes.concat(r, s, bytes1(v)),marketcreator);
-        (uint128 leftamount, uint128 metric, uint8 chips) = tts_token.shares(users[5]);
+        s_share memory share = tts_token.usershares(users[5]);
+        uint128 leftamount = share.leftamount;
+        uint128 metric = share.metric;
+        uint8 chips = share.chips;
         assertEq(20000, leftamount, "left amount error");
         assertEq(5, metric, "left metric error");
         assertEq(6, chips, "left chips error");

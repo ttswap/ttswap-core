@@ -11,6 +11,7 @@ import {TTSwapError} from "./libraries/L_Error.sol";
 import {toTTSwapUINT256, L_TTSwapUINT256Library, add, sub, mulDiv} from "./libraries/L_TTSwapUINT256.sol";
 import {IEIP712} from "./interfaces/IEIP712.sol";
 import {L_SignatureVerification} from "./libraries/L_SignatureVerification.sol";
+
 /**
  * @title TTS Token Contract
  * @dev Implements ERC20 token with additional staking and cross-chain functionality
@@ -23,22 +24,19 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     using L_CurrencyLibrary for address;
     using L_SignatureVerification for bytes;
 
-    uint256 public ttstokenconfig;
+    uint256 public override ttstokenconfig;
 
-    mapping(address => s_share) public shares; // all share's mapping
+    mapping(address => s_share) internal  shares; // all share's mapping
 
-    uint256 public stakestate; // first 128 bit record lasttime,last 128 bit record poolvalue
-    uint256 public poolstate; // first 128 bit record all asset(contain actual asset and constuct fee),last  128 bit record construct  fee
+    uint256 public override stakestate; // first 128 bit record lasttime,last 128 bit record poolvalue
+    uint256 public override poolstate; // first 128 bit record all asset(contain actual asset and constuct fee),last  128 bit record construct  fee
 
-    mapping(uint256 => s_proof) public stakeproof;
+    mapping(uint256 => s_proof) internal  stakeproof;
 
-    // mapping(uint32 => s_chain) public chains;
-
-  
     address private marketcontract;
-    uint128 public left_share = 45_000_000_000_000;
+    uint128 public override left_share = 45_000_000_000_000;
     /// @inheritdoc I_TTSwap_Token
-    uint128 public override publicsell;
+    uint128 public override publicsell ;
 
    
     // uint256 1:add referral priv 2: market priv
@@ -74,62 +72,144 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         if (!ttstokenconfig.ismain()) revert TTSwapError(15);
         _;
     }
-    //**************************priv partition*/
+    //**************************privillages partition**********************************/
 
-    function setDAOAdmin(address _recipient,bool result) external  { 
+    /**
+     * @dev Grants or revokes DAO admin privileges to a recipient address.
+     * @param _recipient The address to grant or revoke DAO admin rights.
+     * @param result Boolean indicating whether to grant (true) or revoke (false) the privilege.
+     * @notice Only callable by an existing DAO admin.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function setDAOAdmin(address _recipient,bool result) external override { 
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
-        userConfig[msg.sender]=userConfig[msg.sender].setDAOAdmin(result);
+        userConfig[msg.sender]=userConfig[msg.sender].setDAOAdmin(!result);
         userConfig[_recipient]=userConfig[_recipient].setDAOAdmin(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
-    function setTokenAdmin(address _recipient,bool result) external   {
+
+    /**
+     * @dev Grants or revokes Token admin privileges to a recipient address.
+     * @param _recipient The address to grant or revoke Token admin rights.
+     * @param result Boolean indicating whether to grant (true) or revoke (false) the privilege.
+     * @notice Only callable by a DAO admin.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function setTokenAdmin(address _recipient,bool result) external override   {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setTokenAdmin(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
-    function setTokenManager(address _recipient,bool result)external   {
+    /**
+     * @dev Grants or revokes Token manager privileges to a recipient address.
+     * @param _recipient The address to grant or revoke Token manager rights.
+     * @param result Boolean indicating whether to grant (true) or revoke (false) the privilege.
+     * @notice Only callable by a Token admin.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function setTokenManager(address _recipient,bool result)external override   {
         if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setTokenManager(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
-    function setCallMintTTS(address _recipient,bool result)external   {
+    /**
+     * @dev Grants or revokes permission to call mintTTS to a recipient address.
+     * @param _recipient The address to grant or revoke permission.
+     * @param result Boolean indicating whether to grant (true) or revoke (false) the privilege.
+     * @notice Only callable by a Token admin.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function setCallMintTTS(address _recipient,bool result)external override   {
         if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setCallMintTTS(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
-    function setMarketAdmin(address _recipient,bool result)external   {
+    /**
+     * @dev Grants or revokes Market admin privileges to a recipient address.
+     * @param _recipient The address to grant or revoke Market admin rights.
+     * @param result Boolean indicating whether to grant (true) or revoke (false) the privilege.
+     * @notice Only callable by a DAO admin.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function setMarketAdmin(address _recipient,bool result)external override   {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setMarketAdmin(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
-    function setMarketManager(address _recipient,bool result)external   {
+    /**
+     * @dev Grants or revokes Market manager privileges to a recipient address.
+     * @param _recipient The address to grant or revoke Market manager rights.
+     * @param result Boolean indicating whether to grant (true) or revoke (false) the privilege.
+     * @notice Only callable by a Market admin.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function setMarketManager(address _recipient,bool result)external override   {
         if (!userConfig[msg.sender].isMarketAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setMarketManager(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
-
-    function setStakeAdmin(address _recipient,bool result)external   {
+    /**
+     * @dev Grants or revokes Stake admin privileges to a recipient address.
+     * @param _recipient The address to grant or revoke Stake admin rights.
+     * @param result Boolean indicating whether to grant (true) or revoke (false) the privilege.
+     * @notice Only callable by a DAO admin.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function setStakeAdmin(address _recipient,bool result)external override   {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setStakeAdmin(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
-    function setStakeManager(address _recipient,bool result)external  {
+    /**
+     * @dev Grants or revokes Stake manager privileges to a recipient address.
+     * @param _recipient The address to grant or revoke Stake manager rights.
+     * @param result Boolean indicating whether to grant (true) or revoke (false) the privilege.
+     * @notice Only callable by a Stake admin.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function setStakeManager(address _recipient,bool result)external override  {
         if (!userConfig[msg.sender].isStakeAdmin()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setStakeManager(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
 
-
-    function setBan(address _recipient,bool result)external  {
+    /**
+     * @dev Sets or unsets a ban on a recipient address, restricting their access.
+     * @param _recipient The address to ban or unban.
+     * @param result Boolean indicating whether to ban (true) or unban (false) the address.
+     * @notice Only callable by a Token manager.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function setBan(address _recipient,bool result)external override  {
          if (!userConfig[msg.sender].isTokenManager()) revert TTSwapError(16);
         userConfig[_recipient]=userConfig[_recipient].setBan(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
+    }
+
+    /**
+     * @dev Returns the share information for a given user address.
+     * @param user The address to query for share information.
+     * @return The s_share struct containing the user's share details.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function usershares(address user) external view override returns (s_share memory){
+        return shares[user];
+    }
+
+    /**
+     * @dev Returns the stake proof information for a given index.
+     * @param index The index to query for stake proof information.
+     * @return The s_proof struct containing the stake proof details.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function stakeproofinfo(uint256 index) external view override returns (s_proof memory){
+        return stakeproof[index];
     }
 
     /**
@@ -147,10 +227,22 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         emit e_addreferral(user,referral);
     }
 
+
+    /**
+     * @dev Retrieves both the DAO admin address and the referrer address for a given customer
+     * @param _customer The address of the customer
+     * @return A tuple containing the DAO admin address and the customer's referrer address
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function getreferral(address _customer) external view override returns (address) {
+        return  userConfig[_customer].referral();
+    }
+
     /**
      * @dev  this chain trade vol ratio in protocol
      */
-    function setRatio(uint256 _ratio) external {
+    /// @inheritdoc I_TTSwap_Token
+    function setRatio(uint256 _ratio) external override {
         if (_ratio > 10000 || !userConfig[msg.sender].isTokenAdmin()) {
             revert TTSwapError(17);
         }
@@ -163,7 +255,6 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      * @param _marketcontract Address of the market contract
      */
     /// @inheritdoc I_TTSwap_Token
-
     function setEnv(address _marketcontract) external override {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
         marketcontract = _marketcontract;
@@ -240,22 +331,13 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
 
 
 
-    /**
-     * @dev Retrieves both the DAO admin address and the referrer address for a given customer
-     * @param _customer The address of the customer
-     * @return A tuple containing the DAO admin address and the customer's referrer address
-     */
-    /// @inheritdoc I_TTSwap_Token
-    function getreferral(address _customer) external view override returns (address) {
-        return  userConfig[_customer].referral();
-    }
 
     /**
      * @dev Perform public token sale
      * @param usdtamount Amount of USDT to spend on token purchase
      */
     /// @inheritdoc I_TTSwap_Token
-    function publicSell(uint256 usdtamount, bytes calldata data) external onlymain {
+    function publicSell(uint256 usdtamount, bytes calldata data) external override onlymain {
         publicsell += uint128(usdtamount);
         if (publicsell > 500_000_000_000) revert TTSwapError(24);
         usdt.transferFrom(msg.sender, address(this), usdtamount, data);
@@ -281,7 +363,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      * @notice Transfers the specified amount of USDT to the recipient
      */
     /// @inheritdoc I_TTSwap_Token
-    function withdrawPublicSell(uint256 amount, address recipient) external onlymain {
+    function withdrawPublicSell(uint256 amount, address recipient) external override onlymain {
         if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(25);
         usdt.safeTransfer(recipient, amount);
     }
@@ -385,7 +467,14 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
 
         emit Transfer(from, address(0), amount);
     }
-
+    /**
+     * @dev Permits a share to be transferred
+     * @param _share The share structure containing recipient, amount, metric, and chips
+     * @param dealline The deadline for the share transfer
+     * @param signature The signature of the share transfer
+     * @param signer The address of the signer
+     */
+    /// @inheritdoc I_TTSwap_Token
     function permitShare(s_share memory _share, uint128 dealline, bytes calldata signature,address signer) external override {
         if (block.timestamp > dealline) revert TTSwapError(36);
         // Verify the signer address from the signature.
@@ -396,6 +485,13 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         _addShare(_share, msg.sender);
     }
 
+    /**
+     * @dev Calculates the hash of a share transfer
+     * @param _share The share structure containing recipient, amount, metric, and chips
+     * @param owner The address of the owner
+     * @param leftamount The amount of left share
+     * @param deadline The deadline for the share transfer
+     */
     function shareHash(s_share memory _share, address owner, uint128 leftamount, uint128 deadline, uint256 nonce)
         public
         pure
