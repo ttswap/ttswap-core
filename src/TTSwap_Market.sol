@@ -562,7 +562,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         external
         override
         noReentrant
-        msgValue
         returns (uint128, uint128)
     {
         if (S_ProofKey(msg.sender, proofs[_proofid].currentgood, proofs[_proofid].valuegood).toId() != _proofid) {
@@ -694,7 +693,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
     }
     /// @inheritdoc I_TTSwap_Market
 
-    function collectCommission(address[] memory _goodid) external override noReentrant msgValue {
+    function collectCommission(address[] memory _goodid) external override noReentrant  {
         address recipent = officialTokenContract.userConfig(msg.sender).isDAOAdmin()?address(0):msg.sender;
         if (_goodid.length > 100) revert TTSwapError(11);
         uint256[] memory commissionamount = new uint256[](_goodid.length);
@@ -773,7 +772,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
 
     /// @inheritdoc IERC3156FlashLender
     function maxFlashLoan(address good) public view override returns (uint256) {
-        return good.balanceof(address(this));
+        return good.balanceof(address(this))/2;
     }
 
     /// @inheritdoc IERC3156FlashLender
@@ -803,13 +802,14 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         noReentrant
         returns (bool)
     {
-        if (token.isNative()) revert TTSwapError(29);
+        if (token.canRestake()||token.isNative()) revert TTSwapError(29);
         uint256 maxLoan = maxFlashLoan(token);
-        maxLoan = maxLoan / 2;
+      
         if (amount > maxLoan) {
             revert ERC3156ExceededMaxLoan(maxLoan);
         }
         uint256 fee = flashFee(token, amount);
+        if(amount + fee>type(uint128).max) revert TTSwapError(41);
         token.safeTransfer(address(receiver), amount);
         if (receiver.onFlashLoan(msg.sender, token, amount, fee, data) != RETURN_VALUE) {
             revert ERC3156InvalidReceiver(address(receiver));
@@ -832,7 +832,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
      * - Caller is not the security keeper
      * - Token transfer fails
      */
-    function securityKeeper(address token) external msgValue {
+    function securityKeeper(address token) external  {
         require(msg.sender == securitykeeper);
         uint256 amount = token.balanceof(address(this));
         goods[token].feeQuantityState = 0;
@@ -930,7 +930,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
 
     function syncReward(address token) external override {
         uint128 fee = restakeContract.syncReward(token);
-        goods[token].feeQuantityState = sub(goods[token].feeQuantityState, toTTSwapUINT256(fee, 0));
+        goods[token].feeQuantityState = add(goods[token].feeQuantityState, toTTSwapUINT256(fee, 0));
     }
 
     /**
