@@ -23,7 +23,6 @@ import {
 import {IERC3156FlashBorrower} from "./interfaces/IERC3156FlashBorrower.sol";
 import {IERC3156FlashLender} from "./interfaces/IERC3156FlashLender.sol";
 import {IMulticall_v4} from "./interfaces/IMulticall_v4.sol";
-import {ERC6909} from "./base/ERC6909.sol";
 import {I_TTSwap_StakeETH} from "./interfaces/I_TTSwap_StakeETH.sol";
 import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
 
@@ -38,7 +37,7 @@ import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
  * - Commission distribution system
  * - ETH or WETH staking integration
  */
-contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, ERC6909 {
+contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
     using L_GoodConfigLibrary for uint256;
     using L_UserConfigLibrary for uint256;
     using L_ProofIdLibrary for S_ProofKey;
@@ -225,7 +224,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         proofs[proofid].updateInvest(
             _erc20address, address(0), toTTSwapUINT256(_initial.amount0(), 0), _initial.amount1(), 0
         );
-        _mint(msg.sender, _erc20address.to_uint256(), _initial.amount1());
         uint128 construct = L_Proof.stake(officialTokenContract, msg.sender, _initial.amount0());
         emit e_initMetaGood(proofid, _erc20address, construct, _goodConfig, _initial);
         return true;
@@ -267,8 +265,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
             toTTSwapUINT256(investResult.constructFeeQuantity, investResult.actualInvestQuantity)
         );
 
-        _mint(msg.sender, _erc20address.to_uint256(), _initial.amount0());
-        _mint(msg.sender, _valuegood.to_uint256(), _initial.amount1());
 
         emit e_initGood(
             proofId,
@@ -501,7 +497,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
         goods[_togood].investGood(_quantity, normalInvest_);
 
         _togood.transferFrom(msg.sender, _quantity, data1);
-        _mint(msg.sender, _togood.to_uint256(), _quantity);
         if (_valuegood != address(0)) {
             valueInvest_.actualInvestQuantity =
                 goods[_valuegood].currentState.getamount1fromamount0(normalInvest_.actualInvestValue);
@@ -510,7 +505,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
                 goods[_valuegood].goodConfig.getInvestFullFee(valueInvest_.actualInvestQuantity);
 
             _valuegood.transferFrom(msg.sender, valueInvest_.actualInvestQuantity, data2);
-            _mint(msg.sender, _valuegood.to_uint256(), valueInvest_.actualInvestQuantity);
             goods[_valuegood].investGood(valueInvest_.actualInvestQuantity, valueInvest_);
         }
 
@@ -587,14 +581,12 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
 
         if (tranferamount > 1) {
             goods[normalgood].commission[msg.sender] = 1;
-            _burn(msg.sender, normalgood.to_uint256(), tranferamount - 1);
             normalgood.safeTransfer(msg.sender, tranferamount - 1);
         }
         if (valuegood != address(0)) {
             tranferamount = goods[valuegood].commission[msg.sender];
             if (tranferamount > 1) {
                 goods[valuegood].commission[msg.sender] = 1;
-                _burn(msg.sender, valuegood.to_uint256(), tranferamount - 1);
                 valuegood.safeTransfer(msg.sender, tranferamount - 1);
             }
         }
@@ -849,8 +841,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4, E
      * @custom:security Only callable by DAO admin
      * @custom:security Reverts if caller is not the DAO admin
      */
-    function removeSecurityKeeper() external {
-        require(officialTokenContract.userConfig(msg.sender).isDAOAdmin());
+    function removeSecurityKeeper() external onlyMarketadmin {
         securitykeeper = address(0);
     }
     /**

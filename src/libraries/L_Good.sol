@@ -45,8 +45,8 @@ library L_Good {
         self.currentState = _init;
         self.investState = _init;
         _goodConfig=(_goodConfig << 27) >> 27;
-        _goodConfig=_goodConfig+(25600258<<229);
-        self.goodConfig =_goodConfig; //6*2**22+ 1*2**18+ 5*2**15  +8*2**10+8*2**5  +2
+        _goodConfig=_goodConfig+(25600258<<229); //25600258 6*2**22+ 1*2**18+ 5*2**15+8*2**10+8*2**5+2
+        self.goodConfig =_goodConfig; 
         self.owner = msg.sender;
     }
 

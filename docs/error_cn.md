@@ -39,6 +39,7 @@ TTSwapError(uint256) 0xd1b51911
 38:你不是质押管理员,权限不足
 39:商品分佣配置错误
 40:购买失败,收款人地址为空
+41:执行失败,数量太大,超出精度
 ERC3156UnsupportedToken(address) 0xb5a7db92 闪电货不支持代币
 ERC3156ExceededMaxLoan(uint256)  0xfd9a7609 超过最大闪电货数量
 ERC3156InvalidReceiver(address) 0x678c5b00 无效收款地址
