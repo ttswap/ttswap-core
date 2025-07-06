@@ -251,8 +251,8 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
         }
         _erc20address.transferFrom(msg.sender, _initial.amount0(), _normaldata);
         _valuegood.transferFrom(msg.sender, _initial.amount1(), _valuedata);
-        L_Good.S_GoodInvestReturn memory investResult;
-        goods[_valuegood].investGood(_initial.amount1(), investResult);
+         L_Good.S_GoodInvestReturn memory investResult;
+         goods[_valuegood].investGood(_initial.amount1(), investResult);
         goods[_erc20address].init(toTTSwapUINT256(investResult.actualInvestValue, _initial.amount0()), _goodConfig);
 
         uint256 proofId = S_ProofKey(msg.sender, _erc20address, _valuegood).toId();
@@ -345,10 +345,10 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
                 swapcache.outputQuantity - swapcache.good2config.getBuyFee(swapcache.outputQuantity)
             );
 
-            _goodid1.transferFrom(msg.sender, good1change.amount1(), data);
             goods[_goodid1].swapCommit(swapcache.good1currentState, swapcache.feeQuantity);
             goods[_goodid2].swapCommit(swapcache.good2currentState, good2change.amount0());
 
+            _goodid1.transferFrom(msg.sender, good1change.amount1(), data);
             _goodid2.safeTransfer(msg.sender, good2change.amount1());
             emit e_buyGood(_goodid1, _goodid2, swapcache.swapvalue, good1change, good2change);
         } else {

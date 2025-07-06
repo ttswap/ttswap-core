@@ -67,14 +67,6 @@ library L_UserConfigLibrary {
         return config&~(uint256(2**248))|(a?uint256(2**248):0);
     }
 
-    function isTrue(uint256 config,uint8 b)internal pure returns(bool a){
-        return (config&uint256(2**b))>0;
-    }
-
-    function setTrue(uint256 config,uint8 a,bool b)internal pure returns(uint256 e){
-        if(a<=240 && a>170 ) return config&~(uint256(2**a))|(b?uint256(2**a):0);
-    }
-
     function isBan(uint256 config)internal pure returns(bool a){
         return (config&uint256(2**160))>0;
     }
