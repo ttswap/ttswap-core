@@ -125,7 +125,7 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
         address token,
         uint128 _stakeamount
     ) external payable override noReentrant {
-        if (!token.canRestake() || address(TTSWAP_MARKET) != msg.sender) {
+        if ( address(TTSWAP_MARKET) != msg.sender) {
             revert TTSwapError(37);
         }
         token.transferFrom(address(TTSWAP_MARKET), address(this), _stakeamount);
@@ -176,7 +176,7 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
         address token,
         uint128 amount
     ) external override noReentrant returns (uint128 reward) {
-        if (!token.canRestake() || address(TTSWAP_MARKET) != msg.sender) {
+        if ( address(TTSWAP_MARKET) != msg.sender) {
             revert TTSwapError(37);
         }
         internalReward();
@@ -184,30 +184,30 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
         if (token == seth) {
             unstakeshare = sethState.getamount0fromamount1(amount);
             reward = totalState.getamount1fromamount0(unstakeshare);
-            sethState = sub(sethState, toTTSwapUINT256(unstakeshare, reward));
+            sethState = sub(sethState, toTTSwapUINT256(unstakeshare, amount));
             totalState = sub(totalState, toTTSwapUINT256(unstakeshare, reward));
-            token.safeTransfer(msg.sender, reward + amount);
+            token.safeTransfer(msg.sender, reward );
             emit e_unstakeSETH(
                 totalStake,
                 totalState,
                 sethState,
                 rethStaking,
-                toTTSwapUINT256(reward, amount)
+                toTTSwapUINT256(reward-amount, amount)
             );
         } else {
             unstakeshare = swethState.getamount0fromamount1(amount);
             reward = totalState.getamount1fromamount0(unstakeshare);
-            swethState = sub(swethState, toTTSwapUINT256(unstakeshare, reward));
+            swethState = sub(swethState, toTTSwapUINT256(unstakeshare, amount));
             totalState = sub(totalState, toTTSwapUINT256(unstakeshare, reward));
-            token.deposit(amount + reward);
+            token.deposit( reward);
 
-            token.safeTransfer(msg.sender, reward + amount);
+            token.safeTransfer(msg.sender,  reward);
             emit e_unstakeSWETH(
                 totalStake,
                 totalState,
                 swethState,
                 rethStaking,
-                toTTSwapUINT256(reward, amount)
+                toTTSwapUINT256(reward-amount, amount)
             );
         }
     }
@@ -221,7 +221,7 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
     function syncReward(
         address token
     ) external override noReentrant returns (uint128 reward) {
-        if (!token.canRestake() || address(TTSWAP_MARKET) != msg.sender) {
+        if ( address(TTSWAP_MARKET) != msg.sender) {
             revert TTSwapError(37);
         }
         internalReward();
