@@ -25,7 +25,6 @@ import {IERC3156FlashLender} from "./interfaces/IERC3156FlashLender.sol";
 import {IMulticall_v4} from "./interfaces/IMulticall_v4.sol";
 import {I_TTSwap_StakeETH} from "./interfaces/I_TTSwap_StakeETH.sol";
 import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
-
 /**
  * @title TTSwap_Market
  * @dev Core market contract for TTSwap protocol that manages goods trading, investing, and staking operations
@@ -45,6 +44,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
     using L_Good for S_GoodState;
     using L_Proof for S_ProofState;
     using L_CurrencyLibrary for address;
+   
     /**
      * @dev The loan token is not valid.
      */
@@ -60,6 +60,46 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
      * @dev The receiver of a flashloan is not a valid {IERC3156FlashBorrower-onFlashLoan} implementer.
      */
     error ERC3156InvalidReceiver(address receiver);
+    address internal implementation;
+
+    /**
+     * @dev Interface for ETH staking operations
+     * @notice Manages staking functionality:
+     * - ETH staking and unstaking
+     * - Reward distribution
+     * - Staking pool management
+     * - Emergency withdrawals
+     */
+    I_TTSwap_StakeETH private  restakeContract;
+
+    /** 
+     * @dev Emergency security control address
+     * @notice Provides emergency controls:
+     * - Fund recovery in critical situations
+     * - Operation pausing
+     * - Emergency withdrawals
+     * @dev Will be set to address(0) after one year of successful operation
+     */
+    address private securitykeeper;
+
+    /**
+     * @dev Address of the official TTS token contract
+     * @notice Handles:
+     * - Minting rewards for market participation
+     * - Staking operations and rewards
+     * - Referral tracking and rewards
+     * - Governance token functionality
+     */
+    I_TTSwap_Token private  officialTokenContract;
+
+    /**
+     * @dev Total amount of tokens currently being restaked
+     * @notice Tracks the cumulative amount of tokens in staking:
+     * - ETH staking amounts
+     * - ERC20 token staking amounts
+     * - Pending rewards and distributions
+     */
+    uint256 restakingamount;
 
     //keccak256("ERC3156FlashBorrower.onFlashLoan");
     bytes32 private constant RETURN_VALUE = bytes32(0x439148f0bbc682ca079e46d6e2c2f0c1e3b820f1a291b069d8882abf8cf18dd9);
@@ -74,7 +114,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
      * - Configuration parameters
      */
     mapping(address goodid => S_GoodState) private goods;
-
     /**
      * @dev Mapping of proof IDs to their state information
      * @notice Records all investment proofs in the system:
@@ -86,58 +125,18 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
     mapping(uint256 proofid => S_ProofState) private proofs;
 
 
-    /**
-     * @dev Total amount of tokens currently being restaked
-     * @notice Tracks the cumulative amount of tokens in staking:
-     * - ETH staking amounts
-     * - ERC20 token staking amounts
-     * - Pending rewards and distributions
-     */
-    uint256 restakingamount;
 
-
-
-    /**
-     * @dev Address of the official TTS token contract
-     * @notice Handles:
-     * - Minting rewards for market participation
-     * - Staking operations and rewards
-     * - Referral tracking and rewards
-     * - Governance token functionality
-     */
-    I_TTSwap_Token private immutable officialTokenContract;
-
-    /**
-     * @dev Emergency security control address
-     * @notice Provides emergency controls:
-     * - Fund recovery in critical situations
-     * - Operation pausing
-     * - Emergency withdrawals
-     * @dev Will be set to address(0) after one year of successful operation
-     */
-    address private securitykeeper;
-
-    /**
-     * @dev Interface for ETH staking operations
-     * @notice Manages staking functionality:
-     * - ETH staking and unstaking
-     * - Reward distribution
-     * - Staking pool management
-     * - Emergency withdrawals
-     */
-    I_TTSwap_StakeETH private restakeContract;
-
-    /**
-     * @dev Constructor for TTSwap_Market
-     * @param _officialTokenContract The address of the official token contract
-     */
-    constructor(
-        I_TTSwap_Token _officialTokenContract,
-        address _securitykeeper
-    ) {
-        officialTokenContract = _officialTokenContract;
-        securitykeeper = _securitykeeper;
-    }
+    // /**
+    //  * @dev Constructor for TTSwap_Market
+    //  * @param _officialTokenContract The address of the official token contract
+    //  */
+    // constructor(
+    //     I_TTSwap_Token _officialTokenContract,
+    //     address _securitykeeper
+    // ) {
+    //     officialTokenContract = _officialTokenContract;
+    //     securitykeeper = _securitykeeper;
+    // }
 
     /// onlydao admin can execute
     modifier onlyMarketadmin() {
@@ -942,5 +941,5 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
         restakeContract = I_TTSwap_StakeETH(_target);
     }
 
-    receive() external payable {}
+    
 }

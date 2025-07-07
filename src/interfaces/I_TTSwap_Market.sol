@@ -7,8 +7,6 @@ import {toTTSwapUINT256, addsub, subadd} from "../libraries/L_TTSwapUINT256.sol"
 /// @notice Defines the interface for managing market operations
 interface I_TTSwap_Market {
    
-
-
     /// @notice Emitted when a good's configuration is updated
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
@@ -277,6 +275,11 @@ struct S_GoodState {
     uint256 currentState; // Current state: amount0 (first 128 bits) represents total value, amount1 (last 128 bits) represents quantity
     uint256 investState; // Investment state: amount0 represents total invested value, amount1 represents total invested quantity
     uint256 feeQuantityState; // Fee state: amount0 represents total fees (including construction fees), amount1 represents total construction fees
+    uint256 extend1;
+    uint256 extend2;
+    uint256 extend3;
+    uint256 extend4;
+    uint256 extend5;    
     mapping(address => uint256) commission;
 }
 /**
@@ -289,11 +292,6 @@ struct S_GoodTmpState {
     uint256 currentState; // Current state: amount0 (first 128 bits) represents total value, amount1 (last 128 bits) represents quantity
     uint256 investState; // Investment state: amount0 represents total invested value, amount1 represents total invested quantity
     uint256 feeQuantityState; // Fee state: amount0 represents total fees (including construction fees), amount1 represents total construction fees
-}
-
-struct S_GoodKey {
-    address owner;
-    address erc20address;
 }
 
 struct S_ProofKey {

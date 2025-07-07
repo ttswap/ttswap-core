@@ -6,7 +6,9 @@ import {Test} from "forge-std/src/Test.sol";
 import {console2} from "forge-std/src/console2.sol";
 import {MyToken} from "../src/test/MyToken.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
+import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
 import {TTSwap_Market} from "../src/TTSwap_Market.sol";
+import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {L_TTSTokenConfigLibrary} from "../src/libraries/L_TTSTokenConfig.sol";
 import {I_TTSwap_Token, s_share, s_proof} from "../src/interfaces/I_TTSwap_Token.sol";
 
@@ -39,15 +41,26 @@ contract testTTSwapToken is Test, GasSnapshot {
         usdt = new MyToken("USDT", "USDT", 6);
         eth = new MyToken("ETH", "ETH", 18);
         vm.startPrank(marketcreator);
-        tts_token = new TTSwap_Token(address(usdt), marketcreator, 2 ** 255 + 10000);
-        snapStart("depoly Market Manager");
-        market = new TTSwap_Market( tts_token, marketcreator);
-        snapEnd();
+        TTSwap_Token tts_token_logic = new TTSwap_Token(address(usdt), marketcreator, 2 ** 255 + 10000);
+        TTSwap_Token_Proxy tts_token_proxy=new TTSwap_Token_Proxy(address(usdt), marketcreator,  2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
+        tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
+        console2.log("tts_token00", address(tts_token));
 
+        TTSwap_Market market2 = new TTSwap_Market();
+        console2.log("tts_token01", address(tts_token));
+        TTSwap_Market_Proxy market_proxy=new TTSwap_Market_Proxy(tts_token, marketcreator,address(market2));
+
+        console2.log("tts_token02", address(tts_token));
+        market= TTSwap_Market( payable(address(market_proxy)));
+        console2.log("tts_token1", address(tts_token));
         tts_token.setTokenAdmin(marketcreator,true);
+        console2.log("tts_token2", address(tts_token));
         tts_token.setTokenManager(marketcreator,true);
+        console2.log("tts_token3", address(tts_token));
         tts_token.setCallMintTTS(address(market), true);
+        console2.log("tts_token4", address(tts_token));
         tts_token.setMarketAdmin(marketcreator,true);
+        console2.log("tts_token5", address(tts_token));
         vm.stopPrank();
     }
 

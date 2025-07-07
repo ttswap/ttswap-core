@@ -6,7 +6,9 @@ import {Test} from "forge-std/src/Test.sol";
 import {MyToken} from "../src/test/MyToken.sol";
 import {L_CurrencyLibrary} from "../src/libraries/L_Currency.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
+import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
 import {TTSwap_Market} from "../src/TTSwap_Market.sol";
+import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 
 contract BaseSetup is Test, GasSnapshot {
     address payable[8] internal users;
@@ -15,13 +17,13 @@ contract BaseSetup is Test, GasSnapshot {
     MyToken eth;
     address marketcreator;
     TTSwap_Market market;
+    TTSwap_Market_Proxy market_proxy;
     TTSwap_Token tts_token;
+    TTSwap_Token_Proxy tts_token_proxy;
     bytes internal constant defaultdata = bytes("");
 
-    event debuggdata(bytes);
 
     function setUp() public virtual {
-     
         users[0] = payable(address(1));
         users[1] = payable(address(2));
         users[2] = payable(address(3));
@@ -35,10 +37,14 @@ contract BaseSetup is Test, GasSnapshot {
         usdt = new MyToken("USDT", "USDT", 6);
         eth = new MyToken("ETH", "ETH", 18);
         vm.startPrank(marketcreator);
-        tts_token = new TTSwap_Token(address(usdt), marketcreator, 2 ** 255);
+        TTSwap_Token tts_token_logic = new TTSwap_Token(address(usdt), marketcreator,  2 ** 255 + 10000);
+        tts_token_proxy=new TTSwap_Token_Proxy(address(usdt), marketcreator, 2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
+        tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
         snapStart("depoly Market Manager");
-        market = new TTSwap_Market( tts_token, marketcreator);
+        TTSwap_Market market2 = new TTSwap_Market();
         snapEnd();
+        market_proxy=new TTSwap_Market_Proxy(tts_token, marketcreator,address(market2));
+        market= TTSwap_Market( payable(address(market_proxy)));
         tts_token.setTokenAdmin(marketcreator,true);
         tts_token.setTokenManager(marketcreator,true);
         tts_token.setCallMintTTS(address(market), true);
@@ -47,4 +53,5 @@ contract BaseSetup is Test, GasSnapshot {
         tts_token.setStakeManager(marketcreator,true);
         vm.stopPrank();
     }
+    function test1()public{}
 }

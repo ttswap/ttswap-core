@@ -5,7 +5,7 @@ import {Test, console2} from "forge-std/src/Test.sol";
 import {MyToken} from "../src/test/MyToken.sol";
 import "../src/TTSwap_Market.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_GoodKey, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
+import { S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
 import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
 import {L_Good} from "../src/libraries/L_Good.sol";
 import {
@@ -23,7 +23,7 @@ import {IERC20} from "../src/interfaces/IERC20.sol";
 
 import {rocketpoolmock} from "../src/test/rocketpoolmock.sol";
 import {TTSwap_StakeETH} from "../src/TTSwap_StakeETH.sol";
-
+import {TTSwap_StakeETH_Proxy} from "../src/TTSwap_StakeETH_Proxy.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
 import {IRocketTokenRETH} from "../src/interfaces/IRocketTokenRETH.sol";
 import {IRocketStorage} from "../src/interfaces/IRocketStorage.sol";
@@ -47,9 +47,11 @@ contract StakeETHSWETH is BaseSetup {
     function setUp() public override {
         BaseSetup.setUp();
         initRethToken();
-        ttswapstake = new TTSwap_StakeETH(
+        TTSwap_StakeETH ttswapstake2 = new TTSwap_StakeETH(
              market, tts_token, IRocketTokenRETH(reth), IRocketStorage(reth)
         );
+        TTSwap_StakeETH_Proxy ttswapstake_proxy=new TTSwap_StakeETH_Proxy(address(ttswapstake2),tts_token);
+        ttswapstake=TTSwap_StakeETH(payable(address(ttswapstake_proxy)));
         weth1 = new MyToken("WETH", "WETH", 18);
         vm.etch(weth, address(weth1).code);
         initmetagood();
