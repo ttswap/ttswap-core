@@ -24,6 +24,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     using L_CurrencyLibrary for address;
     using L_SignatureVerification for bytes;
     address internal implementation;
+    bool internal upgradeable;
     address internal usdt;
     uint256 public override  ttstokenconfig;
     uint256 public override  stakestate; // first 128 bit record lasttime,last 128 bit record poolvalue
@@ -527,4 +528,10 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
             keccak256(bytes(name))
         );
     }
+
+    function disableUpgrade() external  {
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(37);
+        upgradeable = false;
+    }
+
 }

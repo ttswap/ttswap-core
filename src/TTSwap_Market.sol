@@ -61,7 +61,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
      */
     error ERC3156InvalidReceiver(address receiver);
     address internal implementation;
-
+    bool internal upgradeable;
     /**
      * @dev Interface for ETH staking operations
      * @notice Manages staking functionality:
@@ -941,5 +941,9 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
         restakeContract = I_TTSwap_StakeETH(_target);
     }
 
+    function disableUpgrade() external  {
+        if (!officialTokenContract.userConfig(msg.sender).isDAOAdmin()) revert TTSwapError(37);
+        upgradeable = false;
+    }
     
 }

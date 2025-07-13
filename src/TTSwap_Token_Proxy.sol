@@ -28,6 +28,7 @@ contract TTSwap_Token_Proxy {
     mapping(address => mapping(address => uint256))  internal allowance;
     mapping(address => uint256) internal nonces;
     address internal implementation;
+    bool internal upgradeable;
     address internal usdt;
     uint256 internal ttstokenconfig;
     uint256 internal stakestate;
@@ -46,6 +47,7 @@ contract TTSwap_Token_Proxy {
         name =_name;
         symbol=_symbol;
         implementation=_implementation;
+        upgradeable=true;
         emit e_updateUserConfig(_dao_admin,userConfig[_dao_admin]);
     }
 
