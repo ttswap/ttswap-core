@@ -30,6 +30,7 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
     using L_ProofIdLibrary for S_ProofKey;
     using L_UserConfigLibrary for uint256;
     address internal  implementation;
+    bool internal upgradeable;
     /**
      * @notice Aggregated state for all staked tokens.
      * @dev amount0: total share, amount1: total ETH quantity
@@ -437,5 +438,9 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
             );
             emit e_collecttts(toTTSwapUINT256(amount, getamount.amount1()));
         }
+    }
+    function disableUpgrade() external  {
+        if (!tts_token.userConfig(msg.sender).isDAOAdmin()) revert TTSwapError(37);
+        upgradeable = false;
     }
 }

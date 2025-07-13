@@ -20,6 +20,7 @@ contract TTSwap_Market_Proxy {
     using L_UserConfigLibrary for uint256;
     address internal  implementation;
     I_TTSwap_StakeETH private  restakeContract;
+    bool internal upgradeable;
     address private securitykeeper;
     I_TTSwap_Token private  officialTokenContract;
 
@@ -31,6 +32,7 @@ contract TTSwap_Market_Proxy {
         officialTokenContract = _officialTokenContract;
         securitykeeper = _securitykeeper;
         implementation=_implementation;
+        upgradeable=true;
     }
 
     fallback() external payable{
@@ -55,5 +57,4 @@ contract TTSwap_Market_Proxy {
     }
 
     receive() external payable {}
-
 }

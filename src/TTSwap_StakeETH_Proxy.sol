@@ -18,6 +18,7 @@ import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
 contract TTSwap_StakeETH_Proxy {
     using L_UserConfigLibrary for uint256;
     address internal  implementation;
+    bool internal upgradeable;
     I_TTSwap_Token internal immutable tts_token;
 
     constructor(
@@ -26,6 +27,7 @@ contract TTSwap_StakeETH_Proxy {
     ) {
         implementation=_implementation;
         tts_token=_tts_token;
+        upgradeable=true;
     }
 
     fallback() external payable{
