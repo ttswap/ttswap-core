@@ -5,11 +5,12 @@ import {Test, console2} from "forge-std/src/Test.sol";
 import {MyToken} from "../src/test/MyToken.sol";
 import "../src/TTSwap_Market.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_GoodKey, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
+import { S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
+import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
 import {TTSwap_Market} from "../src/TTSwap_Market.sol";
-
+import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
 import {L_Good} from "../src/libraries/L_Good.sol";
 import {L_TTSwapUINT256Library, toTTSwapUINT256} from "../src/libraries/L_TTSwapUINT256.sol";
@@ -69,10 +70,14 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
         usdt = new MyToken("USDT", "USDT", 6);
         eth = new MyToken("ETH", "ETH", 18);
         vm.startPrank(marketcreator);
-        tts_token = new TTSwap_Token(address(usdt), marketcreator, 2 ** 255);
-        snapStart("depoly Market Manager");
-        market = new TTSwap_Market( tts_token, marketcreator);
-        snapEnd();
+        TTSwap_Token tts_token_logic = new TTSwap_Token(address(usdt), marketcreator,  2 ** 255 + 10000);
+        TTSwap_Token_Proxy tts_token_proxy=new TTSwap_Token_Proxy(address(usdt), marketcreator,  2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
+        tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
+
+        TTSwap_Market market2 = new TTSwap_Market();
+        TTSwap_Market_Proxy market_proxy=new TTSwap_Market_Proxy(tts_token, marketcreator,address(market2));
+        market= TTSwap_Market( payable(address(market_proxy)));
+
         tts_token.setTokenAdmin(marketcreator,true);
         tts_token.setTokenManager(marketcreator,true);
         tts_token.setCallMintTTS(address(market), true);

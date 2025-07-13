@@ -4,7 +4,7 @@ import {Test, console2} from "forge-std/src/Test.sol";
 import {MyToken} from "../src/test/MyToken.sol";
 import "../src/TTSwap_Market.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_GoodKey, S_ProofKey, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
+import { S_ProofKey, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
 import {L_Good} from "../src/libraries/L_Good.sol";
 import {
     L_TTSwapUINT256Library,

@@ -6,7 +6,8 @@ import "forge-std/src/Script.sol";
 import {Permit2} from "permit2/src/Permit2.sol";
 import {MyToken} from "../src/test/Mytoken.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
-
+import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
+import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {TTSwap_Market} from "../src/TTSwap_Market.sol";
 import {L_TTSwapUINT256Library, toTTSwapUINT256} from "../src/libraries/L_TTSwapUINT256.sol";
 import {L_CurrencyLibrary} from "../src/libraries/L_Currency.sol";
@@ -38,9 +39,23 @@ contract DeployMarket is Script {
             57896044618658097711785492504343953926634992332820282019728792003956564819968
         );
 
+        TTSwap_Token_Proxy ttstoken_proxy = new TTSwap_Token_Proxy(
+            address(UsdtToken),
+            msg.sender,
+            57896044618658097711785492504343953926634992332820282019728792003956564819968,
+            "TTSwap Token",
+            "TTS",
+            address(ttstoken)
+        );
+
         TTSwap_Market ttsmarket = new TTSwap_Market(
-            ttstoken,
-            msg.sender
+            
+        );
+
+        TTSwap_Market_Proxy ttsmarket_proxy = new TTSwap_Market_Proxy(
+            TTSwap_Token(payable(address(ttstoken_proxy))),
+            msg.sender,
+            address(ttsmarket)
         );
 
 

@@ -23,28 +23,23 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     using L_UserConfigLibrary for uint256;
     using L_CurrencyLibrary for address;
     using L_SignatureVerification for bytes;
-
-    uint256 public override ttstokenconfig;
-
-    mapping(address => s_share) internal  shares; // all share's mapping
-
-    uint256 public override stakestate; // first 128 bit record lasttime,last 128 bit record poolvalue
-    uint256 public override poolstate; // first 128 bit record all asset(contain actual asset and constuct fee),last  128 bit record construct  fee
-
-    mapping(uint256 => s_proof) internal  stakeproof;
-
-    address private marketcontract;
+    address internal implementation;
+    address internal usdt;
+    uint256 public override  ttstokenconfig;
+    uint256 public override  stakestate; // first 128 bit record lasttime,last 128 bit record poolvalue
     uint128 public override left_share = 45_000_000_000_000;
     /// @inheritdoc I_TTSwap_Token
     uint128 public override publicsell ;
-
-   
     // uint256 1:add referral priv 2: market priv
     /// @inheritdoc I_TTSwap_Token
     mapping(address => uint256) public override userConfig;
 
-    address private immutable usdt;
-    // lasttime is for stake
+    address internal marketcontract;
+    uint256 public override poolstate; // first 128 bit record all asset(contain actual asset and constuct fee),last  128 bit record construct  fee
+
+    mapping(address => s_share) internal  shares; // all share's mapping
+    mapping(uint256 => s_proof) internal  stakeproof;
+
 
     bytes32 internal constant _PERMITSHARE_TYPEHASH = keccak256(
         "permitShare(uint128 amount,uint120 chips,uint8 metric,address owner,uint128 existamount,uint128 deadline,uint256 nonce)"

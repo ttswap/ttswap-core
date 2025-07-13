@@ -1,5 +1,6 @@
 forge-gas-snapshot/=lib/forge-gas-snapshot/
 forge-std/=lib/forge-std/
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+@openzeppelin-upgradeable/contracts/=lib/openzeppelin-contracts-upgradeable/contracts/
 solmate/=lib/solmate/
 permit2/=lib/permit2/

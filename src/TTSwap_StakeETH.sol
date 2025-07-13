@@ -29,7 +29,7 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
     using L_CurrencyLibrary for address;
     using L_ProofIdLibrary for S_ProofKey;
     using L_UserConfigLibrary for uint256;
-
+    address internal  implementation;
     /**
      * @notice Aggregated state for all staked tokens.
      * @dev amount0: total share, amount1: total ETH quantity
@@ -352,13 +352,7 @@ contract TTSwap_StakeETH is I_TTSwap_StakeETH {
         emit e_rocketpoolUnstaked(totalStake, totalState, reward);
     }
 
-    /**
-     * @notice Receive function to accept ETH transfers.
-     * @dev Emits an event with the received ETH amount.
-     */
-    receive() external payable {
-        emit e_Received(msg.value);
-    }
+
 
     /**
      * @notice Invest rETH into the TTSwap market. Only callable by the manager.
