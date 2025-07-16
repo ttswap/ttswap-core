@@ -72,16 +72,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
      */
     I_TTSwap_StakeETH private  restakeContract;
 
-    /** 
-     * @dev Emergency security control address
-     * @notice Provides emergency controls:
-     * - Fund recovery in critical situations
-     * - Operation pausing
-     * - Emergency withdrawals
-     * @dev Will be set to address(0) after one year of successful operation
-     */
-    address private securitykeeper;
-
     /**
      * @dev Address of the official TTS token contract
      * @notice Handles:
@@ -810,39 +800,7 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
         return true;
     }
 
-    /**
-     * @dev Emergency function to protect user assets in case of critical issues
-     * @param token The address of the token to be secured
-     * @notice This function:
-     * - Allows the security keeper to secure assets in emergency situations
-     * - Transfers all tokens of the specified type to the security keeper
-     * - Resets the good's fee quantity state and current state
-     * - Only callable by the designated security keeper
-     * @custom:security Only callable by security keeper
-     * @custom:security Reverts if:
-     * - Caller is not the security keeper
-     * - Token transfer fails
-     */
-    function securityKeeper(address token) external  {
-        require(msg.sender == securitykeeper);
-        uint256 amount = token.balanceof(address(this));
-        goods[token].feeQuantityState = 0;
-        goods[token].currentState = 0;
-        token.safeTransfer(securitykeeper, amount);
-    }
-
-    /**
-     * @dev Removes the current security keeper from the contract
-     * @notice This function:
-     * - Allows the DAO admin to remove the current security keeper
-     * - Sets the security keeper address to zero addres
-     * - Only callable by the DAO admin
-     * @custom:security Only callable by DAO admin
-     * @custom:security Reverts if caller is not the DAO admin
-     */
-    function removeSecurityKeeper() external onlyMarketadmin {
-        securitykeeper = address(0);
-    }
+ 
     /**
      * @dev Stakes ETH into the contract to participate in the trading system
      * @notice This function:

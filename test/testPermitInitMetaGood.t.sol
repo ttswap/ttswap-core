@@ -75,7 +75,7 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
         tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
 
         TTSwap_Market market2 = new TTSwap_Market();
-        TTSwap_Market_Proxy market_proxy=new TTSwap_Market_Proxy(tts_token, marketcreator,address(market2));
+        TTSwap_Market_Proxy market_proxy=new TTSwap_Market_Proxy(tts_token,address(market2));
         market= TTSwap_Market( payable(address(market_proxy)));
 
         tts_token.setTokenAdmin(marketcreator,true);

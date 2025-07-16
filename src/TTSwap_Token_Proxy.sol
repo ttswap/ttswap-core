@@ -64,7 +64,7 @@ contract TTSwap_Token_Proxy {
 
         /// onlydao admin can execute
     modifier onlyDAOadmin() {
-        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(1);
+        if (!userConfig[msg.sender].isDAOAdmin()||!upgradeable) revert TTSwapError(1);
         _;
     }
 

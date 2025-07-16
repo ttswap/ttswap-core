@@ -19,18 +19,15 @@ import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
 contract TTSwap_Market_Proxy {
     using L_UserConfigLibrary for uint256;
     address internal  implementation;
-    I_TTSwap_StakeETH private  restakeContract;
     bool internal upgradeable;
-    address private securitykeeper;
+    I_TTSwap_StakeETH private  restakeContract;
     I_TTSwap_Token private  officialTokenContract;
 
     constructor(
         I_TTSwap_Token _officialTokenContract,
-        address _securitykeeper,
         address _implementation
     ) {
         officialTokenContract = _officialTokenContract;
-        securitykeeper = _securitykeeper;
         implementation=_implementation;
         upgradeable=true;
     }
@@ -48,7 +45,7 @@ contract TTSwap_Market_Proxy {
 
         /// onlydao admin can execute
     modifier onlyDAOadmin() {
-        if (!officialTokenContract.userConfig(msg.sender).isDAOAdmin()) revert TTSwapError(1);
+        if (!officialTokenContract.userConfig(msg.sender).isDAOAdmin()||!upgradeable) revert TTSwapError(1);
         _;
     }
 

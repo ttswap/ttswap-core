@@ -43,7 +43,7 @@ contract TTSwap_StakeETH_Proxy {
 
         /// onlydao admin can execute
     modifier onlyDAOadmin() {
-        if (!tts_token.userConfig(msg.sender).isDAOAdmin()) revert TTSwapError(1);
+        if (!tts_token.userConfig(msg.sender).isDAOAdmin()||!upgradeable) revert TTSwapError(1);
         _;
     }
 
