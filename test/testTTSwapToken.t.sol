@@ -48,7 +48,7 @@ contract testTTSwapToken is Test, GasSnapshot {
 
         TTSwap_Market market2 = new TTSwap_Market();
         console2.log("tts_token01", address(tts_token));
-        TTSwap_Market_Proxy market_proxy=new TTSwap_Market_Proxy(tts_token, marketcreator,address(market2));
+        TTSwap_Market_Proxy market_proxy=new TTSwap_Market_Proxy(tts_token,address(market2));
 
         console2.log("tts_token02", address(tts_token));
         market= TTSwap_Market( payable(address(market_proxy)));

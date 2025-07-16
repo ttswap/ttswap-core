@@ -54,7 +54,6 @@ contract DeployMarket is Script {
 
         TTSwap_Market_Proxy ttsmarket_proxy = new TTSwap_Market_Proxy(
             TTSwap_Token(payable(address(ttstoken_proxy))),
-            msg.sender,
             address(ttsmarket)
         );
 

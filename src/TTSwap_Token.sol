@@ -533,5 +533,4 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(37);
         upgradeable = false;
     }
-
 }
