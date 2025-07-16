@@ -20,8 +20,6 @@ import {
     subadd,
     lowerprice
 } from "./libraries/L_TTSwapUINT256.sol";
-import {IERC3156FlashBorrower} from "./interfaces/IERC3156FlashBorrower.sol";
-import {IERC3156FlashLender} from "./interfaces/IERC3156FlashLender.sol";
 import {IMulticall_v4} from "./interfaces/IMulticall_v4.sol";
 import {I_TTSwap_StakeETH} from "./interfaces/I_TTSwap_StakeETH.sol";
 import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
@@ -36,7 +34,7 @@ import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
  * - Commission distribution system
  * - ETH or WETH staking integration
  */
-contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
+contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     using L_GoodConfigLibrary for uint256;
     using L_UserConfigLibrary for uint256;
     using L_ProofIdLibrary for S_ProofKey;
@@ -750,56 +748,6 @@ contract TTSwap_Market is I_TTSwap_Market, IERC3156FlashLender, IMulticall_v4 {
     }
 
  
-
-    /// @inheritdoc IERC3156FlashLender
-    function maxFlashLoan(address good) public view override returns (uint256) {
-        return good.balanceof(address(this))/2;
-    }
-
-    /// @inheritdoc IERC3156FlashLender
-    function flashFee(address token, uint256 amount) public view override returns (uint256) {
-        return goods[token].goodConfig.getFlashFee(amount);
-    }
-
-    /**
-     * @dev Executes a flash loan operation
-     * @param receiver The contract that will receive the loan
-     * @param token The token to be borrowed
-     * @param amount The amount to borrow
-     * @param data Additional data for the flash loan callback
-     * @return bool Success status of the flash loan
-     * @notice This function:
-     * - Validates loan parameters
-     * - Transfers tokens to receiver
-     * - Calls receiver's callback
-     * - Verifies repayment
-     * - Collects flash loan fees
-     * @custom:security Requires noReentrant modifier
-     */
-    /// @inheritdoc IERC3156FlashLender
-    function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)
-        public
-        override
-        noReentrant
-        returns (bool)
-    {
-        if (token.canRestake()||token.isNative()) revert TTSwapError(29);
-        uint256 maxLoan = maxFlashLoan(token);
-      
-        if (amount > maxLoan) {
-            revert ERC3156ExceededMaxLoan(maxLoan);
-        }
-        uint256 fee = flashFee(token, amount);
-        if(amount + fee>type(uint128).max) revert TTSwapError(41);
-        token.safeTransfer(address(receiver), amount);
-        if (receiver.onFlashLoan(msg.sender, token, amount, fee, data) != RETURN_VALUE) {
-            revert ERC3156InvalidReceiver(address(receiver));
-        }
-        token.transferFrom(address(receiver), address(this), uint128(amount + fee));
-        goods[token].fillFee(fee);
-        return true;
-    }
-
  
     /**
      * @dev Stakes ETH into the contract to participate in the trading system

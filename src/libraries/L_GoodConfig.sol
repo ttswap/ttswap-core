@@ -89,19 +89,7 @@ library L_GoodConfigLibrary {
         }
     }
 
-    /// @notice Calculate the investment fee for a given amount
-    /// @param config The configuration value
-    /// @param amount The investment amount
-    /// @return a The calculated investment fee
-    function getFlashFee(uint256 config, uint256 amount) internal pure returns (uint256 a) {
-        unchecked {
-            assembly {
-                config := shr(250, shl(27, config))
-                config := mul(config, amount)
-                a := div(config, 10000)
-            }
-        }
-    }
+
 
     /// @notice Calculate the investment fee for a given amount
     /// @param config The configuration value
