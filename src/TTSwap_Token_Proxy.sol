@@ -63,13 +63,23 @@ contract TTSwap_Token_Proxy {
     }
 
         /// onlydao admin can execute
-    modifier onlyDAOadmin() {
-        if (!userConfig[msg.sender].isDAOAdmin()||!upgradeable) revert TTSwapError(1);
+    modifier onlyTokenAdminProxy() {
+        if (!userConfig[msg.sender].isTokenAdmin()||!upgradeable) revert TTSwapError(1);
         _;
     }
 
-    function upgrade(address _implementation) external onlyDAOadmin{
+    /// onlydao admin can execute
+    modifier onlyTokenOperatorProxy() {
+        if (!userConfig[msg.sender].isTokenManager()||!upgradeable) revert TTSwapError(1);
+        _;
+    }
+
+    function upgrade(address _implementation) external onlyTokenAdminProxy{
         implementation=_implementation;
+    }
+
+    function freezeToken() external onlyTokenOperatorProxy{
+        implementation=address(0);
     }
 
     receive() external payable {}
