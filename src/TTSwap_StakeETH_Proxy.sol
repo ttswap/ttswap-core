@@ -57,7 +57,7 @@ contract TTSwap_StakeETH_Proxy {
         implementation=_implementation;
     }
 
-    function freezeToken() external onlyStakeOperatorProxy{
+    function freezeStake() external onlyStakeOperatorProxy{
         implementation=address(0);
     }
     
