@@ -52,12 +52,8 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      * @param _dao_admin Address of the DAO admin
      * @param _ttsconfig Configuration for the TTS token
      */
-    constructor(address _usdt, address _dao_admin, uint256 _ttsconfig) ERC20("TTSwap Token", "TTS", 6) {
-        usdt = _usdt;
-        stakestate = toTTSwapUINT256(uint128(block.timestamp), 0);
-        ttstokenconfig = _ttsconfig;
-        userConfig[_dao_admin]=userConfig[_dao_admin].setDAOAdmin(true);
-        emit e_updateUserConfig(_dao_admin,userConfig[_dao_admin]);
+    constructor() ERC20("TTSwap Token", "TTS", 6) {
+        
     }
 
 
