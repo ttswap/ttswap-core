@@ -46,12 +46,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         "permitShare(uint128 amount,uint120 chips,uint8 metric,address owner,uint128 existamount,uint128 deadline,uint256 nonce)"
     );
 
-    /**
-     * @dev Constructor to initialize the TTS token
-     * @param _usdt Address of the USDT token contract
-     * @param _dao_admin Address of the DAO admin
-     * @param _ttsconfig Configuration for the TTS token
-     */
+   
     constructor() ERC20("TTSwap Token", "TTS", 6) {
         
     }
