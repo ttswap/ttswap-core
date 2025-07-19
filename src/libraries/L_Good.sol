@@ -28,10 +28,10 @@ library L_Good {
         
         // Clear the top 33 bits of the new config
         assembly {
-            _goodConfig := shr(27, shl(27, _goodConfig))
+            _goodConfig := shr(33, shl(33, _goodConfig))
         }
         // Preserve the top 33 bits of the existing config and add the new config
-        _self.goodConfig = ((_self.goodConfig >> 229) << 229) + _goodConfig;
+        _self.goodConfig = ((_self.goodConfig >> 223) << 223) + _goodConfig;
     }
 
     /**
@@ -44,8 +44,8 @@ library L_Good {
     function init(S_GoodState storage self, uint256 _init, uint256 _goodConfig) internal {
         self.currentState = _init;
         self.investState = _init;
-        _goodConfig=(_goodConfig << 27) >> 27;
-        _goodConfig=_goodConfig+(25600258<<229); //25600258 6*2**22+ 1*2**18+ 5*2**15+8*2**10+8*2**5+2
+        _goodConfig=(_goodConfig << 33) >> 33;
+        _goodConfig=_goodConfig+(1638416512<<223); //25600258 6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
         self.goodConfig =_goodConfig; 
         self.owner = msg.sender;
     }
