@@ -42,13 +42,23 @@ contract TTSwap_StakeETH_Proxy {
     }
 
         /// onlydao admin can execute
-    modifier onlyDAOadmin() {
-        if (!tts_token.userConfig(msg.sender).isDAOAdmin()||!upgradeable) revert TTSwapError(1);
+    modifier onlyStakeAdminProxy() {
+        if (!tts_token.userConfig(msg.sender).isStakeAdmin()||!upgradeable) revert TTSwapError(1);
         _;
     }
 
-    function upgrade(address _implementation) external onlyDAOadmin{
+                /// onlydao admin can execute
+    modifier onlyStakeOperatorProxy() {
+        if (!tts_token.userConfig(msg.sender).isStakeManager()||!upgradeable) revert TTSwapError(1);
+        _;
+    }
+
+    function upgrade(address _implementation) external onlyStakeAdminProxy{
         implementation=_implementation;
+    }
+
+    function freezeStake() external onlyStakeOperatorProxy{
+        implementation=address(0);
     }
     
     event e_Received(uint256 amount);

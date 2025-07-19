@@ -34,9 +34,7 @@ contract DeployMarket is Script {
         BTCToken.approve(address(permit2), 100000 * 10 ** 6);
 
         TTSwap_Token ttstoken = new TTSwap_Token(
-            address(UsdtToken),
-            msg.sender,
-            57896044618658097711785492504343953926634992332820282019728792003956564819968
+            
         );
 
         TTSwap_Token_Proxy ttstoken_proxy = new TTSwap_Token_Proxy(

@@ -48,7 +48,7 @@ contract testBuy123 is Test {
         usdt = new MyToken("USDT", "USDT", 6);
         wbtc = new MyToken("BTC", "BTC", 8);
         eth = new MyToken("ETH", "ETH", 18);
-        TTSwap_Token tts_token_logic = new TTSwap_Token(address(usdt), marketcreator, 2 ** 255 + 10000);
+        TTSwap_Token tts_token_logic = new TTSwap_Token();
         TTSwap_Token_Proxy tts_token_proxy=new TTSwap_Token_Proxy(address(usdt), marketcreator,  2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
         tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
        
