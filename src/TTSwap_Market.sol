@@ -187,7 +187,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
         goods[_erc20address].init(_initial, _goodConfig);
         /// update good to value good
-        goods[_erc20address].modifyGoodConfig(92709122<<229); //2**26+6*2**22+ 1*2**18+ 5*2**15+8*2**10+8*2**5+2
+        goods[_erc20address].modifyGoodConfig(5933383808<<223); //2**32+6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
         uint256 proofid = S_ProofKey(msg.sender, _erc20address, address(0)).toId();
         proofs[proofid].updateInvest(
             _erc20address, address(0), toTTSwapUINT256(_initial.amount0(), 0), _initial.amount1(), 0
