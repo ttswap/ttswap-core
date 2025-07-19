@@ -2,7 +2,6 @@
 pragma solidity 0.8.29;
 
 import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
-import {I_TTSwap_StakeETH} from "./interfaces/I_TTSwap_StakeETH.sol";
 import {TTSwapError} from "./libraries/L_Error.sol";
 import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
 /**
@@ -20,7 +19,6 @@ contract TTSwap_Market_Proxy {
     using L_UserConfigLibrary for uint256;
     address internal  implementation;
     bool internal upgradeable;
-    I_TTSwap_StakeETH private  restakeContract;
     I_TTSwap_Token private  officialTokenContract;
 
     constructor(
