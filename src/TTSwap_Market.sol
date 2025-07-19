@@ -21,7 +21,6 @@ import {
     lowerprice
 } from "./libraries/L_TTSwapUINT256.sol";
 import {IMulticall_v4} from "./interfaces/IMulticall_v4.sol";
-import {I_TTSwap_StakeETH} from "./interfaces/I_TTSwap_StakeETH.sol";
 import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
 /**
  * @title TTSwap_Market
@@ -61,16 +60,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     address internal implementation;
     bool internal upgradeable;
     /**
-     * @dev Interface for ETH staking operations
-     * @notice Manages staking functionality:
-     * - ETH staking and unstaking
-     * - Reward distribution
-     * - Staking pool management
-     * - Emergency withdrawals
-     */
-    I_TTSwap_StakeETH private  restakeContract;
-
-    /**
      * @dev Address of the official TTS token contract
      * @notice Handles:
      * - Minting rewards for market participation
@@ -80,14 +69,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      */
     I_TTSwap_Token private  officialTokenContract;
 
-    /**
-     * @dev Total amount of tokens currently being restaked
-     * @notice Tracks the cumulative amount of tokens in staking:
-     * - ETH staking amounts
-     * - ERC20 token staking amounts
-     * - Pending rewards and distributions
-     */
-    uint256 restakingamount;
 
     //keccak256("ERC3156FlashBorrower.onFlashLoan");
     bytes32 private constant RETURN_VALUE = bytes32(0x439148f0bbc682ca079e46d6e2c2f0c1e3b820f1a291b069d8882abf8cf18dd9);
@@ -745,106 +726,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         goodid.transferFrom(msg.sender, welfare, data);
         goods[goodid].feeQuantityState = add(goods[goodid].feeQuantityState, toTTSwapUINT256(uint128(welfare), 0));
         emit e_goodWelfare(goodid, welfare);
-    }
-
- 
- 
-    /**
-     * @dev Stakes ETH into the contract to participate in the trading system
-     * @notice This function:
-     * - Allows users to stake ETH to become eligible for trading
-     * - Requires a minimum stake amount (MINSTAKE)
-     * - Updates the user's staked balance and total staked amount
-     * - Emits a StakeETH event on successful staking
-     * @custom:security Protected by noReentrant modifier
-     * @custom:security Requires msg.value >= MINSTAKE
-     * @custom:security Reverts if staking fails
-     */
-    /// @inheritdoc I_TTSwap_Market
-
-    function stakeETH(address token, uint128 amount) external override noReentrant {
-        if (goods[token].owner != msg.sender || !token.canRestake()) {
-            revert TTSwapError(36);
-        }
-        if (token.isNative()) {
-            if (goods[token].currentState.amount0()/5*4<restakingamount.amount1()) {
-                revert TTSwapError(36);
-            }
-            restakingamount = add(restakingamount, toTTSwapUINT256(0, amount));
-            restakeContract.stakeEth{value: amount}(token, amount);
-        } else {
-            if (goods[token].currentState.amount0()/5*4<restakingamount.amount0()) {
-                revert TTSwapError(36);
-            }
-            restakingamount = add(restakingamount, toTTSwapUINT256(amount, 0));
-            token.approve(address(restakeContract), amount);
-            restakeContract.stakeEth(token, amount);
-        }
-    }
-
-    /**
-     * @dev Unstakes ETH from the contract and returns it to the user
-     * @notice This function:
-     * - Allows users to withdraw their staked ETH
-     * - Updates the user's staked balance and total staked amount
-     * - Transfers the staked ETH back to the user
-     * - Emits an UnstakeETH event on successful unstaking
-     * @custom:security Protected by noReentrant modifier
-     * @custom:security Reverts if:
-     * - User has no staked balance
-     * - Transfer fails
-     */
-    /// @inheritdoc I_TTSwap_Market
-    function unstakeETH(address token, uint128 amount) external override noReentrant {
-        if (goods[token].owner != msg.sender || !token.canRestake()) {
-            revert TTSwapError(36);
-        }
-        uint128 fee = restakeContract.unstakeEthSome(token, amount);
-        if (token.isNative()) {
-            restakingamount = sub(restakingamount, toTTSwapUINT256(0, amount));
-        } else {
-            restakingamount = sub(restakingamount, toTTSwapUINT256(amount, 0));
-        }
-        goods[token].feeQuantityState = add(goods[token].feeQuantityState, toTTSwapUINT256(fee, 0));
-    }
-    /**
-     * @dev Synchronizes rewards for a specific good and its associated value good
-     * @param good The address of the normal good to sync rewards for
-     * @param valuegood The address of the value good to sync rewards for
-     * @notice This function:
-     * - Updates reward states for both normal and value goods
-     * - Calculates and distributes rewards based on current states
-     * - Maintains reward synchronization between paired goods
-     * - Essential for accurate reward distribution in the trading system
-     * @custom:security Protected by noReentrant modifier
-     * @custom:security Reverts if:
-     * - Invalid good addresses
-     * - Goods are not properly paired
-     * - Reward calculation fails
-     */
-    /// @inheritdoc I_TTSwap_Market
-
-    function syncReward(address token) external override {
-        uint128 fee = restakeContract.syncReward(token);
-        goods[token].feeQuantityState = add(goods[token].feeQuantityState, toTTSwapUINT256(fee, 0));
-    }
-
-    /**
-     * @dev Updates the re-staking contract address
-     * @param _restakeContract The new address of the re-staking contract
-     * @notice This function:
-     * - Allows the DAO admin to update the re-staking contract
-     * - Updates the restakeContract state variable
-     * - Only callable by the DAO admin
-     * @custom:security Only callable by DAO admin
-     * @custom:security Reverts if:
-     * - Caller is not the DAO admin
-     * - New address is zero address
-     * - New contract does not implement required interface
-     */
-    /// @inheritdoc I_TTSwap_Market
-    function changeReStakingContrat(address _target) external onlyMarketadmin {
-        restakeContract = I_TTSwap_StakeETH(_target);
     }
 
     function disableUpgrade() external  {

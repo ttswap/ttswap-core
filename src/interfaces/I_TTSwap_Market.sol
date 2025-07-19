@@ -240,10 +240,7 @@ interface I_TTSwap_Market {
     /// @param goodid The ID of the good
     /// @param welfare The amount of welfare
     function goodWelfare(address goodid, uint128 welfare, bytes calldata data1) external payable;
-    function unstakeETH(address token, uint128 amount) external;
-    function stakeETH(address token, uint128 amount) external;
-    function syncReward(address token) external;
-    function changeReStakingContrat(address _target) external;
+   
     function getRecentGoodState(address good1, address good2)
         external
         view
