@@ -75,7 +75,7 @@ contract buyNormalGooduseNativeETH is BaseSetup {
         vm.stopPrank();
     }
 
-    function testBuyNormalGoodUsingNativeETHWithoutChips() public {
+    function testBuyNormalGoodUsingNativeETH() public {
         vm.startPrank(users[1]);
         usdt.approve(address(market), 800000 * 10 ** 6 + 1);
         btc.approve(address(market), 10 * 10 ** 8 + 1);
@@ -125,30 +125,30 @@ contract buyNormalGooduseNativeETH is BaseSetup {
             "before buy nativeeth_normalgood:btc address(market) account  balance error"
         );
 
-        market.buyGood{value: 6 * 10 ** 6}(normalgoodbtc, metagood, 6 * 10 ** 6, 10, address(0), defaultdata);
+        market.buyGood{value: 6 * 10 ** 6}(normalgoodbtc, metagood,toTTSwapUINT256(10 ** 6, 1), 1, address(0), defaultdata);
 
         assertEq(
             usdt.balanceOf(users[1]),
-            49940775087776,
+            49937619538749,
             "after buy nativeeth_normalgood:usdt users[1] account  balance error"
         );
-        assertEq(users[1].balance, 894000000, "after buy nativeeth_normalgood:btc users[1] account  balance error");
-        assertEq(address(market).balance, 106000000, "after buy nativeeth_normalgood:btc market account  balance error");
+        assertEq(users[1].balance, 899000000, "after buy nativeeth_normalgood:btc users[1] account  balance error");
+        assertEq(address(market).balance, 101000000, "after buy nativeeth_normalgood:btc market account  balance error");
         assertEq(
             usdt.balanceOf(address(market)),
-            109224912224,
+            112380461251,
             "after buy nativeeth_normalgood:usdt market account  balance error"
         );
 
         good_ = market.getGoodState(address(1));
         assertEq(
             good_.currentState.amount0(),
-            59216723736,
+            62370432271,
             "after buy nativeeth_normalgood:metagood currentState amount0 error"
         );
         assertEq(
             good_.currentState.amount1(),
-            105995800,
+            100999300,
             "after buy nativeeth_normalgood:metagood currentState amount1 error"
         );
         assertEq(
@@ -161,7 +161,7 @@ contract buyNormalGooduseNativeETH is BaseSetup {
         );
         assertEq(
             good_.feeQuantityState.amount0(),
-            4200,
+            700,
             "after buy nativeeth_normalgood:metagood feeQuantityState amount0 error"
         );
         assertEq(
@@ -170,14 +170,14 @@ contract buyNormalGooduseNativeETH is BaseSetup {
             "after buy nativeeth_normalgood:metagood feeQuantityState amount1 error"
         );
 
-        market.buyGood{value: 10 ** 6}(normalgoodbtc, metagood, 10 ** 6, 10, address(0), defaultdata);
+        market.buyGood{value: 10 ** 6}(normalgoodbtc, metagood, toTTSwapUINT256(10 ** 6, 1), 1, address(0), defaultdata);
 
-        market.buyGood{value: 10 ** 6}(normalgoodbtc, metagood, 10 ** 6, 10, address(0), defaultdata);
+        market.buyGood{value: 10 ** 6}(normalgoodbtc, metagood, toTTSwapUINT256(10 ** 6, 1), 1, address(0), defaultdata);
 
         vm.stopPrank();
     }
 
-    function testBuyNormalGoodUsingNativeETHWithChips() public {
+    function testBuyNormalGoodUsingNativeETHWith() public {
         vm.startPrank(users[1]);
         uint256 goodconfig = 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197 + 2 * 2 ** 216 + 3 * 2 ** 206;
         market.updateGoodConfig(normalgoodbtc, goodconfig);
@@ -201,22 +201,16 @@ contract buyNormalGooduseNativeETH is BaseSetup {
             "before buy nativeeth_normalgood:btc address(market) account  balance error"
         );
 
-        market.buyGood{value: 63000000}(normalgoodbtc, metagood, 63000000, 1, address(0), defaultdata);
-        snapLastCall("buy_normal_good_use_nativegood_chips_first_1chips");
+        market.buyGood{value: 63000000}(normalgoodbtc, metagood,  toTTSwapUINT256(63000000, 1), 1, address(0), defaultdata);
+        snapLastCall("buy_normal_good_use_nativegood__first");
 
-        market.buyGood{value: 63000000}(normalgoodbtc, metagood, 63000000, 1, address(0), defaultdata);
-        snapLastCall("buy_normal_good_use_nativegood_chips_second_1chips");
-
-        market.buyGood{value: 6300 * 10 ** 4}(normalgoodbtc, metagood, 6300 * 10 ** 4, 12, address(0), defaultdata);
-        snapLastCall("buy_normal_good_use_nativegood_chips_second_12chips");
-
-        market.buyGood{value: 6300 * 10 ** 4}(normalgoodbtc, metagood, 6300 * 10 ** 4, 10, address(0), defaultdata);
-        snapLastCall("buy_normal_good_use_nativegood_chips_second_10chips");
+        market.buyGood{value: 63000000}(normalgoodbtc, metagood,  toTTSwapUINT256(63000000, 1), 1, address(0), defaultdata);
+        snapLastCall("buy_normal_good_use_nativegood__second");
 
         vm.stopPrank();
     }
 
-    function testBuyNativeETHGoodWithChipswithRefere() public {
+    function testBuyNativeETHGoodWithwithRefere() public {
         vm.startPrank(users[1]);
         uint256 goodconfig = 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197 + 2 * 2 ** 216 + 3 * 2 ** 206;
         market.updateGoodConfig(normalgoodbtc, goodconfig);
@@ -240,17 +234,12 @@ contract buyNormalGooduseNativeETH is BaseSetup {
             "before buy nativeeth_normalgood:btc address(market) account  balance error"
         );
 
-        market.buyGood{value: 63000000}(normalgoodbtc, metagood, 63000000, 1, users[3], defaultdata);
-        snapLastCall("buy_normal_good_use_nativegood_chips_first_1chips_refere");
+        market.buyGood{value: 63000000}(normalgoodbtc, metagood, toTTSwapUINT256(63000000, 1),1, users[3], defaultdata);
+        snapLastCall("buy_normal_good_use_nativegood__first_1_refere");
 
-        market.buyGood{value: 63000000}(normalgoodbtc, metagood, 63000000, 1, users[3], defaultdata);
-        snapLastCall("buy_normal_good_use_nativegood_chips_second_1chips_refere");
+        market.buyGood{value: 63000000}(normalgoodbtc, metagood, toTTSwapUINT256(63000000, 1), 1, users[3], defaultdata);
+        snapLastCall("buy_normal_good_use_nativegood__second_1_refere");
 
-        market.buyGood{value: 63000000}(normalgoodbtc, metagood, 63000000, 12, users[3], defaultdata);
-        snapLastCall("buy_normal_good_use_nativegood_chips_second_12chips_refere");
-
-        market.buyGood{value: 63000000}(normalgoodbtc, metagood, 63000000, 10, users[3], defaultdata);
-        snapLastCall("buy_normal_good_use_nativegood_chips_second_10chips_refere");
         vm.stopPrank();
     }
 }

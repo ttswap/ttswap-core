@@ -109,7 +109,7 @@ contract testBuy123 is Test {
         vm.startPrank(marketcreator);
         console2.log("before balance of eth", eth.balanceOf(marketcreator));
         console2.log("before balance of wbtc", wbtc.balanceOf(marketcreator));
-        market.buyGood(ethgood, btcgood, 1 * 10 ** 18, 99, address(0), defaultdata);
+        market.buyGood(ethgood, btcgood, toTTSwapUINT256(1 * 10 ** 18, 1), 1, address(0), defaultdata);
         console2.log("after balance of eth", eth.balanceOf(marketcreator));
         console2.log("after balance of wbtc", wbtc.balanceOf(marketcreator));
         console2.log(33000 * 10 ** 6 * 2 * 10 ** 5 * 995, 10 * 10 ** 18 * 128000 * 10 ** 6);

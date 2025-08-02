@@ -300,7 +300,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             });
 
             L_Good.swapCompute1(swapcache);
-            if ( swapcache.swapvalue < 1_000_000 ) {
+            if ( swapcache.swapvalue < 1_000_000 || (swapcache.outputQuantity <_swapQuantity.amount1()&&_swapQuantity.amount1()>0) ) {
                 revert TTSwapError(34);
             }
             good1change = toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity.amount0());
@@ -327,11 +327,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 good2config: goods[_goodid2].goodConfig
             });
             L_Good.swapCompute2(swapcache);
-            if ( swapcache.swapvalue < 1_000_000 ) {
-                revert TTSwapError(33);
-            }
             _side = swapcache.good2config.getBuyFee(swapcache.outputQuantity);
             good1change = toTTSwapUINT256(_side,swapcache.outputQuantity + _side);
+            if ( swapcache.swapvalue < 1_000_000 || (good1change.amount1() >_swapQuantity.amount0()&&_swapQuantity.amount0()>0) ) {
+                revert TTSwapError(33);
+            }
             good2change = toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity.amount1());
             _goodid1.transferFrom(msg.sender, good1change.amount1(), data);
             goods[_goodid1].swapCommit(swapcache.good1currentState, good1change.amount0());
