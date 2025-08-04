@@ -394,7 +394,7 @@ contract modified_swap is Test, GasSnapshot {
         market.buyGood(
             address(usdt),
             address(usdc),
-            toTTSwapUINT256(1000 * 10 ** 6, 1000 * 10 ** 6),
+            toTTSwapUINT256(2000 * 10 ** 6, 1000 * 10 ** 6),
             0,
             marketcreator,
             ""

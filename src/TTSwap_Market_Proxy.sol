@@ -18,8 +18,8 @@ import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
 contract TTSwap_Market_Proxy {
     using L_UserConfigLibrary for uint256;
     address internal  implementation;
-    bool internal upgradeable;
     I_TTSwap_Token private  officialTokenContract;
+    bool internal upgradeable;
 
     constructor(
         I_TTSwap_Token _officialTokenContract,

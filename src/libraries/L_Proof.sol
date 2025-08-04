@@ -42,12 +42,19 @@ library L_Proof {
     ) internal {
         if (_self.invest.amount1() == 0) _self.currentgood = _currenctgood;
         _self.state = add(_self.state, _state);
+        emit debugg11(1, _self.invest);
+        emit debugg11(2, _invest);
         _self.invest = add(_self.invest, _invest);
+        emit debugg11(3, _self.invest);
+        emit debugg11(4, add(0, _invest));
+        emit debugg11(5, add(_self.invest, _invest));
         if (_valuegood != address(0)) {
             _self.valuegood = _valuegood;
             _self.valueinvest = add(_self.valueinvest, _valueinvest);
         }
     }
+
+    event debugg11(uint256, uint256);
 
     /**
      * @dev Burns a portion of the proof
@@ -64,8 +71,16 @@ library L_Proof {
         // If there's a value good, calculate and burn the corresponding amount of value investment
         if (_self.valuegood != address(0)) {
             uint256 burnResult2_ = toTTSwapUINT256(
-                mulDiv(_self.valueinvest.amount0(), _value, _self.state.amount0()),
-                mulDiv(_self.valueinvest.amount1(), _value, _self.state.amount0())
+                mulDiv(
+                    _self.valueinvest.amount0(),
+                    _value,
+                    _self.state.amount0()
+                ),
+                mulDiv(
+                    _self.valueinvest.amount1(),
+                    _value,
+                    _self.state.amount0()
+                )
             );
             // Subtract the calculated value investment from the total value investment
             _self.valueinvest = sub(_self.valueinvest, burnResult2_);
@@ -85,7 +100,11 @@ library L_Proof {
      * @param proofvalue The amount of proof value to stake
      * @return The staked amount
      */
-    function stake(I_TTSwap_Token contractaddress, address to, uint128 proofvalue) internal returns (uint128) {
+    function stake(
+        I_TTSwap_Token contractaddress,
+        address to,
+        uint128 proofvalue
+    ) internal returns (uint128) {
         return contractaddress.stake(to, proofvalue);
     }
 
@@ -95,7 +114,11 @@ library L_Proof {
      * @param from The address to unstake from
      * @param divestvalue The amount of proof value to unstake
      */
-    function unstake(I_TTSwap_Token contractaddress, address from, uint128 divestvalue) internal {
+    function unstake(
+        I_TTSwap_Token contractaddress,
+        address from,
+        uint128 divestvalue
+    ) internal {
         contractaddress.unstake(from, divestvalue);
     }
 }

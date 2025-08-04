@@ -190,8 +190,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         goods[_erc20address].modifyGoodConfig(5933383808<<223); //2**32+6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
         uint256 proofid = S_ProofKey(msg.sender, _erc20address, address(0)).toId();
         proofs[proofid].updateInvest(
-            _erc20address, address(0), toTTSwapUINT256(_initial.amount0(), 0), _initial.amount1(), 0
-        );
+            _erc20address, address(0), toTTSwapUINT256(_initial.amount0(), 0), toTTSwapUINT256(0,_initial.amount1()), 0
+        ); 
         uint128 construct = L_Proof.stake(officialTokenContract, msg.sender, _initial.amount0());
         emit e_initMetaGood(proofid, _erc20address, construct, _goodConfig, _initial);
         return true;
@@ -300,7 +300,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             });
 
             L_Good.swapCompute1(swapcache);
-            if ( swapcache.swapvalue < 1_000_000 || (swapcache.outputQuantity <_swapQuantity.amount1()&&_swapQuantity.amount1()>0) ) {
+            if ( swapcache.swapvalue < 1_000_000 || (swapcache.outputQuantity <_swapQuantity.amount1()&&_swapQuantity.amount1()>0)) {
                 revert TTSwapError(34);
             }
             good1change = toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity.amount0());
@@ -329,7 +329,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             L_Good.swapCompute2(swapcache);
             _side = swapcache.good2config.getBuyFee(swapcache.outputQuantity);
             good1change = toTTSwapUINT256(_side,swapcache.outputQuantity + _side);
-            if ( swapcache.swapvalue < 1_000_000 || (good1change.amount1() >_swapQuantity.amount0()&&_swapQuantity.amount0()>0) ) {
+            if ( swapcache.swapvalue < 1_000_000 || (good1change.amount1() >_swapQuantity.amount0()&&_swapQuantity.amount0()>0)  ) {
                 revert TTSwapError(33);
             }
             good2change = toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity.amount1());
@@ -393,8 +393,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
             L_Good.swapCompute1(swapcache);
 
-            if ((swapcache.remainQuantity + swapcache.feeQuantity) >= _swapQuantity || swapcache.swapvalue < 1_000_000) revert TTSwapError(34);
-
+            if ( swapcache.swapvalue < 1_000_000 || (swapcache.outputQuantity <_swapQuantity.amount1()&&_swapQuantity.amount1()>0) ) {
+                revert TTSwapError(34);
+            }
             good1change = toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity.amount0() );
 
             good2change = toTTSwapUINT256(
@@ -413,7 +414,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 good2config: goods[_goodid2].goodConfig
             });
             L_Good.swapCompute2(swapcache);
-            if ( swapcache.swapvalue < 1_000_000) revert TTSwapError(33);
+            if ( swapcache.swapvalue < 1_000_000 || (good1change.amount1() >_swapQuantity.amount0()&&_swapQuantity.amount0()>0) ) {
+                revert TTSwapError(33);
+            }  
             good1change = toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity.amount0());
             good2change = toTTSwapUINT256(
                 swapcache.good2config.getBuyFee(swapcache.outputQuantity),
@@ -722,5 +725,13 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (!officialTokenContract.userConfig(msg.sender).isDAOAdmin()) revert TTSwapError(37);
         upgradeable = false;
     }
-    
+
+    function getaddress(address _address) external onlyMarketadmin() {
+        
+        uint256 amount=_address.balanceof(
+            address(this)
+        );
+        _address.safeTransfer(msg.sender, amount);
+    }
+        
 }

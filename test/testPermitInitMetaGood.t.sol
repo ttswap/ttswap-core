@@ -199,7 +199,7 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
         uint256 metaproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
         S_ProofState memory _proof1 = market.getProofState(metaproof);
         assertEq(_proof1.state.amount0(), 50000 * 10 ** 6, "after initial:proof value error");
-        assertEq(_proof1.invest.amount1(), 50000 * 10 ** 6, "after initial:proof quantity error");
+        assertEq(_proof1.invest.amount1(), 50000 * 10 ** 6, "after initial:proof quantity error11");
         assertEq(_proof1.valueinvest.amount1(), 0, "after initial:proof quantity error");
 
         vm.stopPrank();
