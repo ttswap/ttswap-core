@@ -89,7 +89,14 @@ library L_GoodConfigLibrary {
         }
     }
 
-
+    function getlimitPower(uint256 config) internal pure returns(uint128 a){
+        unchecked {
+            assembly {
+                a := shr(251, shl(27, config))
+            }
+            if(a==0) a=1;
+        }
+    }
 
     /// @notice Calculate the investment fee for a given amount
     /// @param config The configuration value
@@ -161,13 +168,26 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value
     /// @param amount The amount
     /// @return The swap chips for the given amount
-    function getSwapChips(uint256 config, uint128 amount) internal pure returns (uint128) {
+    function getPower(uint256 config, uint128 amount) internal pure returns (uint128) {
         uint128 a;
         assembly {
             a := shr(246, shl(59, config))
         }
-        if (a == 0) return amount;
-        return (amount / (a * 10));
+        if (a == 0) return 1;
+        return (amount / a);
+    }
+
+
+    /// @notice Get the swap chips for a given amount
+    /// @param config The configuration value
+    /// @return The swap chips for the given amount
+    function getPower(uint256 config) internal pure returns (uint128) {
+        uint128 a;
+        assembly {
+            a := shr(246, shl(59, config))
+        }
+        if (a == 0) return 1;
+        return (a);
     }
 
     /// @notice Get the disinvestment chips for a given amount
