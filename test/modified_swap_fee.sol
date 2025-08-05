@@ -5,7 +5,6 @@ import "forge-gas-snapshot/src/GasSnapshot.sol";
 import {Test, console2,Vm} from "forge-std/src/Test.sol";
 import {MyToken} from "../src/test/MyToken.sol";
 import "../src/TTSwap_Market.sol";
-import "../src/TTSwap_Market_Proxy.sol";
 import "../src/TTSwap_Token.sol";
 import "../src/TTSwap_Token_Proxy.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
@@ -50,7 +49,6 @@ contract modified_swap is Test, GasSnapshot  {
     MyToken btc;
     address marketcreator;
     TTSwap_Market market;
-    TTSwap_Market_Proxy market_proxy;
     TTSwap_Token tts_token;
     TTSwap_Token_Proxy tts_token_proxy;
     bytes internal constant defaultdata = bytes("");
@@ -74,10 +72,9 @@ contract modified_swap is Test, GasSnapshot  {
         tts_token_proxy=new TTSwap_Token_Proxy(address(usdt), marketcreator, 2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
         tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
       
-        TTSwap_Market market2 = new TTSwap_Market();
+         market = new TTSwap_Market(tts_token,marketcreator);
    
-        market_proxy=new TTSwap_Market_Proxy(tts_token,address(market2));
-        market= TTSwap_Market( payable(address(market_proxy)));
+       
         tts_token.setTokenAdmin(marketcreator,true);
         tts_token.setTokenManager(marketcreator,true);
         tts_token.setCallMintTTS(address(market), true);

@@ -8,7 +8,6 @@ import {MyToken} from "../src/test/MyToken.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
 import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
 import {TTSwap_Market} from "../src/TTSwap_Market.sol";
-import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {L_TTSTokenConfigLibrary} from "../src/libraries/L_TTSTokenConfig.sol";
 import {I_TTSwap_Token, s_share, s_proof} from "../src/interfaces/I_TTSwap_Token.sol";
 
@@ -46,12 +45,10 @@ contract testTTSwapToken is Test, GasSnapshot {
         tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
         console2.log("tts_token00", address(tts_token));
 
-        TTSwap_Market market2 = new TTSwap_Market();
+         market = new TTSwap_Market(tts_token,marketcreator);
         console2.log("tts_token01", address(tts_token));
-        TTSwap_Market_Proxy market_proxy=new TTSwap_Market_Proxy(tts_token,address(market2));
 
         console2.log("tts_token02", address(tts_token));
-        market= TTSwap_Market( payable(address(market_proxy)));
         console2.log("tts_token1", address(tts_token));
         tts_token.setTokenAdmin(marketcreator,true);
         console2.log("tts_token2", address(tts_token));

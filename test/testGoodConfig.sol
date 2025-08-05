@@ -119,6 +119,15 @@ contract testGoodConfig is Test {
         assertEq(cc.getPlatformFee256(10000), 200);
     }
 
+    function test_getLimitPower() public pure {
+        uint256 a_min = 1 * 2 ** 223;
+        uint256 a_mid = 15 * 2 ** 223;
+        uint256 a_max = 63 * 2 ** 223;
+        assertEq(a_min.getLimitPower(), 1);
+        assertEq(a_mid.getLimitPower(), 15);
+        assertEq(a_max.getLimitPower(), 63);
+    }
+
     function test_checkout()public pure {
         uint aa =92709122<<229;
         assertEq(aa.checkGoodConfig(), true);
@@ -176,17 +185,16 @@ contract testGoodConfig is Test {
         assertEq(a_max.getSellFee(10000), 127);
     }
 
-    // function test_getSwapChips() public pure {
-    //     uint256 a_min = 1 * 2 ** 187;
-    //     uint256 a_mid = 2 * 2 ** 187;
-    //     uint256 a_max = 1023 * 2 ** 187;
-    //     // assertEq(a_min.getSwapChips(), 1 * 2 ** 6);
-    //     // assertEq(a_mid.getSwapChips(), 2 * 2 ** 6);
-    //     // assertEq(a_max.getSwapChips(), 1023 * 2 ** 6);
-    //     assertEq(a_min.getSwapChips(10000), 1000);
-    //     assertEq(a_mid.getSwapChips(10000), 500);
-    //     assertEq(a_max.getSwapChips(1000000), 97);
-    // }
+    function test_getPower() public pure {
+        uint256 a_min = 1 * 2 ** 187;
+        uint256 a_mid = 15 * 2 ** 187;
+        uint256 a_max = 63 * 2 ** 187;
+        uint256 a_max2 = 127 * 2 ** 187;
+        assertEq(a_min.getPower(), 1);
+        assertEq(a_mid.getPower(), 15);
+        assertEq(a_max.getPower(), 63);
+        assertEq(a_max2.getPower(), 63);
+    }
 
     function test_getDisinvestChips() public pure {
         uint256 a_min = 1 * 2 ** 177;
@@ -200,39 +208,4 @@ contract testGoodConfig is Test {
         assertEq(a_max.getDisinvestChips(10000), 9);
     }
 
-    // function test_getGoodType() public pure {
-    //     uint256 a_min = 1 * 2 ** 144;
-    //     uint256 a_mid = 2 * 2 ** 144;
-    //     uint256 a_max = 8589934591 * 2 ** 144;
-    //     assertEq(a_min.getGoodType(), 1);
-    //     assertEq(a_mid.getGoodType(), 2);
-    //     assertEq(a_max.getGoodType(), 8589934591);
-    // }
-
-    // function test_getTell() public pure {
-    //     uint256 a_min = 1 * 2 ** 96;
-    //     uint256 a_mid = 2 * 2 ** 96;
-    //     uint256 a_max = 281474976710655 * 2 ** 96;
-    //     assertEq(a_min.getTell(), 1);
-    //     assertEq(a_mid.getTell(), 2);
-    //     assertEq(a_max.getTell(), 281474976710655);
-    // }
-
-    // function test_getLongitude() public pure {
-    //     uint256 a_min = 1 * 2 ** 48;
-    //     uint256 a_mid = 2 * 2 ** 48;
-    //     uint256 a_max = 281474976710655 * 2 ** 48;
-    //     assertEq(a_min.getLongitude(), 1);
-    //     assertEq(a_mid.getLongitude(), 2);
-    //     assertEq(a_max.getLongitude(), 281474976710655);
-    // }
-
-    // function test_getLatitude() public pure {
-    //     uint256 a_min = 1 * 2 ** 0;
-    //     uint256 a_mid = 2 * 2 ** 0;
-    //     uint256 a_max = 281474976710655 * 2 ** 0;
-    //     assertEq(a_min.getLatitude(), 1);
-    //     assertEq(a_mid.getLatitude(), 2);
-    //     assertEq(a_max.getLatitude(), 281474976710655);
-    // }
 }

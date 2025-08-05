@@ -6,7 +6,6 @@ import {MyToken} from "../src/test/MyToken.sol";
 import {TTSwap_Market} from "../src/TTSwap_Market.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
 import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
-import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
 import { S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
 import {L_TTSwapUINT256Library, toTTSwapUINT256} from "../src/libraries/L_TTSwapUINT256.sol";
@@ -52,9 +51,7 @@ contract testBuy123 is Test {
         TTSwap_Token_Proxy tts_token_proxy=new TTSwap_Token_Proxy(address(usdt), marketcreator,  2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
         tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
        
-        TTSwap_Market market2 = new TTSwap_Market();
-        TTSwap_Market_Proxy  market_proxy=new TTSwap_Market_Proxy(tts_token,address(market2));
-        market= TTSwap_Market( payable(address(market_proxy)));
+         market = new TTSwap_Market(tts_token,marketcreator);
 
         tts_token.setTokenAdmin(marketcreator,true);
         tts_token.setTokenManager(marketcreator,true);

@@ -96,18 +96,21 @@ interface I_TTSwap_Market {
     /// @param _normalGoodNo The ID of the normal good
     /// @param _valueGoodNo The ID of the value good
     /// @param _gate The gate of User
-    /// @param _normalgood The disinvestment details of the normal good (amount0: actual fee, amount1: actual disinvest quantity)
-    /// @param _valuegood The disinvestment details of the value good (amount0: actual fee, amount1: actual disinvest quantity)
-    /// @param _profit The profit (amount0: normal good profit, amount1: value good profit)
+    /// @param _value amount0: virtual disinvest value,amount1: actual disinvest value
+    /// @param _normalprofit amount0:normalgood profit,amount1:normalgood disvest virtual quantity
+    /// @param _normaldisvest The disinvestment details of the normal good (amount0: actual fee, amount1: actual disinvest quantity)
+    /// @param _valueprofit amount0:valuegood profit,amount1:valuegood disvest virtual quantity
+    /// @param _valuedisvest The disinvestment details of the value good (amount0: actual fee, amount1: actual disinvest quantity)
     event e_disinvestProof(
         uint256 indexed _proofNo,
         address _normalGoodNo,
         address _valueGoodNo,
         address _gate,
         uint256 _value,
-        uint256 _normalgood,
-        uint256 _valuegood,
-        uint256 _profit
+        uint256 _normalprofit,
+        uint256 _normaldisvest,
+        uint256 _valueprofit,
+        uint256 _valuedisvest
     );
 
    
@@ -297,6 +300,4 @@ struct S_ProofKey {
     address valuegood;
 }
 
-struct S_LoanProof {
-    uint256 amount; //first 128 bit amount ,last 128 bit store feerate
-}
+

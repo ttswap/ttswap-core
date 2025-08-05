@@ -45,6 +45,9 @@ contract disinvestERC20OwnValueGood is BaseSetup {
         uint256 _goodconfig = (2 ** 255) + 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197;
         market.initMetaGood(address(usdt), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), _goodconfig, defaultdata);
         metagood = address(usdt);
+       uint256  normalproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
+        S_ProofState memory _proof = market.getProofState(normalproof);
+        assertEq(_proof.state.amount1(), 50000 * 10 ** 6, "aaabefore disinvest:proof value error");
         vm.stopPrank();
     }
 

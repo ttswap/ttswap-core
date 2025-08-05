@@ -89,10 +89,10 @@ library L_GoodConfigLibrary {
         }
     }
 
-    function getlimitPower(uint256 config) internal pure returns(uint128 a){
+    function getLimitPower(uint256 config) internal pure returns(uint128 a){
         unchecked {
             assembly {
-                a := shr(251, shl(27, config))
+                a := shr(250, shl(27, config))
             }
             if(a==0) a=1;
         }
@@ -171,7 +171,7 @@ library L_GoodConfigLibrary {
     function getPower(uint256 config, uint128 amount) internal pure returns (uint128) {
         uint128 a;
         assembly {
-            a := shr(246, shl(59, config))
+            a := shr(246, shl(58, config))
         }
         if (a == 0) return 1;
         return (amount / a);
@@ -184,7 +184,7 @@ library L_GoodConfigLibrary {
     function getPower(uint256 config) internal pure returns (uint128) {
         uint128 a;
         assembly {
-            a := shr(246, shl(59, config))
+            a := shr(250, shl(63, config))
         }
         if (a == 0) return 1;
         return (a);
