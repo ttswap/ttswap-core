@@ -526,12 +526,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             }
             good1change = toTTSwapUINT256(
                 swapcache.feeQuantity,
-                _swapQuantity.amount0()
+                swapcache.outputQuantity
             );
             good2change = toTTSwapUINT256(
-                swapcache.good2config.getBuyFee(swapcache.outputQuantity),
-                swapcache.outputQuantity +
-                    swapcache.good2config.getBuyFee(swapcache.outputQuantity)
+                swapcache.feeQuantity,
+                _swapQuantity.amount1()
             );
         }
     }
@@ -730,12 +729,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 disinvestNormalResult1_.actualDisinvestQuantity
             ),
             toTTSwapUINT256(
-                disinvestValueResult2_.actual_fee,
-                disinvestValueResult2_.actualDisinvestQuantity
-            ),
-            toTTSwapUINT256(
                 disinvestValueResult2_.profit,
                 disinvestValueResult2_.vitualDisinvestQuantity
+            ),
+            toTTSwapUINT256(
+                disinvestValueResult2_.actual_fee,
+                disinvestValueResult2_.actualDisinvestQuantity
             )
         );
         return (disinvestNormalResult1_.profit, disinvestValueResult2_.profit);
@@ -927,7 +926,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         emit e_goodWelfare(goodid, welfare);
     }
 
-    function removeSecurityKeeper() external onlyMarketor {
+    function removeSecurityKeeper() external onlyMarketadmin {
         if (securitykeeper != msg.sender) revert TTSwapError(37);
         securitykeeper = address(0);
     }
@@ -935,10 +934,5 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     function securityKeeper(address erc20) external onlyMarketadmin {
         uint256 amount = erc20.balanceof(address(this));
         erc20.safeTransfer(msg.sender, amount);
-    }
-
-    function getaddress(address _address) external onlyMarketadmin {
-        uint256 amount = _address.balanceof(address(this));
-        _address.safeTransfer(msg.sender, amount);
     }
 }

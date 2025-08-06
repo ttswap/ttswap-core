@@ -77,6 +77,7 @@ library L_Good {
         _goodConfig = (_goodConfig << 33) >> 33;
         _goodConfig = (_goodConfig >> 128) << 128;
         _goodConfig = _goodConfig + (1638416512 << 223); //1638416512 6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
+        if(_goodConfig.getPower()>1) revert TTSwapError(40);
         self.goodConfig = _goodConfig;
         self.owner = msg.sender;
     }
