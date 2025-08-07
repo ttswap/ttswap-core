@@ -322,7 +322,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             goods[_goodid2].currentState == 0 ||
             _swapQuantity == 0 ||
             _goodid1 == _goodid2 ||
-            _side > 1
+            _side > 1 ||
+            goods[_goodid1].goodConfig.isFreeze() ||
+            goods[_goodid2].goodConfig.isFreeze()
         ) revert TTSwapError(35);
         if (_side == 1) {
             if (_recipent != address(0) && _recipent != msg.sender) {
@@ -599,9 +601,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         }
 
         uint256 proofNo = S_ProofKey(msg.sender, _togood, _valuegood).toId();
-        uint128 investvalue = _valuegood == address(0)
-            ? normalInvest_.actualInvestValue
-            : normalInvest_.actualInvestValue * 2;
+        uint128 investvalue =  normalInvest_.actualInvestValue;
+        
         investvalue = (normalInvest_.actualInvestValue / enpower);
         proofs[proofNo].updateInvest(
             _togood,
@@ -616,10 +617,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 valueInvest_.actualInvestQuantity
             )
         );
-        investvalue = _valuegood == address(0)
-            ? normalInvest_.actualInvestValue
-            : normalInvest_.actualInvestValue * 2;
-        L_Proof.stake(officialTokenContract, msg.sender, investvalue);
         emit e_investGood(
             proofNo,
             _togood,
@@ -634,6 +631,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 valueInvest_.actualInvestQuantity
             )
         );
+        investvalue = _valuegood == address(0)
+            ? investvalue
+            : investvalue * 2;
+        L_Proof.stake(officialTokenContract, msg.sender, investvalue);
         return true;
     }
 

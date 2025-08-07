@@ -19,6 +19,10 @@ library L_GoodConfigLibrary {
         return (config & (1 << 255)) == 0;
     }
 
+    function isFreeze(uint256 config) internal pure returns (bool a) {
+        return (config & (1 << 254)) != 0;
+    }
+
     function getLiquidFee(uint256 config, uint256 amount)internal pure returns(uint128 a){
         unchecked {
             assembly {
