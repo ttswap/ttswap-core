@@ -120,32 +120,32 @@ contract PowerWithFee is BaseSetup {
         good_ = market.getGoodState(metagood);
         assertEq(
             good_.goodConfig.amount1(),
-            193313444453,
+            179981000050,
             "after disinvest nativeeth good:actual value error"
         );
         assertEq(
             good_.currentState.amount0(),
-            289975000000,
+            269976000051,
             "after disinvest nativeeth good:metagood currentState amount0 error"
         );
         assertEq(
             good_.currentState.amount1(),
-            289975000000,
+            269976000051,
             "after disinvest nativeeth good:metagood currentState amount1 error"
         );
         assertEq(
             good_.investState.amount0(),
-            289975000000,
+            269976000051,
             "after disinvest nativeeth good:metagood investState amount0 error"
         );
         assertEq(
             good_.investState.amount1(),
-            289975000000,
+            269976000051,
             "after disinvest nativeeth good:metagood investState amount1 error"
         );
         assertEq(
             good_.feeQuantityState.amount0(),
-            27166598,
+            31499574,
             "after disinvest nativeeth good:metagood feeQuantityState amount0 error"
         );
         assertEq(
@@ -155,9 +155,9 @@ contract PowerWithFee is BaseSetup {
         );
 
         _proof = market.getProofState(normalproof);
-        assertEq(_proof.state.amount0(), 289975000000, "after disinvest:proof value error");
-        assertEq(_proof.state.amount1(), 96661555547, "after disinvest:proof value error");
-        assertEq(_proof.invest.amount1(), 289975000000, "after disinvest:proof quantity error");
+        assertEq(_proof.state.amount0(), 269976000051, "after disinvest:proof value error");
+        assertEq(_proof.state.amount1(), 89995000001, "after disinvest:proof value error");
+        assertEq(_proof.invest.amount1(), 269976000051, "after disinvest:proof quantity error");
         assertEq(_proof.invest.amount0(), 0, "after disinvest:proof contruct error");
         market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
         snapLastCall("disinvest_own_nativeeth_valuegood_second");

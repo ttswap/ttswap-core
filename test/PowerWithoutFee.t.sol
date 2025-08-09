@@ -120,27 +120,27 @@ contract PowerWithoutFee is BaseSetup {
         good_ = market.getGoodState(metagood);
         assertEq(
             good_.goodConfig.amount1(),
-            193333333333,
+            180000000000,
             "after disinvest nativeeth good:actual value error"
         );
         assertEq(
             good_.currentState.amount0(),
-            290000000000,
+            270000000000,
             "after disinvest nativeeth good:metagood currentState amount0 error"
         );
         assertEq(
             good_.currentState.amount1(),
-            290000000000,
+            270000000000,
             "after disinvest nativeeth good:metagood currentState amount1 error"
         );
         assertEq(
             good_.investState.amount0(),
-            290000000000,
+            270000000000,
             "after disinvest nativeeth good:metagood investState amount0 error"
         );
         assertEq(
             good_.investState.amount1(),
-            290000000000,
+            270000000000,
             "after disinvest nativeeth good:metagood investState amount1 error"
         );
         assertEq(
@@ -155,9 +155,9 @@ contract PowerWithoutFee is BaseSetup {
         );
 
         _proof = market.getProofState(normalproof);
-        assertEq(_proof.state.amount0(), 290000000000, "after disinvest:proof value error");
-        assertEq(_proof.state.amount1(), 96666666667, "after disinvest:proof value error");
-        assertEq(_proof.invest.amount1(), 290000000000, "after disinvest:proof quantity error");
+        assertEq(_proof.state.amount0(), 270000000000, "after disinvest:proof value error");
+        assertEq(_proof.state.amount1(), 90000000000, "after disinvest:proof value error");
+        assertEq(_proof.invest.amount1(), 270000000000, "after disinvest:proof quantity error");
         assertEq(_proof.invest.amount0(), 0, "after disinvest:proof contruct error");
         market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
         snapLastCall("disinvest_own_nativeeth_valuegood_second");

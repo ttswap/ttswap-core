@@ -29,7 +29,7 @@ library L_Good {
         uint256 _goodConfig
     ) internal {
         if (_self.goodConfig.getLimitPower() < _goodConfig.getPower())
-            revert TTSwapError(10);
+            revert TTSwapError(23);
         // Clear the top 33 bits of the new config
         assembly {
             _goodConfig := shl(33, shr(33, _goodConfig))
@@ -51,7 +51,7 @@ library L_Good {
         S_GoodState storage _self,
         uint256 _goodconfig
     ) internal {
-        if (!_goodconfig.checkGoodConfig()) revert TTSwapError(39);
+        if (!_goodconfig.checkGoodConfig()) revert TTSwapError(24);
         _goodconfig = (_goodconfig >> 223) << 223;
         _goodconfig = _goodconfig + (_self.goodConfig % (2 ** 223));
         _self.goodConfig = _goodconfig;
@@ -77,7 +77,7 @@ library L_Good {
         _goodConfig = (_goodConfig << 33) >> 33;
         _goodConfig = (_goodConfig >> 128) << 128;
         _goodConfig = _goodConfig + (1638416512 << 223); //1638416512 6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
-        if(_goodConfig.getPower()>1) revert TTSwapError(42);
+        if(_goodConfig.getPower()>1) revert TTSwapError(25);
         self.goodConfig = _goodConfig;
         self.owner = msg.sender;
     }
@@ -328,10 +328,14 @@ library L_Good {
         // Ensure disinvestment conditions are met
         if (
             disinvestvalue >
-            _self.goodConfig.getDisinvestChips(_self.currentState.amount0()) ||
+            _self.goodConfig.getDisinvestChips(_self.currentState.amount0()))  {
+            revert TTSwapError(26);
+        }
+        if (
             _params._goodQuantity >
             _self.goodConfig.getDisinvestChips(_self.currentState.amount1())
-        ) revert TTSwapError(31);
+        ) revert TTSwapError(27);
+       
         // Calculate initial disinvestment results for the main good
         normalGoodResult1_ = S_GoodDisinvestReturn(
             toTTSwapUINT256(
@@ -428,12 +432,13 @@ library L_Good {
                 disinvestvalue >
                 _valueGoodState.goodConfig.getDisinvestChips(
                     _valueGoodState.currentState.amount0()
-                ) ||
+                )) revert TTSwapError(28);
+            if (
                 valueGoodResult2_.actualDisinvestQuantity >
                 _valueGoodState.goodConfig.getDisinvestChips(
                     _valueGoodState.currentState.amount1()
                 )
-            ) revert TTSwapError(32);
+            ) revert TTSwapError(29);
 
             // Update value good states
             _valueGoodState.currentState = sub(
@@ -461,7 +466,7 @@ library L_Good {
             );
 
         
-              _valueGoodState.goodConfig=sub(_valueGoodState.goodConfig,disinvestvalue.amount1()-actualvalue);
+             _valueGoodState.goodConfig=sub(_valueGoodState.goodConfig,disinvestvalue.amount1()-actualvalue);
 
         
             valueGoodResult2_.profit =

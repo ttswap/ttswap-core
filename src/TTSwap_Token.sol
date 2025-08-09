@@ -56,7 +56,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      * @dev Modifier to ensure function is only called on the main chain
      */
     modifier onlymain() {
-        if (!ttstokenconfig.ismain()) revert TTSwapError(15);
+        if (!ttstokenconfig.ismain()) revert TTSwapError(a61);
         _;
     }
     //**************************privillages partition**********************************/
@@ -69,7 +69,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setDAOAdmin(address _recipient,bool result) external override { 
-        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(a62);
         userConfig[msg.sender]=userConfig[msg.sender].setDAOAdmin(!result);
         userConfig[_recipient]=userConfig[_recipient].setDAOAdmin(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
@@ -83,7 +83,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setTokenAdmin(address _recipient,bool result) external override   {
-        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(a63);
         userConfig[_recipient]=userConfig[_recipient].setTokenAdmin(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
@@ -96,7 +96,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setTokenManager(address _recipient,bool result)external override   {
-        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(16);
+        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(a63);
         userConfig[_recipient]=userConfig[_recipient].setTokenManager(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
@@ -109,7 +109,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setCallMintTTS(address _recipient,bool result)external override   {
-        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(16);
+        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(a63);
         userConfig[_recipient]=userConfig[_recipient].setCallMintTTS(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
@@ -122,7 +122,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setMarketAdmin(address _recipient,bool result)external override   {
-        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(a62);
         userConfig[_recipient]=userConfig[_recipient].setMarketAdmin(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
@@ -135,7 +135,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setMarketManager(address _recipient,bool result)external override   {
-        if (!userConfig[msg.sender].isMarketAdmin()) revert TTSwapError(16);
+        if (!userConfig[msg.sender].isMarketAdmin()) revert TTSwapError(1);
         userConfig[_recipient]=userConfig[_recipient].setMarketManager(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
@@ -148,7 +148,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setStakeAdmin(address _recipient,bool result)external override   {
-        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(a62);
         userConfig[_recipient]=userConfig[_recipient].setStakeAdmin(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
@@ -161,7 +161,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setStakeManager(address _recipient,bool result)external override  {
-        if (!userConfig[msg.sender].isStakeAdmin()) revert TTSwapError(16);
+        if (!userConfig[msg.sender].isStakeAdmin()) revert TTSwapError(a64);
         userConfig[_recipient]=userConfig[_recipient].setStakeManager(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
@@ -174,7 +174,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setBan(address _recipient,bool result)external override  {
-         if (!userConfig[msg.sender].isTokenManager()) revert TTSwapError(16);
+        if (!userConfig[msg.sender].isTokenManager()) revert TTSwapError(a65);
         userConfig[_recipient]=userConfig[_recipient].setBan(result);
         emit e_updateUserConfig(_recipient,userConfig[_recipient]);
     }
@@ -230,9 +230,8 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setRatio(uint256 _ratio) external override {
-        if (_ratio > 10000 || !userConfig[msg.sender].isTokenAdmin()) {
-            revert TTSwapError(17);
-        }
+        if (_ratio > 10000) revert TTSwapError(66);
+        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(63);
         ttstokenconfig = ttstokenconfig.setratio(_ratio);
         emit e_updatettsconfig(ttstokenconfig);
     }
@@ -243,7 +242,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setEnv(address _marketcontract) external override {
-        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(16);
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(62);
         marketcontract = _marketcontract;
         emit e_setenv(marketcontract);
     }
@@ -257,15 +256,12 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function addShare(s_share memory _share, address owner) external override onlymain {
-       
-        if (left_share < _share.leftamount || !userConfig[msg.sender].isTokenAdmin()) {
-            revert TTSwapError(18);
-        }
+        if (left_share < _share.leftamount) revert TTSwapError(67);
+        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(63);
         _addShare(_share, owner);
     }
 
     function _addShare(s_share memory _share, address owner) internal {
-        require(left_share>=uint64(_share.leftamount));
         left_share -= uint64(_share.leftamount);
         if (shares[owner].leftamount == 0) {
             shares[owner] = _share;
@@ -288,7 +284,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function burnShare(address owner) external override onlymain {
-        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(22);
+        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(63);
         left_share += uint64(shares[owner].leftamount);
         emit e_burnShare(owner);
         delete shares[owner];
@@ -304,11 +300,12 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function shareMint() external override onlymain {
-        if (
-            !I_TTSwap_Market(marketcontract).ishigher(
+        if(!I_TTSwap_Market(marketcontract).ishigher(
                 address(this), usdt, 2 ** shares[msg.sender].metric * 2 ** 128 + 20
-            ) || shares[msg.sender].leftamount == 0
-        ) revert TTSwapError(23);
+            ))revert TTSwapError(68);
+        if (
+            shares[msg.sender].leftamount == 0
+        ) revert TTSwapError(69);
         uint128 mintamount = shares[msg.sender].leftamount / shares[msg.sender].chips;
         shares[msg.sender].leftamount -= mintamount;
         shares[msg.sender].metric += 1;
@@ -326,7 +323,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     /// @inheritdoc I_TTSwap_Token
     function publicSell(uint256 usdtamount, bytes calldata data) external override onlymain {
         publicsell += uint128(usdtamount);
-        if (publicsell > 500_000_000_000) revert TTSwapError(24);
+        if (publicsell > 500_000_000_000) revert TTSwapError(70);
         usdt.transferFrom(msg.sender, address(this), usdtamount, data);
         uint256 ttsamount;
         if (publicsell <= 175_000_000_000) {
@@ -351,7 +348,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function withdrawPublicSell(uint256 amount, address recipient) external override onlymain {
-        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(25);
+        if (!userConfig[msg.sender].isTokenAdmin()) revert TTSwapError(63);
         usdt.safeTransfer(recipient, amount);
     }
 
@@ -363,7 +360,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function stake(address _staker, uint128 proofvalue) external override returns (uint128 netconstruct) {
-        if (!userConfig[msg.sender].isCallMintTTS()) revert TTSwapError(26);
+        if (!userConfig[msg.sender].isCallMintTTS()) revert TTSwapError(71);
         _stakeFee();
         uint256 restakeid = uint256(keccak256(abi.encode(_staker, msg.sender)));
         netconstruct = poolstate.amount1() == 0 ? 0 : mulDiv(poolstate.amount1(), proofvalue, stakestate.amount1());
@@ -384,7 +381,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function unstake(address _staker, uint128 proofvalue) external override {
-        if (!userConfig[msg.sender].isCallMintTTS()) revert TTSwapError(27);
+        if (!userConfig[msg.sender].isCallMintTTS()) revert TTSwapError(71);
         _stakeFee();
         uint128 profit;
         uint128 construct;
@@ -463,7 +460,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function permitShare(s_share memory _share, uint128 dealline, bytes calldata signature,address signer) external override {
-        if (block.timestamp > dealline) revert TTSwapError(36);
+        if (block.timestamp > dealline) revert TTSwapError(72);
         // Verify the signer address from the signature.
         signature.verify(
             _hashTypedData(shareHash(_share, msg.sender, shares[msg.sender].leftamount, dealline, nonces[msg.sender]++)),
@@ -521,7 +518,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     }
 
     function disableUpgrade() external  {
-        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(37);
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(62);
         upgradeable = false;
     }
 }

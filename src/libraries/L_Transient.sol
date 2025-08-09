@@ -47,7 +47,7 @@ library L_Transient {
     }
 
     function decreaseValue(uint256 amount) internal {
-        if (amount > getValue()) revert TTSwapError(28);
+        if (amount > getValue()) revert TTSwapError(30);
         assembly {
             tstore(VALUE_SLOT, sub(tload(VALUE_SLOT), amount))
         }
@@ -96,7 +96,7 @@ library L_Transient {
                 // Transfer the ETH and store if it succeeded or not.
                 success := call(gas(), to, amount, 0, 0, 0, 0)
             }
-            if (!success) revert TTSwapError(30);
+            if (!success) revert TTSwapError(31);
         }
     }
 }
