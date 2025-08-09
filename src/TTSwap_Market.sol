@@ -19,7 +19,6 @@ import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
  * - Meta good, value goods, and normal goods management
  * - Automated market making (AMM) with configurable fees
  * - Investment and disinvestment mechanisms
- * - Flash loan functionality
  * - Commission distribution system
  * - ETH or WETH staking integration
  */
@@ -44,11 +43,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     I_TTSwap_Token private immutable officialTokenContract;
     address internal securitykeeper;
 
-    //keccak256("ERC3156FlashBorrower.onFlashLoan");
-    bytes32 private constant RETURN_VALUE =
-        bytes32(
-            0x439148f0bbc682ca079e46d6e2c2f0c1e3b820f1a291b069d8882abf8cf18dd9
-        );
+
 
     /**
      * @dev Mapping of good addresses to their state information
@@ -140,7 +135,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      *        - amount0: Initial token amount
      *        - amount1: Initial value backing
      * @param _goodConfig Configuration parameters for the good:
-     *        - Fee rates (trading, investment, flash loan)
+     *        - Fee rates (trading, investment)
      *        - Trading limits (min/max amounts)
      *        - Special flags (staking enabled, emergency pause)
      * @param data Additional data for token transfer
