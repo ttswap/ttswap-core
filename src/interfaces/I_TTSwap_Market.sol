@@ -96,18 +96,21 @@ interface I_TTSwap_Market {
     /// @param _normalGoodNo The ID of the normal good
     /// @param _valueGoodNo The ID of the value good
     /// @param _gate The gate of User
-    /// @param _normalgood The disinvestment details of the normal good (amount0: actual fee, amount1: actual disinvest quantity)
-    /// @param _valuegood The disinvestment details of the value good (amount0: actual fee, amount1: actual disinvest quantity)
-    /// @param _profit The profit (amount0: normal good profit, amount1: value good profit)
+    /// @param _value amount0: virtual disinvest value,amount1: actual disinvest value
+    /// @param _normalprofit amount0:normalgood profit,amount1:normalgood disvest virtual quantity
+    /// @param _normaldisvest The disinvestment details of the normal good (amount0: actual fee, amount1: actual disinvest quantity)
+    /// @param _valueprofit amount0:valuegood profit,amount1:valuegood disvest virtual quantity
+    /// @param _valuedisvest The disinvestment details of the value good (amount0: actual fee, amount1: actual disinvest quantity)
     event e_disinvestProof(
         uint256 indexed _proofNo,
         address _normalGoodNo,
         address _valueGoodNo,
         address _gate,
         uint256 _value,
-        uint256 _normalgood,
-        uint256 _valuegood,
-        uint256 _profit
+        uint256 _normalprofit,
+        uint256 _normaldisvest,
+        uint256 _valueprofit,
+        uint256 _valuedisvest
     );
 
    
@@ -144,7 +147,7 @@ interface I_TTSwap_Market {
      * @param _goodid1 The ID of the first good
      * @param _goodid2 The ID of the second good
      * @param _swapQuantity The quantity to swap
-     * @param _tradetimes trade times
+     * @param _side tradeside
      * @param _referal The referral address
      * @return good1change amount0() good1tradefee,good1tradeamount
      * @return good2change amount0() good1tradefee,good2tradeamount
@@ -152,8 +155,8 @@ interface I_TTSwap_Market {
     function buyGood(
         address _goodid1,
         address _goodid2,
-        uint128 _swapQuantity,
-        uint128 _tradetimes,
+        uint256 _swapQuantity,
+        uint128 _side,
         address _referal,
         bytes calldata data
     ) external payable returns (uint256 good1change, uint256 good2change);
@@ -163,11 +166,11 @@ interface I_TTSwap_Market {
      * @param _goodid1 The ID of the first good
      * @param _goodid2 The ID of the second good
      * @param _swapQuantity The quantity to swap
-     * @param _tradetimes trade times
+     * @param side trade side
      * @return good1change amount0()good1tradeamount,good1tradefee
      * @return good2change amount0()good2tradeamount,good2tradefee
      */
-    function buyGoodCheck(address _goodid1, address _goodid2, uint128 _swapQuantity, uint128 _tradetimes)
+    function buyGoodCheck(address _goodid1, address _goodid2, uint256 _swapQuantity, bool side)
         external
         view
         returns (uint256 good1change, uint256 good2change);
@@ -297,6 +300,4 @@ struct S_ProofKey {
     address valuegood;
 }
 
-struct S_LoanProof {
-    uint256 amount; //first 128 bit amount ,last 128 bit store feerate
-}
+

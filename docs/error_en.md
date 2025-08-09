@@ -1,53 +1,58 @@
-TTSwapError(uint256) 0xd1b51911 
-1:Execute Error: insufficient user permissions
-2:Execute Error: insufficient user permissions
-3:Execute Error: another task is runing
-4:Create Error: token's config must be value token
-5:Execute Error, the possible reasons are as follows, please check: 1.the token has been added ; 2. the second commodity is not a valuable token
-6:Execute Error, possible reasons are as follows, please check: 1. The transaction quantity is zero. 2. The price limit is incorrect. 3. Two token are the same. 4. After submitting the entire selection, the transaction was not completed
-7:Execute Error, possible reasons are as follows, please check: 1. The quantity is too large. 2. Two token are the same. 3. Neither of them is a valuable token
-8:Execute Error: Failed to divest, this proof does not belong to this user
-9:Execute Error: Failed to collect profits, this proof does not belong to this user
-10:Execute Error: users are not token maintainers
-11:Execute Error: collect over 100 products in one query, please select again
-12:Query Error: query over 100 products in one query, please select again
-13:Execute Error: Add Token Ware Failed, Quanity is over the max protocol quantity
-14:Execute Error: insufficient user permissions
-15:Execute Error: only main network can execute
-16:Execute Error: insufficient user permissions
-17:Execute Error, the possible reasons are as follows, please check:1.Insufficient user permissions; 2.ratio limit 10000
-18:Execute Error, the possible reasons are as follows, please check:1.Insufficient user permissions; 2.Insufficient quantity to be mint
-19:Execute Error, insufficient user permissions
-20:Execute Error, insufficient user permissions
-21:Execute Error, insufficient user permissions
-22:Execute Error, insufficient user permissions
-23:Execute Error, the possible reasons are as follows, please check: 1.Current price is not satified; 2.no avalible quantity
-24:Execute Error, over the public sell amount
-25:Execute Error, insufficient user permissions
-26:Execute Error, insufficient user permissions
-27:Execute Error, insufficient user permissions
-28:Execute Error, No Native ETH is not enought
-29:Execute Error, No support for native Eth in Flash loan
-30:Execute Error, send native ETH error
-31:Execute Error, the possible reasons are as follows, please check: 1.the withdrawal value is greater than the maximum value of a single withdrawal for token 1; 2.the withdrawal quantity is greater than the single withdrawal quantity for token 1
-32:Execute Error, the possible reasons are as follows, please check: 1.the withdrawal value is greater than the maximum value of a single withdrawal for token 2; 2. the withdrawal quantity is greater than the single withdrawal quantity for token 2
-33:Execute Error, the possible reasons are as follows, please check: 1.the balance of token is not enought ;2.the trade value is less than 1
-34:Execute Error, the possible reasons are as follows, please check: 1.deal amount  is not enought ;2.the trade value is less than 1
-35:Execute Error, the possible reasons are as follows, please check: 1.the token is not exists; 2.deal amount is 0; 3.two token is same; 4.the tradetimes is too biger
-36:Execute Error, the possible reasons are as follows, please check: 1.Insufficient user permissions; 2.the token cann't restake
-37:Execute Error: Sender must be market super manager
-38:Execute Error: Sender must be market manager
-39:Execute Error: good commission config error
-40:Execute Error: the receive address is null
-ERC3156UnsupportedToken(address) 0xb5a7db92 Flashloan unsupported Token
-ERC3156ExceededMaxLoan(uint256)  0xfd9a7609 Flashloan exceeded maxloan
-ERC3156InvalidReceiver(address) 0x678c5b00 Flashloan nvalid receiver
-ERC20TransferFailed() 0xf27f64e4 ERC20TransferFailed
-ERC20PermitFailed() 0x40754b6a ERC20PermitFailed
-AllowanceExpired(uint256 deadline) 0xd81b2f2e AllowanceExpired
-InsufficientAllowance(uint256 amount) 0xf96fb071 InsufficientAllowance
-ExcessiveInvalidation() 0x24d35a26 ExcessiveInvalidation
-InvalidAmount(uint256)  0x3728b83d InvalidAmount
-LengthMismatch() 0xff633a38 LengthMismatch
-DepositFailed() 79cacff1 wrap eth error or call rocketpool error 
-NativeETHTransferFailed() 6c0f429e NativeETH transfer error
+TTSwapError(uint256) 0xd1b51911
+1:Execute Error, user is not market super administrator
+2:Execute Error, user is not market manager
+3:Execute Error, task is lock ,waiting a minute
+4:Execute Error, token config must config to value token
+5:Execute Error, token has been created
+6:Execute Error, token must be value token
+7:Execute Error, swap amount must be bigger then 0
+8:Execute Error, swap side config is not corrected
+9:Execute Error, two token can't be same
+10:Execute Error, token 1 is freezed
+11:Execute Error, token 2 is freezed
+12:Execute Error, token 1 is not initialize
+13:Execute Error, token 1 is not initialize
+14:Execute Error, swap value is less than 1
+15:Execute Error, not commit when protected by MeV attacks
+16:Execute Error, liquidity does not cover this price, please try again later
+17:Execute Error, one of the two tokens needs to be a value token
+18:Execute Error, the investment quantity exceeds the threshold
+19:Execute Error, you are not the creator of this proof
+20:Execute Error, you are not the creator of this token
+21:Execute Error, the quantity of goods exceeds 100
+22:Execute Error, you are not a protocol security officer
+23:Execute Error, exceeding the maximum investment amplification factor
+24:Execute Error, the sum of fee ratios is not 100
+25:Execute Error, when initializing tokens, the investment amplification factor cannot exceed 1
+26:Execute Error, the withdrawal value is greater than the maximum single value of the token. Please reduce the number of withdrawals
+27:Execute Error, the withdrawal quantity is greater than the maximum single token quantity. Please reduce the withdrawal quantity
+28:Execute Error, the withdrawal value of the corresponding value token is greater than the maximum single value of the token. Please reduce the number of withdrawals
+29:Execute Error, the corresponding value token withdrawal quantity is greater than the maximum single token quantity. Please reduce the withdrawal quantity
+30:Execute Error, nativeETH insufficient
+31:Execute Error, return of remaining NativeETH failed
+61:Execute Error, not be mainnet
+62:Execute Error, not a DAO administrator
+63:Execute Error, not a token super administrator
+64:Execute Error, not a stake manager
+65:Execute Error, not a token manager
+66:Execute Error, proportional configuration not exceeding 10000
+67:Execute Error, the allocated quantity exceeds the remaining quantity
+68:Execute Error, price not doubled, minting failed
+69:Execute Error, the remaining casting quantity is 0
+70:Execute Error, the public sales quantity exceeds the target value
+71:Execute Error, no secondary pledge permission
+72:Execute Error, the signature has expired
+NativeETHTransferFailed()          6c0f429e   native ETH transfer failed
+ERC20TransferFailed()              f27f64e4   token transfer failed
+ERC20PermitFailed()                40754b6a   token transfer failed
+InvalidSignature()                 8baa579f   invalid signature
+InvalidSignatureLength()           4be6321b   invalid signature length
+InvalidSigner()                    815e1d64   invalid signer
+AllowanceExpired(uint256)          d81b2f2e   allowance expired
+ExcessiveInvalidation()            24d35a26   excessive Invalidation
+InsufficientAllowance(uint256)     f96fb071   insufficient allowance
+InvalidAmount(uint256)             3728b83d   invalid amount
+InvalidContractSignature()         b0669cbc   invalid contract signature
+InvalidNonce()                     756688fe   invalid nonce
+LengthMismatch()                   ff633a38   length mismatch
+SignatureExpired(uint256)          cd21db4f   signature expired

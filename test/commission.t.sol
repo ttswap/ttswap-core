@@ -35,7 +35,7 @@ contract commission is BaseSetup {
         BaseSetup.setUp();
         initmetagood();
         initbtcgood();
-        buyERC20GoodWithChips();
+        buyERC20GoodWith();
     }
 
     function initmetagood() public {
@@ -70,7 +70,7 @@ contract commission is BaseSetup {
         vm.stopPrank();
     }
 
-    function buyERC20GoodWithChips() public {
+    function buyERC20GoodWith() public {
         vm.startPrank(users[1]);
         uint256 goodconfig = 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197 + 2 * 2 ** 216 + 3 * 2 ** 206;
         market.updateGoodConfig(normalgoodbtc, goodconfig);
@@ -78,13 +78,13 @@ contract commission is BaseSetup {
         usdt.approve(address(market), 800000 * 10 ** 6 + 1);
         btc.approve(address(market), 10 * 10 ** 8 + 1);
 
-        market.buyGood(metagood, normalgoodbtc, 63000000, 1, address(0), defaultdata);
+        market.buyGood(metagood, normalgoodbtc, toTTSwapUINT256(63000000, 0), 1, address(0), defaultdata);
 
-        market.buyGood(metagood, normalgoodbtc, 63000000, 1, address(0), defaultdata);
+        market.buyGood(metagood, normalgoodbtc, toTTSwapUINT256(63000000, 0), 1, address(0), defaultdata);
 
-        market.buyGood(metagood, normalgoodbtc, 6300 * 10 ** 6, 12, address(0), defaultdata);
+        market.buyGood(metagood, normalgoodbtc, toTTSwapUINT256(6300 * 10 ** 6, 0), 1, address(0), defaultdata);
 
-        market.buyGood(metagood, normalgoodbtc, 1000000000, 10, address(0), defaultdata);
+        market.buyGood(metagood, normalgoodbtc, toTTSwapUINT256(1000000000, 0), 1, address(0), defaultdata);
         vm.stopPrank();
     }
 

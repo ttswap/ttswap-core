@@ -9,8 +9,8 @@ The value conservation trading strategy accurately reflects the true market valu
 1. ***Direct Trading without Intermediaries***
 On this platform, any two types of items can be directly traded without the need for intermediate conversions.
 
-2. ***No Slippage within Trading Threshold***
-Transactions below the goods trading threshold incur no slippage.
+2. ***Lower Slippage within Trading Threshold***
+Through stengthened the invest and concentrated liquidity.
 
 3. ***No Impermanent Loss for Liquidity Providers or goods Investors***
 Constant market value inherently prevents impermanent loss. When users withdraw their investment, they receive the original invested goods plus profits generated from providing liquidity.
@@ -107,7 +107,7 @@ contract MyPortal  {
 }
 ```
 
-# 8. User deploy local instruction only can be for study 
+# 8. Deploy local instruction only for study 
 step 1:instrall forge  
 step 2:forge install permit2  
 

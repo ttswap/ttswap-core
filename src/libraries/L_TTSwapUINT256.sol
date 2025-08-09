@@ -21,16 +21,22 @@ function toTTSwapUINT256(uint128 _amount0, uint128 _amount1) pure returns (uint2
 function add(uint256 a, uint256 b) pure returns (uint256) {
     uint256 res0;
     uint256 res1;
+    uint256 a0;
+    uint256 a1;
+    uint256 b0;
+    uint256 b1;
     assembly ("memory-safe") {
-        let a0 := sar(128, a)
-        let a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
-        let b0 := sar(128, b)
-        let b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
+         a0 := shr(128, a)
+         a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
+         b0 := shr(128, b)
+         b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
         res0 := add(a0, b0)
         res1 := add(a1, b1)
     }
-    return toTTSwapUINT256(toUint128(res0), toUint128(res1));
+    require(res0 >= a0 && res0 >= b0 && res1 >= a1 && res1 >= b1 && res1 <type(uint128).max && res0 <type(uint128).max, "TTSwapUINT256: add overflow");
+    return (res0<<128)+res1;
 }
+
 
 /// @notice Subtracts two T_BalanceUINT256 values
 /// @param a The first T_BalanceUINT256
@@ -39,15 +45,21 @@ function add(uint256 a, uint256 b) pure returns (uint256) {
 function sub(uint256 a, uint256 b) pure returns (uint256) {
     uint256 res0;
     uint256 res1;
+    uint256 a0;
+    uint256 a1;
+    uint256 b0;
+    uint256 b1;
+    unchecked{
     assembly ("memory-safe") {
-        let a0 := sar(128, a)
-        let a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
-        let b0 := sar(128, b)
-        let b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
+         a0 := shr(128, a)
+         a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
+         b0 := shr(128, b)
+         b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
         res0 := sub(a0, b0)
         res1 := sub(a1, b1)
-    }
-    return toTTSwapUINT256(toUint128(res0), toUint128(res1));
+    }}
+    require(res0 <=a0 && res1<=a1 &&a1>=b1 && a0>=b0, "TTSwapUINT256: sub overflow");
+    return (res0<<128)+res1;
 }
 
 /// @notice Adds the first components and subtracts the second components of two T_BalanceUINT256 values
@@ -57,15 +69,21 @@ function sub(uint256 a, uint256 b) pure returns (uint256) {
 function addsub(uint256 a, uint256 b) pure returns (uint256) {
     uint256 res0;
     uint256 res1;
+    uint256 a0;
+    uint256 a1;
+    uint256 b0;
+    uint256 b1;
+    unchecked{
     assembly ("memory-safe") {
-        let a0 := sar(128, a)
-        let a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
-        let b0 := sar(128, b)
-        let b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
+         a0 := shr(128, a)
+         a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
+         b0 := shr(128, b)
+         b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
         res0 := add(a0, b0)
         res1 := sub(a1, b1)
-    }
-    return toTTSwapUINT256(toUint128(res0), toUint128(res1));
+    }}
+    require(res0 >=a0 && res0>=b0 && res1<=a1 && a1>=b1 && res0<type(uint128).max , "TTSwapUINT256: addsub overflow");
+    return (res0<<128)+res1;
 }
 
 /// @notice Subtracts the first components and adds the second components of two T_BalanceUINT256 values
@@ -75,22 +93,30 @@ function addsub(uint256 a, uint256 b) pure returns (uint256) {
 function subadd(uint256 a, uint256 b) pure returns (uint256) {
     uint256 res0;
     uint256 res1;
+    uint256 a0;
+    uint256 a1;
+    uint256 b0;
+    uint256 b1;
+    unchecked{
     assembly ("memory-safe") {
-        let a0 := sar(128, a)
-        let a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
-        let b0 := sar(128, b)
-        let b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
+        a0 := sar(128, a)
+        a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
+        b0 := sar(128, b)
+        b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
         res0 := sub(a0, b0)
         res1 := add(a1, b1)
-    }
-    return toTTSwapUINT256(toUint128(res0), toUint128(res1));
+    }}
+
+    require(res1 >=a1 && res1>=b1 && res0<=a0 && a0>=b0 && res1<type(uint128).max , "TTSwapUINT256: subadd overflow");
+    return (res0<<128)+res1;
 }
 
 /// @notice Safely converts a uint256 to a uint128
 /// @param a The uint256 value to convert
-/// @return The converted uint128 value, or 0 if overflow
-function toUint128(uint256 a) pure returns (uint128) {
-    return a <= type(uint128).max ? uint128(a) : 0;
+/// @return b converted uint128 value, or 0 if overflow
+function toUint128(uint256 a) pure returns (uint128 b) {
+    b=uint128(a);
+    require(a==uint256(b) , "TTSwapUINT256: toUint128 overflow");
 }
 
 /// @notice Compares the prices of three T_BalanceUINT256 values

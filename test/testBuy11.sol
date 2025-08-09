@@ -73,7 +73,7 @@ contract testBuy11 is Test {
             good2config: btcstate.goodConfig
         });
 
-        L_Good.swapCompute1(swapcache, 1);
+        L_Good.swapCompute1(swapcache);
         console2.log("1", swapcache.remainQuantity);
         console2.log("2", swapcache.outputQuantity);
     }

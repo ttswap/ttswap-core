@@ -54,18 +54,18 @@ library L_Proof {
      * @param _self The proof state to update
      * @param _value The amount to burn
      */
-    function burnProof(S_ProofState storage _self, uint128 _value) internal {
+    function burnProof(S_ProofState storage _self, uint256 _value) internal {
         // Calculate the amount of investment to burn based on the proportion of _value to total state
         uint256 burnResult1_ = toTTSwapUINT256(
-            mulDiv(_self.invest.amount0(), _value, _self.state.amount0()),
-            mulDiv(_self.invest.amount1(), _value, _self.state.amount0())
+            mulDiv(_self.invest.amount0(), _value.amount0(), _self.state.amount0()),
+            mulDiv(_self.invest.amount1(), _value.amount0(), _self.state.amount0())
         );
 
         // If there's a value good, calculate and burn the corresponding amount of value investment
         if (_self.valuegood != address(0)) {
             uint256 burnResult2_ = toTTSwapUINT256(
-                mulDiv(_self.valueinvest.amount0(), _value, _self.state.amount0()),
-                mulDiv(_self.valueinvest.amount1(), _value, _self.state.amount0())
+                mulDiv(_self.valueinvest.amount0(), _value.amount0(), _self.state.amount0()),
+                mulDiv(_self.valueinvest.amount1(), _value.amount0(), _self.state.amount0())
             );
             // Subtract the calculated value investment from the total value investment
             _self.valueinvest = sub(_self.valueinvest, burnResult2_);
@@ -73,9 +73,8 @@ library L_Proof {
 
         // Subtract the calculated investment from the total investment
         _self.invest = sub(_self.invest, burnResult1_);
-
         // Reduce the total state by the burned value
-        _self.state = sub(_self.state, toTTSwapUINT256(_value, 0));
+        _self.state = sub(_self.state, _value);
     }
 
     /**
