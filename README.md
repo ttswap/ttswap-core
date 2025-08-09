@@ -9,19 +9,19 @@ The value conservation trading strategy accurately reflects the true market valu
 1. ***Direct Trading without Intermediaries***
 On this platform, any two types of items can be directly traded without the need for intermediate conversions.
 
-2. ***Lower Slippage within Trading Threshold***
-Through stengthened the invest and concentrated liquidity.
+1. ***Lower Slippage with Strengthened & Concentrated Invest***
+Through stengthened and concentrated invest, reduce the slippage more then 50%.
 
-3. ***No Impermanent Loss for Liquidity Providers or goods Investors***
+1. ***No Impermanent Loss for Liquidity Providers or goods Investors***
 Constant market value inherently prevents impermanent loss. When users withdraw their investment, they receive the original invested goods plus profits generated from providing liquidity.
 
-4. ***Low Gas Fees with Simple Computational Logic***
+1. ***Low Gas Fees with Simple Computational Logic***
 The logic behind the constant value trading model is simple, resulting in low computational load and gas consumption.
 
-5. ***Fee Distribution Based on Roles for Everyone***
+1. ***Fee Distribution Based on Roles for Everyone***
 Fees are distributed based on roles, allowing anyone to become a goods investor (liquidity provider), goods seller, gater, referrer, user, or platform role, sharing in the platform's growth earnings.
 
-6. ***Support Native ETH Exchange and Invest***
+1. ***Support Native ETH Exchange and Invest***
 anyone can you native ETH without wrap to swap, invest easily.
 
 
