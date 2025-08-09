@@ -107,7 +107,7 @@ contract MyPortal  {
 }
 ```
 
-# 8. User deploy local instruction only can be for study 
+# 8. Deploy local instruction only for study 
 step 1:instrall forge  
 step 2:forge install permit2  
 
