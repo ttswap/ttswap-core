@@ -316,7 +316,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             });
 
             L_Good.swapCompute1(swapcache);
-
+            emit debuggswapvalue(swapcache.swapvalue);
             if (swapcache.swapvalue < 1_000_000) revert TTSwapError(14);
             if (
                 swapcache.outputQuantity < _swapQuantity.amount1() &&
@@ -405,7 +405,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             );
         }
     }
-
+    event debuggswapvalue(uint256);
     /**
      * @dev Simulates a buy order between two goods to check expected amounts
      * @param _goodid1 The address of the input good
