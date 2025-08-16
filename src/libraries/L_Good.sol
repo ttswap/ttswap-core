@@ -260,8 +260,8 @@ library L_Good {
             _self.goodConfig,
             toTTSwapUINT256(
                 0,
-                investResult_.actualInvestValue -
-                    investResult_.actualInvestValue /
+                investResult_.actualInvestQuantity -
+                    investResult_.actualInvestQuantity /
                     enpower
             )
         );
@@ -376,7 +376,7 @@ library L_Good {
         );
 
     
-        _self.goodConfig=sub(_self.goodConfig,disinvestvalue.amount1()-actualvalue);
+        _self.goodConfig=sub(_self.goodConfig,normalGoodResult1_.vitualDisinvestQuantity-normalGoodResult1_.actualDisinvestQuantity);
 
         
         // Calculate final profit and fee for main good
