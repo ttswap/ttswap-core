@@ -17,7 +17,7 @@ import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
 
 import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toUint128} from "../src/libraries/L_TTSwapUINT256.sol";
 
-contract modified_swap is Test, GasSnapshot {
+contract modified_swap_without_fee is Test, GasSnapshot {
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 
