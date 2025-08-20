@@ -99,7 +99,7 @@ contract buyERC20NormalGoodPay is BaseSetup {
         market.buyGood(metagood, normalgoodbtc,toTTSwapUINT256(6300 * 10 ** 6,6 * 10 ** 6), 0, users[1], defaultdata);
         snapLastCall("pay_erc20_normal_good___first");
         assertEq(
-            usdt.balanceOf(users[1]), 49932825457715, "after buy erc20_normalgood:usdt users[1] account  balance error1"
+            usdt.balanceOf(users[1]), 49933030223800, "after buy erc20_normalgood:usdt users[1] account  balance error1"
         );
         assertEq(btc.balanceOf(users[1]), 906000000, "after buy erc20_normalgood:btc users[1] account  balance error");
         assertEq(
@@ -107,21 +107,21 @@ contract buyERC20NormalGoodPay is BaseSetup {
         );
         assertEq(
             usdt.balanceOf(address(market)),
-            117174542285,
+            116969776200,
             "after buy erc20_normalgood:usdt market account  balance error"
         );
 
         S_GoodTmpState memory good_ = market.getGoodState(metagood);
         assertEq(
-            good_.currentState.amount0(), 108969831131, "after buy erc20_normalgood:metagood currentState amount0 error"
+            good_.currentState.amount0(), 112993700000, "after buy erc20_normalgood:metagood currentState amount0 error"
         );
         assertEq(
-            good_.currentState.amount1(), 117166156057, "after buy erc20_normalgood:metagood currentState amount1 error"
+            good_.currentState.amount1(), 116961492304, "after buy erc20_normalgood:metagood currentState amount1 error"
         );
 
         assertEq(
             good_.feeQuantityState.amount0(),
-            8386228,
+            8283896,
             "after buy erc20_normalgood:metagood feeQuantityState amount0 error"
         );
         assertEq(

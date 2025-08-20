@@ -109,26 +109,24 @@ library L_Good {
         _stepCache.remainQuantity =
             _stepCache.remainQuantity -
             _stepCache.feeQuantity;
-        uint256 a = uint256(_stepCache.remainQuantity) *
-            uint256(_stepCache.good1currentState.amount0());
-        uint256 b = uint256(_stepCache.good1currentState.amount1()) +
-            uint256(_stepCache.remainQuantity);
+        uint256 a = uint256(_stepCache.good1currentState.amount0())*uint256(_stepCache.remainQuantity)*2;
+        uint256 b = uint256(_stepCache.good1currentState.amount1())*2+uint256(_stepCache.remainQuantity);
         // Calculate and deduct the sell fee
         _stepCache.swapvalue = toUint128(a / b);
         a =
             uint256(_stepCache.good2currentState.amount1()) *
-            uint256(_stepCache.swapvalue);
+            uint256(_stepCache.swapvalue)*2;
         b = uint256(
-            _stepCache.good2currentState.amount0() + _stepCache.swapvalue
+            _stepCache.good2currentState.amount0())*2 + uint256(_stepCache.swapvalue
         );
         _stepCache.outputQuantity = toUint128(a / b);
-        _stepCache.good1currentState = subadd(
+        _stepCache.good1currentState = add(
             _stepCache.good1currentState,
-            toTTSwapUINT256(_stepCache.swapvalue, _stepCache.remainQuantity)
+            toTTSwapUINT256(0, _stepCache.remainQuantity)
         );
-        _stepCache.good2currentState = addsub(
+        _stepCache.good2currentState = sub(
             _stepCache.good2currentState,
-            toTTSwapUINT256(_stepCache.swapvalue, _stepCache.outputQuantity)
+            toTTSwapUINT256(0, _stepCache.outputQuantity)
         );
     }
 
@@ -145,27 +143,29 @@ library L_Good {
         _stepCache.remainQuantity =
             _stepCache.remainQuantity +
             _stepCache.feeQuantity;
+
         uint256 a = uint256(_stepCache.good1currentState.amount1()) *
             uint256(_stepCache.good2currentState.amount0()) *
-            uint256(_stepCache.remainQuantity);
+            uint256(_stepCache.remainQuantity)*2;
         uint256 b = uint256(_stepCache.good1currentState.amount0()) *
-            uint256(_stepCache.good2currentState.amount1()) -
+            uint256(_stepCache.good2currentState.amount1())*2 -
             uint256(_stepCache.good1currentState.amount0()) *
             uint256(_stepCache.remainQuantity) -
             uint256(_stepCache.good2currentState.amount0()) *
             uint256(_stepCache.remainQuantity);
+
         _stepCache.outputQuantity = toUint128(a / b);
         _stepCache.swapvalue = toTTSwapUINT256(
             _stepCache.good1currentState.amount0(),
             _stepCache.good1currentState.amount1() + _stepCache.outputQuantity
         ).getamount0fromamount1(_stepCache.outputQuantity);
-        _stepCache.good1currentState = subadd(
+        _stepCache.good1currentState = add(
             _stepCache.good1currentState,
-            toTTSwapUINT256(_stepCache.swapvalue, _stepCache.outputQuantity)
+            toTTSwapUINT256(0, _stepCache.outputQuantity)
         );
-        _stepCache.good2currentState = addsub(
+        _stepCache.good2currentState = sub(
             _stepCache.good2currentState,
-            toTTSwapUINT256(_stepCache.swapvalue, _stepCache.remainQuantity)
+            toTTSwapUINT256(0, _stepCache.remainQuantity)
         );
     }
 
@@ -260,8 +260,8 @@ library L_Good {
             _self.goodConfig,
             toTTSwapUINT256(
                 0,
-                investResult_.actualInvestValue -
-                    investResult_.actualInvestValue /
+                investResult_.actualInvestQuantity -
+                    investResult_.actualInvestQuantity /
                     enpower
             )
         );
@@ -376,7 +376,7 @@ library L_Good {
         );
 
     
-        _self.goodConfig=sub(_self.goodConfig,disinvestvalue.amount1()-actualvalue);
+      _self.goodConfig=sub(_self.goodConfig,normalGoodResult1_.vitualDisinvestQuantity-normalGoodResult1_.actualDisinvestQuantity);
 
         
         // Calculate final profit and fee for main good
