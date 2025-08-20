@@ -253,15 +253,15 @@ interface I_TTSwap_Market {
  * @dev Represents the state of a proof
  * @member currentgood The current good  associated with the proof
  * @member valuegood The value good associated with the proof
- * @member state amount0 (first 128 bits) represents total value
- * @member invest amount0 (first 128 bits) represents invest normal good quantity, amount1 (last 128 bits) represents normal good constuct fee when investing
- * @member valueinvest amount0 (first 128 bits) represents invest value good quantity, amount1 (last 128 bits) represents value good constuct fee when investing
+ * @member state amount0:total value  : amount1:total actualvalue
+ * @member invest amount0:normal shares amount1:actualquantity
+ * @member valueinvest amount0:value shares amount1:actualquantity
  */
 
 struct S_ProofState {
     address currentgood;
     address valuegood;
-    uint256 state;
+    uint256 state; 
     uint256 invest;
     uint256 valueinvest;
 }
@@ -270,28 +270,21 @@ struct S_ProofState {
  */
 
 struct S_GoodState {
-    uint256 goodConfig; // Configuration of the good
-    address owner; // Creator of the good
-    uint256 currentState; // Current state: amount0 (first 128 bits) represents total value, amount1 (last 128 bits) represents quantity
-    uint256 investState; // Investment state: amount0 represents total invested value, amount1 represents total invested quantity
-    uint256 feeQuantityState; // Fee state: amount0 represents total fees (including construction fees), amount1 represents total construction fees
-    uint256 extend1;
-    uint256 extend2;
-    uint256 extend3;
-    uint256 extend4;
-    uint256 extend5;    
+    uint256 goodConfig; // amount0:Configuration of the good amount1:is total virtual quantity of the good
+    address owner; // Creator of the good 
+    uint256 currentState; // amount0:present investQuantity, amount1:represent CurrentQuantity
+    uint256 investState; // amount0:represent shares, amount1:represent value
     mapping(address => uint256) commission;
 }
 /**
  * @dev Struct representing a temporary state of a good
  */
-
+ 
 struct S_GoodTmpState {
-    uint256 goodConfig; // Configuration of the good
-    address owner; // Creator of the good
-    uint256 currentState; // Current state: amount0 (first 128 bits) represents total value, amount1 (last 128 bits) represents quantity
-    uint256 investState; // Investment state: amount0 represents total invested value, amount1 represents total invested quantity
-    uint256 feeQuantityState; // Fee state: amount0 represents total fees (including construction fees), amount1 represents total construction fees
+    uint256 goodConfig; // amount0:Configuration of the good amount1:is total virtual quantity of the good
+    address owner; // Creator of the good 
+    uint256 currentState; // amount0:present investQuantity, amount1:represent CurrentQuantity
+    uint256 investState; // amount0:represent shares, amount1:represent value
 }
 
 struct S_ProofKey {
