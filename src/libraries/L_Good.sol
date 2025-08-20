@@ -376,7 +376,8 @@ library L_Good {
         );
 
     
-      _self.goodConfig=sub(_self.goodConfig,normalGoodResult1_.vitualDisinvestQuantity-normalGoodResult1_.actualDisinvestQuantity);
+
+        _self.goodConfig=sub(_self.goodConfig,normalGoodResult1_.vitualDisinvestQuantity-normalGoodResult1_.actualDisinvestQuantity);
 
         
         // Calculate final profit and fee for main good
