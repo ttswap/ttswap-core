@@ -129,21 +129,21 @@ contract buyNormalGooduseNativeETH is BaseSetup {
 
         assertEq(
             usdt.balanceOf(users[1]),
-            49937619538749,
+            49937624322793,
             "after buy nativeeth_normalgood:usdt users[1] account  balance error"
         );
         assertEq(users[1].balance, 899000000, "after buy nativeeth_normalgood:btc users[1] account  balance error");
         assertEq(address(market).balance, 101000000, "after buy nativeeth_normalgood:btc market account  balance error");
         assertEq(
             usdt.balanceOf(address(market)),
-            112380461251,
+            112375677207,
             "after buy nativeeth_normalgood:usdt market account  balance error"
         );
 
         good_ = market.getGoodState(address(1));
         assertEq(
             good_.currentState.amount0(),
-            62370432271,
+            62993700000,
             "after buy nativeeth_normalgood:metagood currentState amount0 error"
         );
         assertEq(

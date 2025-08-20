@@ -31,7 +31,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     using L_Proof for S_ProofState;
     using L_CurrencyLibrary for address;
 
-   
     /**
      * @dev Address of the official TTS token contract
      * @notice Handles:
@@ -42,8 +41,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      */
     I_TTSwap_Token private immutable officialTokenContract;
     address internal securitykeeper;
-
-
 
     /**
      * @dev Mapping of good addresses to their state information
@@ -300,6 +297,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (goods[_goodid2].goodConfig.isFreeze()) revert TTSwapError(11);
         if (goods[_goodid1].currentState == 0) revert TTSwapError(12);
         if (goods[_goodid2].currentState == 0) revert TTSwapError(13);
+        if (
+            goods[_goodid1].investState.amount1() + _swapQuantity.amount1() >
+            goods[_goodid1].investState.amount1() * 2
+        ) revert TTSwapError(33);
         if (_side == 1) {
             if (_recipent != address(0) && _recipent != msg.sender) {
                 officialTokenContract.setReferral(msg.sender, _recipent);
@@ -316,7 +317,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             });
 
             L_Good.swapCompute1(swapcache);
-            emit debuggswapvalue(swapcache.swapvalue);
+
             if (swapcache.swapvalue < 1_000_000) revert TTSwapError(14);
             if (
                 swapcache.outputQuantity < _swapQuantity.amount1() &&
@@ -324,7 +325,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             ) revert TTSwapError(15);
             if (
                 swapcache.good2currentState.amount1() <=
-                swapcache.good2config.amount1()*11/10
+                (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
 
             good1change = toTTSwapUINT256(
@@ -354,7 +355,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 good2change
             );
         } else {
-            if (_recipent == address(0)) revert TTSwapError(40);
+            if (_recipent == address(0)) revert TTSwapError(32);
             L_Good.swapCache memory swapcache = L_Good.swapCache({
                 remainQuantity: _swapQuantity.amount1(),
                 outputQuantity: 0,
@@ -371,7 +372,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 _side,
                 swapcache.outputQuantity + _side
             );
-
             if (swapcache.swapvalue < 1_000_000) revert TTSwapError(14);
             if (
                 good1change.amount1() > _swapQuantity.amount0() &&
@@ -379,7 +379,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             ) revert TTSwapError(15);
             if (
                 swapcache.good2currentState.amount1() <=
-                swapcache.good2config.amount1()*11/10
+                (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
 
             good2change = toTTSwapUINT256(
@@ -405,7 +405,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             );
         }
     }
-    event debuggswapvalue(uint256);
     /**
      * @dev Simulates a buy order between two goods to check expected amounts
      * @param _goodid1 The address of the input good
@@ -469,7 +468,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             ) revert TTSwapError(15);
             if (
                 swapcache.good2currentState.amount1() <=
-                swapcache.good2config.amount1()*11/10
+                (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
 
             good1change = toTTSwapUINT256(
@@ -501,7 +500,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             ) revert TTSwapError(15);
             if (
                 swapcache.good2currentState.amount1() <=
-                swapcache.good2config.amount1()*11/10
+                (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
             good1change = toTTSwapUINT256(
                 swapcache.feeQuantity,
@@ -541,9 +540,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         L_Good.S_GoodInvestReturn memory valueInvest_;
         if (_togood == _valuegood) revert TTSwapError(9);
         if (goods[_togood].goodConfig.isFreeze()) revert TTSwapError(10);
-        if (!(goods[_togood].goodConfig.isvaluegood() ||
-                goods[_valuegood].goodConfig.isvaluegood())) revert TTSwapError(17);
-        if ( goods[_togood].currentState.amount1() + _quantity >= 2 ** 109) revert TTSwapError(18);
+        if (
+            !(goods[_togood].goodConfig.isvaluegood() ||
+                goods[_valuegood].goodConfig.isvaluegood())
+        ) revert TTSwapError(17);
+        if (goods[_togood].currentState.amount1() + _quantity >= 2 ** 109)
+            revert TTSwapError(18);
 
         uint128 enpower = goods[_togood].goodConfig.getPower();
         if (_valuegood != address(0)) {

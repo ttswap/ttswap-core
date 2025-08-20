@@ -135,12 +135,12 @@ contract buyNormalGooduseNativeETH2Pay is BaseSetup {
         );
         assertEq(
             usdt.balanceOf(users[1]),
-            8397921256813124,
+            8663141267811449,
             "after pay nativeeth_normalgood:usdt users[1] account  balance error"
         );
         assertEq(
             usdt.balanceOf(address(market)),
-            602178743186876,
+            336958732188551,
             "after pay nativeeth_normalgood:usdt address(market) account  balance error"
         );
         assertEq(
@@ -161,7 +161,7 @@ contract buyNormalGooduseNativeETH2Pay is BaseSetup {
 
         assertEq(
             address(market).balance,
-            3000002511502622,
+            3000000904276055,
             "after pay nativeeth_normalgood:btc address(market) account  balance error"
         );
     }
@@ -224,12 +224,12 @@ contract buyNormalGooduseNativeETH2Pay is BaseSetup {
         );
         assertEq(
             usdt.balanceOf(users[1]),
-            8397921256813124,
+            8663141267811449,
             "after pay nativeeth_normalgood:usdt users[1] account  balance error"
         );
         assertEq(
             usdt.balanceOf(address(market)),
-            602178743186876,
+            336958732188551,
             "after pay nativeeth_normalgood:usdt address(market) account  balance error"
         );
         assertEq(

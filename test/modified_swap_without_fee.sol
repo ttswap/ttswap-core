@@ -147,7 +147,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         market.buyGood(
             address(usdt),
             address(usdc),
-            toTTSwapUINT256(7142857142, 9000000000),
+            toTTSwapUINT256(8823529411, 6000000000),
             1,
             msg.sender,
             ""
@@ -343,7 +343,10 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         vm.stopPrank();
     }
 
-
+  //usdcbefore: 950000000000
+  //usdtbefore: 950000000000
+  //usdcafter: 940000000000
+  //usdtafter: 958333333332
     function testswapA2B_part2() public {
         vm.startPrank(marketcreator);
         uint256 usdcbefore = usdc.balanceOf(marketcreator);
@@ -391,7 +394,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         market.buyGood(
             address(usdt),
             address(usdc),
-            toTTSwapUINT256(2000 * 10 ** 6, 1000 * 10 ** 6),
+            toTTSwapUINT256(3000 * 10 ** 6, 1000 * 10 ** 6),
             0,
             marketcreator,
             ""
@@ -405,7 +408,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         market.buyGood(
             address(usdc),
             address(usdt),
-            toTTSwapUINT256(10000 * 10 ** 6, 1041666666),
+            toTTSwapUINT256(10000 * 10 ** 6, 1020408163),
             0,
             marketcreator,
             ""
