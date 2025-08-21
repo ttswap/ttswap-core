@@ -435,7 +435,7 @@ library L_Good {
                     _valueGoodState.currentState.amount0()
                 )) revert TTSwapError(28);
             if (
-                valueGoodResult2_.actualDisinvestQuantity >
+                valueGoodResult2_.vitualDisinvestQuantity >
                 _valueGoodState.goodConfig.getDisinvestChips(
                     _valueGoodState.currentState.amount1()
                 )
@@ -446,7 +446,7 @@ library L_Good {
                 _valueGoodState.currentState,
                 toTTSwapUINT256(
                     disinvestvalue.amount1(),
-                    valueGoodResult2_.actualDisinvestQuantity
+                    valueGoodResult2_.vitualDisinvestQuantity
                 )
             );
 
@@ -454,7 +454,7 @@ library L_Good {
                 _valueGoodState.investState,
                 toTTSwapUINT256(
                     disinvestvalue.amount1(),
-                    valueGoodResult2_.actualDisinvestQuantity
+                    valueGoodResult2_.vitualDisinvestQuantity
                 )
             );
 
