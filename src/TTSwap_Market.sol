@@ -211,7 +211,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         L_Good.S_GoodInvestReturn memory investResult;
         goods[_valuegood].investGood(_initial.amount1(), investResult, 1);
         goods[_erc20address].init(
-            toTTSwapUINT256(investResult.actualInvestValue, _initial.amount0()),
+            toTTSwapUINT256(investResult.investValue, _initial.amount0()),
             _goodConfig
         );
         uint256 proofId = S_ProofKey(msg.sender, _erc20address, _valuegood)
@@ -221,12 +221,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             _erc20address,
             _valuegood,
             toTTSwapUINT256(
-                investResult.actualInvestValue,
-                investResult.actualInvestValue
+                investResult.investValue,
+                investResult.investValue
             ),
-            toTTSwapUint256(investResult.actualInvestValue,_initial.amount0()),
+            toTTSwapUINT256(investResult.investValue,_initial.amount0()),
             toTTSwapUINT256(
-                investResult.investshare,investResult.actualInvestQuantity
+                investResult.investshare,investResult.investQuantity
             )
         );
 
@@ -238,12 +238,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             L_Proof.stake(
                 officialTokenContract,
                 msg.sender,
-                investResult.actualInvestValue * 2
+                investResult.investValue * 2
             ),
-            toTTSwapUINT256(_initial.amount0(), investResult.actualInvestValue),
+            toTTSwapUINT256(_initial.amount0(), investResult.investValue),
             toTTSwapUINT256(
                 investResult.actualFeeQuantity,
-                investResult.actualInvestQuantity
+                investResult.investQuantity
             )
         );
         return true;
@@ -452,8 +452,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 outputQuantity: 0,
                 feeQuantity: 0,
                 swapvalue: 0,
-                good1value:goods[_goodid1].amount1();
-                good2value:goods[_goodid2].amount1();
+                good1value:goods[_goodid1].amount1(),
+                good2value:goods[_goodid2].amount1(),
                 good1currentState: goods[_goodid1].currentState,
                 good1config: goods[_goodid1].goodConfig,
                 good2currentState: goods[_goodid2].currentState,
@@ -640,7 +640,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @inheritdoc I_TTSwap_Market
     function disinvestProof(
         uint256 _proofid,
-        uint128 _goodQuantity,
+        uint128 _goodshares,
         address _gate
     ) external override noReentrant returns (uint128, uint128) {
         if (
@@ -672,7 +672,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         ].disinvestGood(
                 goods[valuegood],
                 proofs[_proofid],
-                L_Good.S_GoodDisinvestParam(_goodQuantity, _gate, referal)
+                L_Good.S_GoodDisinvestParam(_goodshares, _gate, referal)
             );
 
         uint256 tranferamount = goods[normalgood].commission[msg.sender];
