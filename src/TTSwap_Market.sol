@@ -441,12 +441,16 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         uint256 _swapQuantity,
         bool side
     ) external view returns (uint256 good1change, uint256 good2change) {
+        if (_swapQuantity == 0) revert TTSwapError(7);
+        if (_goodid1 == _goodid2) revert TTSwapError(9);
+        if (goods[_goodid1].goodConfig.isFreeze()) revert TTSwapError(10);
+        if (goods[_goodid2].goodConfig.isFreeze()) revert TTSwapError(11);
+        if (goods[_goodid1].currentState == 0) revert TTSwapError(12);
+        if (goods[_goodid2].currentState == 0) revert TTSwapError(13);
         if (
-            goods[_goodid1].currentState == 0 ||
-            goods[_goodid2].currentState == 0 ||
-            _swapQuantity == 0 ||
-            _goodid1 == _goodid2
-        ) revert TTSwapError(35);
+            goods[_goodid1].investState.amount1() + _swapQuantity.amount1() >
+            goods[_goodid1].investState.amount1() * 2
+        ) revert TTSwapError(33);
         if (side) {
             L_Good.swapCache memory swapcache = L_Good.swapCache({
                 remainQuantity: _swapQuantity.amount0(),
@@ -570,7 +574,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
             _valuegood.transferFrom(
                 msg.sender,
-                valueInvest_.actualInvestQuantity,
+                valueInvest_.actualInvestQuantity/enpower,
                 data2
             );
             goods[_valuegood].investGood(
