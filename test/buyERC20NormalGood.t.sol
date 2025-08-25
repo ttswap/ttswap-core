@@ -419,8 +419,10 @@ contract buyERC20NormalGood is BaseSetup {
             "after  buy erc20  normalgood:normalgoodkey investState error"
         );
         market.buyGood(metagood, normalgoodbtc, toTTSwapUINT256(6300 * 10 ** 6,1), 1, address(100), defaultdata);
-        snapLastCall("buy_erc20_normal_good_second_with_exists_refer");
+        snapLastCall("buy_erc20_normal_good_second_with_exists_refer_reject_add");
 
+        market.buyGood(metagood, normalgoodbtc, toTTSwapUINT256(6300 * 10 ** 6,1), 1, address(0), defaultdata);
+        snapLastCall("buy_erc20_normal_good_second_with_exists_refer");
         vm.stopPrank();
     }}
 

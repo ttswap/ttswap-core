@@ -468,6 +468,5 @@ contract testInitNormalGood is BaseSetup {
             62993700000,
             "after initial:proof value good quantity error"
         );
-
     }
 }

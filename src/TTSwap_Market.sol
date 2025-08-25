@@ -367,7 +367,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 good2config: goods[_goodid2].goodConfig
             });
             L_Good.swapCompute2(swapcache);
-            _side = swapcache.good2config.getBuyFee(swapcache.outputQuantity);
+            _side = swapcache.good1config.getSellFee(swapcache.outputQuantity);
             good1change = toTTSwapUINT256(
                 _side,
                 swapcache.outputQuantity + _side
@@ -381,7 +381,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 swapcache.good2currentState.amount1() <=
                 (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
-
+            swapcache.good1currentState=add(
+                swapcache.good1currentState,
+                toTTSwapUINT256(_side, 0)
+            );
             good2change = toTTSwapUINT256(
                 swapcache.feeQuantity,
                 _swapQuantity.amount1()

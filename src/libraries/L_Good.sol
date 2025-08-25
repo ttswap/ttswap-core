@@ -143,7 +143,7 @@ library L_Good {
      */
     function swapCompute2(swapCache memory _stepCache) internal pure {
         // Check if the current price is lower than the limit price, if not, return immediately
-        _stepCache.feeQuantity = _stepCache.good1config.getSellFee(
+        _stepCache.feeQuantity = _stepCache.good2config.getBuyFee(
             _stepCache.remainQuantity
         );
         _stepCache.remainQuantity =
@@ -151,19 +151,19 @@ library L_Good {
             _stepCache.feeQuantity;
 
         uint256 a = uint256(_stepCache.good1currentState.amount1()) *
-            uint256(_stepCache.good2currentState.amount0()) *
+            uint256(_stepCache.good2value) *
             uint256(_stepCache.remainQuantity) *
             2;
-        uint256 b = uint256(_stepCache.good1currentState.amount0()) *
+        uint256 b = uint256(_stepCache.good1value) *
             uint256(_stepCache.good2currentState.amount1()) *
             2 -
-            uint256(_stepCache.good1currentState.amount0()) *
+            uint256(_stepCache.good1value) *
             uint256(_stepCache.remainQuantity) -
-            uint256(_stepCache.good2currentState.amount0()) *
+            uint256(_stepCache.good2value) *
             uint256(_stepCache.remainQuantity);
         _stepCache.outputQuantity = toUint128(a / b);
         _stepCache.swapvalue = toTTSwapUINT256(
-            _stepCache.good1currentState.amount0(),
+            _stepCache.good1value,
             _stepCache.good1currentState.amount1() + _stepCache.outputQuantity
         ).getamount0fromamount1(_stepCache.outputQuantity);
 
