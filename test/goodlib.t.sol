@@ -39,10 +39,10 @@ contract testBuy11 is Test {
         console2.log(good1.goodConfig);
         console2.log(_goodConfig);
         console2.log(good1.goodConfig.isvaluegood());
-        // assertEq(
-        //     _goodConfig1 * 2 ** 223 + _goodConfig,
-        //     good1.goodConfig,
-        //     "modified godoconfig error"
-        // );
+        assertEq(
+            _goodConfig1  + _goodConfig,
+            good1.goodConfig,
+            "modified godoconfig error"
+        );
     }
 }

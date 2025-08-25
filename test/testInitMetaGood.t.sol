@@ -50,6 +50,17 @@ contract testInitMetaGood is BaseSetup {
         );
 
         assertEq(
+            market.getGoodState(metagood).goodConfig.amount0(),
+            235045548299864294854689680129989279744,
+            "after initial metagood:goodConfig error"
+        );
+        assertEq(
+            market.getGoodState(metagood).goodConfig.amount1(),
+            0,
+            "after initial metagood:goodConfig amount1error"
+        );
+
+        assertEq(
             market.getGoodState(metagood).currentState,
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
             "after initial metagood:metagood currentState error"
@@ -59,7 +70,7 @@ contract testInitMetaGood is BaseSetup {
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
             "after initial metagood:metagood investState error"
         );
-        assertEq(market.getGoodState(metagood).feeQuantityState, 0, "after initial metagood:metagood feequnitity error");
+       
 
         assertEq(market.getGoodState(metagood).goodConfig, 79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
 
@@ -69,8 +80,10 @@ contract testInitMetaGood is BaseSetup {
 
         uint256 metaproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
         S_ProofState memory _proof1 = market.getProofState(metaproof);
-        assertEq(_proof1.state.amount0(), 50000 * 10 ** 6, "after initial:proof value error");
-        assertEq(_proof1.invest.amount1(), 50000 * 10 ** 6, "after initial:proof quantity error");
+        assertEq(_proof1.state.amount0(), 50000 * 10 ** 6, "after initial:virtual value error");
+        assertEq(_proof1.state.amount1(), 50000 * 10 ** 6, "after initial:actual value error");
+        assertEq(_proof1.invest.amount0(), 50000 * 10 ** 6, "after initial:invest amount0 error");
+        assertEq(_proof1.invest.amount1(), 50000 * 10 ** 6, "after initial:invest amount1 error");
         assertEq(_proof1.valueinvest.amount1(), 0, "after initial:proof quantity error");
 
         vm.stopPrank();
@@ -104,6 +117,16 @@ contract testInitMetaGood is BaseSetup {
 
         S_GoodTmpState memory good_ = market.getGoodState(metagood);
         assertEq(
+            good_.goodConfig.amount0(),
+            235045548299864294854689680129989279744,
+            "after initial metagood:goodConfig error"
+        );
+        assertEq(
+            good_.goodConfig.amount1(),
+            0,
+            "after initial metagood:goodConfig amount1error"
+        );
+        assertEq(
             good_.currentState,
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
             "after initial metagood:metagood currentState error"
@@ -113,18 +136,18 @@ contract testInitMetaGood is BaseSetup {
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
             "after initial metagood:metagood investState error"
         );
-        assertEq(good_.feeQuantityState, 0, "after initial metagood:metagood feequnitity error");
-
+       
         assertEq(good_.goodConfig, 79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
 
         assertEq(good_.owner, marketcreator, "after initial metagood:metagood marketcreator error");
 
         uint256 metaproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
         S_ProofState memory _proof1 = market.getProofState(metaproof);
-        assertEq(_proof1.state.amount0(), 50000 * 10 ** 6, "after initial:proof value error");
-        assertEq(_proof1.invest.amount1(), 50000 * 10 ** 6, "after initial:proof quantity error");
+        assertEq(_proof1.state.amount0(), 50000 * 10 ** 6, "after initial:virtual value error");
+        assertEq(_proof1.state.amount1(), 50000 * 10 ** 6, "after initial:actual value error");
+        assertEq(_proof1.invest.amount0(), 50000 * 10 ** 6, "after initial:invest amount0 error");
+        assertEq(_proof1.invest.amount1(), 50000 * 10 ** 6, "after initial:invest amount1 error");
         assertEq(_proof1.valueinvest.amount1(), 0, "after initial:proof quantity error");
-
         vm.stopPrank();
     }
 }

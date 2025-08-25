@@ -157,7 +157,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (!_goodConfig.isvaluegood()) revert TTSwapError(4);
         if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
         _erc20address.transferFrom(msg.sender, _initial.amount1(), data);
-
         goods[_erc20address].init(_initial, _goodConfig);
         /// update good to value good
         goods[_erc20address].modifyGoodConfig(5933383808 << 223); //2**32+6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
@@ -224,7 +223,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 investResult.investValue,
                 investResult.investValue
             ),
-            toTTSwapUINT256(investResult.investValue,_initial.amount0()),
+            toTTSwapUINT256(_initial.amount0(),_initial.amount0()),
             toTTSwapUINT256(
                 investResult.investShare,investResult.investQuantity
             )

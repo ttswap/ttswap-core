@@ -55,6 +55,7 @@ library L_Good {
         _goodconfig = (_goodconfig >> 223) << 223;
         _goodconfig = _goodconfig + (_self.goodConfig % (2 ** 223));
         _self.goodConfig = _goodconfig;
+
     }
 
     /**
@@ -69,8 +70,8 @@ library L_Good {
         uint256 _init,
         uint256 _goodConfig
     ) internal {
-        self.currentState = toTTSwapUINT256(0, _init.amount1());
-        self.investState = toTTSwapUINT256(_init.amount0(), _init.amount0());
+        self.currentState = toTTSwapUINT256(_init.amount1(), _init.amount1());
+        self.investState = toTTSwapUINT256(_init.amount1(), _init.amount0());
         _goodConfig = (_goodConfig << 33) >> 33;
         _goodConfig = (_goodConfig >> 128) << 128;
         _goodConfig = _goodConfig + (1638416512 << 223); //1638416512 6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
@@ -216,31 +217,44 @@ library L_Good {
         S_GoodInvestReturn memory investResult_,
         uint128 enpower
     ) internal {
+
+        emit debugg(1, _invest);
+
         // Calculate the investment fee
         investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
             _invest
         );
+
+        emit debugg(2,investResult_.investFeeQuantity);
         // Calculate the actual investment quantity after deducting the fee
         investResult_.investQuantity =
             _invest -
             investResult_.investFeeQuantity;
+        
+        emit debugg(3,investResult_.investQuantity);
 
         // Calculate the actual investment value based on the current state
         investResult_.investValue = toTTSwapUINT256(
-            investResult_.goodValues,
-            investResult_.goodCurrentQuantity
+            _self.investState.amount1(),
+            _self.currentState.amount1()
         ).getamount0fromamount1(investResult_.investQuantity);
 
         // Update the current state with the new investment
+  
+        investResult_.investShare = toTTSwapUINT256(
+            _self.investState.amount0(),
+            _self.currentState.amount0()
+        ).getamount0fromamount1(investResult_.investQuantity);
+
         _self.currentState = add(
             _self.currentState,
             toTTSwapUINT256(_invest, investResult_.investQuantity)
         );
-        investResult_.investShare = toTTSwapUINT256(
-            investResult_.goodShares,
-            investResult_.goodInvestQuantity
-        ).getamount0fromamount1(investResult_.investQuantity);
         // Update the invest state with the new investment
+
+        emit debugg(3, _self.investState.amount0());
+
+        emit debugg(4,investResult_.investShare);
         _self.investState = add(
             _self.investState,
             toTTSwapUINT256(
@@ -248,6 +262,8 @@ library L_Good {
                 investResult_.investValue
             )
         );
+
+        emit debugg(5, _self.investState.amount0());
         _self.goodConfig = add(
             _self.goodConfig,
             toTTSwapUINT256(
@@ -258,6 +274,7 @@ library L_Good {
             )
         );
     }
+    event debugg(uint256 _aaa,uint256 bbbb);
     /**
      * @notice Struct to hold the return values of a disinvestment operation
      * @dev Used to store and return the results of disinvesting from a good
