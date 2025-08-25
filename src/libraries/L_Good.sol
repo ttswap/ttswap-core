@@ -396,7 +396,7 @@ library L_Good {
             );
             valueGoodResult2_.vitualDisinvestQuantity = _investProof
                 .valueinvest
-                .getamount0fromamount1(valueGoodResult2_.actual_fee);
+                .getamount1fromamount0(valueGoodResult2_.actual_fee);
 
             // Ensure value good disinvestment conditions are met
             if (

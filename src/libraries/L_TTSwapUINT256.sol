@@ -166,6 +166,17 @@ library L_TTSwapUINT256Library {
         }
     }
 
+    /// @notice Extracts the first and second 128-bit amounts from a T_BalanceUINT256
+    /// @param balanceDelta The T_BalanceUINT256 to extract from
+    /// @return _amount0 The extracted first 128-bit amount
+    /// @return _amount1 The extracted second 128-bit amount
+    function amount01(uint256 balanceDelta) internal pure returns (uint128 _amount0,uint128 _amount1) {
+        assembly {
+            _amount0 := shr(128, balanceDelta)
+            _amount1 := balanceDelta
+        }
+    }
+
     /// @notice Calculates amount0 based on a given amount1 and the ratio in balanceDelta
     /// @param balanceDelta The T_BalanceUINT256 containing the ratio
     /// @param amount1delta The amount1 to base the calculation on
