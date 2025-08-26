@@ -50,5 +50,5 @@ contract BaseSetup is Test, GasSnapshot {
         tts_token.setStakeManager(marketcreator,true);
         vm.stopPrank();
     }
-    function test1()public{}
+    
 }

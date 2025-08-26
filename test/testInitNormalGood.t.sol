@@ -68,7 +68,7 @@ contract testInitNormalGood is BaseSetup {
             defaultdata,
             defaultdata
         );
-        snapLastCall("init_erc20_normalgood");
+        snapLastCall("init_ERC20_By_ERC20");
 
         //normal good
         address normalgoodkey = address(btc);
@@ -126,7 +126,7 @@ contract testInitNormalGood is BaseSetup {
         assertEq(
             metagoodkeystate.currentState.amount0(),
             toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 ,
+                50000 * 10 ** 6 + 63000 * 10 ** 6,
                 50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
             ).amount0(),
             "1after initial normalgood:metagoodkey currentState amount0 error"
@@ -140,7 +140,6 @@ contract testInitNormalGood is BaseSetup {
             ).amount1(),
             "1after initial normalgood:metagoodkey currentState amount1 error"
         );
- 
 
         assertEq(
             metagoodkeystate.investState.amount0(),
@@ -158,8 +157,6 @@ contract testInitNormalGood is BaseSetup {
             ).amount1(),
             "1after initial normalgood:metagoodkey investState amount1 error"
         );
-
-
 
         assertEq(
             metagoodkeystate.goodConfig,
@@ -201,13 +198,13 @@ contract testInitNormalGood is BaseSetup {
         );
         assertEq(
             normalgoodstate.investState.amount0(),
-            toTTSwapUINT256(1 * 10 ** 8,63000 * 10 ** 6 ).amount0(),
+            toTTSwapUINT256(1 * 10 ** 8, 63000 * 10 ** 6).amount0(),
             "after initial normalgood:normalgood investState error"
         );
 
         assertEq(
             normalgoodstate.investState.amount1(),
-            toTTSwapUINT256(1 * 10 ** 8,62993700000 ).amount1(),
+            toTTSwapUINT256(1 * 10 ** 8, 62993700000).amount1(),
             "after initial normalgood:normalgood investState amount1 error"
         );
         assertEq(
@@ -303,7 +300,7 @@ contract testInitNormalGood is BaseSetup {
             defaultdata,
             defaultdata
         );
-        snapLastCall("init_nativeETH_normalgood");
+        snapLastCall("init_NativeETH_By_ERC20");
         vm.stopPrank();
 
         assertEq(
@@ -336,16 +333,16 @@ contract testInitNormalGood is BaseSetup {
         assertEq(
             metagoodkeystate.currentState.amount0(),
             toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 ,
+                50000 * 10 ** 6 + 63000 * 10 ** 6,
                 50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
             ).amount0(),
             "after initial normalgood:metagoodkey currentState error"
         );
 
-          assertEq(
+        assertEq(
             metagoodkeystate.currentState.amount1(),
             toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 ,
+                50000 * 10 ** 6 + 63000 * 10 ** 6,
                 50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
             ).amount1(),
             "after initial normalgood:metagoodkey currentState amount1 error"
@@ -434,7 +431,7 @@ contract testInitNormalGood is BaseSetup {
         uint256 normalproof = S_ProofKey(users[1], normalgoodkey, metagoodkey)
             .toId();
 
-     S_ProofState memory _proof1 = market.getProofState(normalproof);
+        S_ProofState memory _proof1 = market.getProofState(normalproof);
         assertEq(
             _proof1.state.amount0(),
             63000 * 10 ** 6 - 63000 * 10 ** 2,

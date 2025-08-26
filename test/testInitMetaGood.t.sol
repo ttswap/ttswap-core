@@ -36,7 +36,7 @@ contract testInitMetaGood is BaseSetup {
         assertEq(usdt.balanceOf(address(market)), 0, "before initial metagood:market account initial balance error");
 
         market.initMetaGood(address(usdt), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), goodconfig, defaultdata);
-        snapLastCall("init_erc20_metagood");
+        snapLastCall("init_ERC20_metagood");
         metagood = address(usdt);
         assertEq(
             usdt.balanceOf(marketcreator),
@@ -104,7 +104,7 @@ contract testInitMetaGood is BaseSetup {
         market.initMetaGood{value: 50000 * 10 ** 6}(
             nativeCurrency, toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), goodconfig, defaultdata
         );
-        snapLastCall("init_nativeerc20_metagood");
+        snapLastCall("init_NativeETH_metagood");
         metagood = nativeCurrency;
         assertEq(
             marketcreator.balance,
