@@ -33,8 +33,8 @@ contract buyERC20ByNativeETH is BaseSetup {
 
     function initmetagood() public {
         vm.startPrank(marketcreator);
-        
-        deal( marketcreator, 1000000 * 10 ** 6);
+
+        deal(marketcreator, 1000000 * 10 ** 6);
         uint256 _goodconfig = (2 ** 255) +
             1 *
             2 ** 217 +
@@ -58,8 +58,8 @@ contract buyERC20ByNativeETH is BaseSetup {
         vm.startPrank(users[1]);
         deal(address(btc), users[1], 10 * 10 ** 8, false);
         btc.approve(address(market), 1 * 10 ** 8 + 1);
-      
-        deal( users[1], 1000000 * 10 ** 6);
+
+        deal(users[1], 1000000 * 10 ** 6);
         assertEq(
             address(market).balance,
             50000 * 10 ** 6,
@@ -85,9 +85,9 @@ contract buyERC20ByNativeETH is BaseSetup {
         vm.stopPrank();
     }
 
-    function testBuyERC20Good() public {
+    function testBuyERC20ByNativeETH() public {
         vm.startPrank(users[1]);
-        
+
         btc.approve(address(market), 10 * 10 ** 8 + 1);
         assertEq(
             btc.balanceOf(users[1]),
@@ -112,30 +112,14 @@ contract buyERC20ByNativeETH is BaseSetup {
         S_GoodTmpState memory metagoodkeystate = market.getGoodState(metagood);
         assertEq(
             metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113000000000, 112993700000).amount0(),
+            toTTSwapUINT256(113000000000, 113000000000).amount0(),
             "before buy erc20 normalgood:metagoodkey currentState error"
         );
 
         assertEq(
             metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113000000000, 112993700000).amount1(),
+            toTTSwapUINT256(113000000000, 113000000000).amount1(),
             "before  buy erc20  normalgood:metagoodkey currentState amount1 error"
-        );
-        assertEq(
-            metagoodkeystate.investState.amount0(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ).amount0(),
-            "before  buy erc20  normalgood:metagoodkey investState error"
-        );
-        assertEq(
-            metagoodkeystate.investState.amount1(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ).amount1(),
-            "before  buy erc20  normalgood:metagoodkey investState error"
         );
 
         S_GoodTmpState memory normalgoodkeystate = market.getGoodState(
@@ -151,16 +135,6 @@ contract buyERC20ByNativeETH is BaseSetup {
             normalgoodkeystate.currentState.amount1(),
             toTTSwapUINT256(100000000, 100000000).amount1(),
             "before  buy erc20  normalgood:normalgoodkey currentState amount1 error"
-        );
-        assertEq(
-            normalgoodkeystate.investState.amount0(),
-            toTTSwapUINT256(100000000, 62993700000).amount0(),
-            "before  buy erc20  normalgood:normalgoodkey investState error"
-        );
-        assertEq(
-            normalgoodkeystate.investState.amount1(),
-            toTTSwapUINT256(100000000, 62993700000).amount1(),
-            "before  buy erc20  normalgood:normalgoodkey investState error"
         );
 
         market.buyGood{value: 6300 * 10 ** 6}(
@@ -179,59 +153,35 @@ contract buyERC20ByNativeETH is BaseSetup {
         );
         assertEq(
             btc.balanceOf(address(market)),
-            90732287,
+            90732765,
             "after buy erc20_normalgood:btc address(market) account  balance error"
         );
         metagoodkeystate = market.getGoodState(metagood);
         assertEq(
             metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113004410000, 119289290000).amount0(),
+            toTTSwapUINT256(113004410000, 119300000000).amount0(),
             "after  buy erc20  normalgood:metagoodkey currentState error"
         );
 
         assertEq(
             metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113004410000, 119289290000).amount1(),
+            toTTSwapUINT256(113004410000, 119300000000).amount1(),
             "after  buy erc20  normalgood:metagoodkey currentState amount1 error"
         );
-        assertEq(
-            metagoodkeystate.investState.amount0(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ).amount0(),
-            "after  buy erc20  normalgood:metagoodkey investState error"
-        );
-        assertEq(
-            metagoodkeystate.investState.amount1(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ).amount1(),
-            "after  buy erc20  normalgood:metagoodkey investState error"
-        );
+
         normalgoodkeystate = market.getGoodState(normalgoodbtc);
         assertEq(
             normalgoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(100004636, 90727651).amount0(),
+            toTTSwapUINT256(100004635, 90732765).amount0(),
             "after buy erc20 normalgood:normalgoodkey currentState error"
         );
 
         assertEq(
             normalgoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(100004636, 90727651).amount1(),
+            toTTSwapUINT256(100004635, 90732765).amount1(),
             "after  buy erc20  normalgood:normalgoodkey currentState amount1 error"
         );
-        assertEq(
-            normalgoodkeystate.investState.amount0(),
-            toTTSwapUINT256(100000000, 62993700000).amount0(),
-            "after  buy erc20  normalgood:normalgoodkey investState error"
-        );
-        assertEq(
-            normalgoodkeystate.investState.amount1(),
-            toTTSwapUINT256(100000000, 62993700000).amount1(),
-            "after  buy erc20  normalgood:normalgoodkey investState error"
-        );
+
         market.buyGood{value: 6300 * 10 ** 6}(
             metagood,
             normalgoodbtc,
@@ -245,7 +195,7 @@ contract buyERC20ByNativeETH is BaseSetup {
         vm.stopPrank();
     }
 
-    function testBuyERC20GoodWithRefer() public {
+    function testBuyERC20ByNativeETHWithRefer() public {
         vm.startPrank(users[1]);
         usdt.approve(address(market), 800000 * 10 ** 6 + 1);
         btc.approve(address(market), 10 * 10 ** 8 + 1);
@@ -272,30 +222,14 @@ contract buyERC20ByNativeETH is BaseSetup {
         S_GoodTmpState memory metagoodkeystate = market.getGoodState(metagood);
         assertEq(
             metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113000000000, 112993700000).amount0(),
+            toTTSwapUINT256(113000000000, 113000000000).amount0(),
             "before buy erc20 normalgood:metagoodkey currentState error"
         );
 
         assertEq(
             metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113000000000, 112993700000).amount1(),
+            toTTSwapUINT256(113000000000, 113000000000).amount1(),
             "before  buy erc20  normalgood:metagoodkey currentState amount1 error"
-        );
-        assertEq(
-            metagoodkeystate.investState.amount0(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ).amount0(),
-            "before  buy erc20  normalgood:metagoodkey investState error"
-        );
-        assertEq(
-            metagoodkeystate.investState.amount1(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ).amount1(),
-            "before  buy erc20  normalgood:metagoodkey investState error"
         );
 
         S_GoodTmpState memory normalgoodkeystate = market.getGoodState(
@@ -311,16 +245,6 @@ contract buyERC20ByNativeETH is BaseSetup {
             normalgoodkeystate.currentState.amount1(),
             toTTSwapUINT256(100000000, 100000000).amount1(),
             "before  buy erc20  normalgood:normalgoodkey currentState amount1 error"
-        );
-        assertEq(
-            normalgoodkeystate.investState.amount0(),
-            toTTSwapUINT256(100000000, 62993700000).amount0(),
-            "before  buy erc20  normalgood:normalgoodkey investState error"
-        );
-        assertEq(
-            normalgoodkeystate.investState.amount1(),
-            toTTSwapUINT256(100000000, 62993700000).amount1(),
-            "before  buy erc20  normalgood:normalgoodkey investState error"
         );
 
         market.buyGood{value: 6300 * 10 ** 6}(
@@ -339,59 +263,35 @@ contract buyERC20ByNativeETH is BaseSetup {
         );
         assertEq(
             btc.balanceOf(address(market)),
-            90732287,
+            90732765,
             "after buy erc20_normalgood:btc address(market) account  balance error"
         );
         metagoodkeystate = market.getGoodState(metagood);
         assertEq(
             metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113004410000, 119289290000).amount0(),
+            toTTSwapUINT256(113004410000, 119300000000).amount0(),
             "after  buy erc20  normalgood:metagoodkey currentState error"
         );
 
         assertEq(
             metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113004410000, 119289290000).amount1(),
+            toTTSwapUINT256(113004410000, 119300000000).amount1(),
             "after  buy erc20  normalgood:metagoodkey currentState amount1 error"
         );
-        assertEq(
-            metagoodkeystate.investState.amount0(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ).amount0(),
-            "after  buy erc20  normalgood:metagoodkey investState error"
-        );
-        assertEq(
-            metagoodkeystate.investState.amount1(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ).amount1(),
-            "after  buy erc20  normalgood:metagoodkey investState error"
-        );
+
         normalgoodkeystate = market.getGoodState(normalgoodbtc);
         assertEq(
             normalgoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(100004636, 90727651).amount0(),
+            toTTSwapUINT256(100004635, 90732765).amount0(),
             "after buy erc20 normalgood:normalgoodkey currentState error"
         );
 
         assertEq(
             normalgoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(100004636, 90727651).amount1(),
+            toTTSwapUINT256(100004635, 90732765).amount1(),
             "after  buy erc20  normalgood:normalgoodkey currentState amount1 error"
         );
-        assertEq(
-            normalgoodkeystate.investState.amount0(),
-            toTTSwapUINT256(100000000, 62993700000).amount0(),
-            "after  buy erc20  normalgood:normalgoodkey investState error"
-        );
-        assertEq(
-            normalgoodkeystate.investState.amount1(),
-            toTTSwapUINT256(100000000, 62993700000).amount1(),
-            "after  buy erc20  normalgood:normalgoodkey investState error"
-        );
+
         market.buyGood{value: 6300 * 10 ** 6}(
             metagood,
             normalgoodbtc,

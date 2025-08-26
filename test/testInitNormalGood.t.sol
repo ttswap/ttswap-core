@@ -127,7 +127,7 @@ contract testInitNormalGood is BaseSetup {
             metagoodkeystate.currentState.amount0(),
             toTTSwapUINT256(
                 50000 * 10 ** 6 + 63000 * 10 ** 6,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
+                50000 * 10 ** 6 + 63000 * 10 ** 6 
             ).amount0(),
             "1after initial normalgood:metagoodkey currentState amount0 error"
         );
@@ -135,8 +135,8 @@ contract testInitNormalGood is BaseSetup {
         assertEq(
             metagoodkeystate.currentState.amount1(),
             toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
+               50000 * 10 ** 6 + 63000 * 10 ** 6,
+                50000 * 10 ** 6 + 63000 * 10 ** 6 
             ).amount1(),
             "1after initial normalgood:metagoodkey currentState amount1 error"
         );
@@ -152,7 +152,7 @@ contract testInitNormalGood is BaseSetup {
         assertEq(
             metagoodkeystate.investState.amount1(),
             toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
+               50000 * 10 ** 6 + 63000 * 10 ** 6- 63000 * 10 ** 2,
                 50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
             ).amount1(),
             "1after initial normalgood:metagoodkey investState amount1 error"
@@ -334,7 +334,7 @@ contract testInitNormalGood is BaseSetup {
             metagoodkeystate.currentState.amount0(),
             toTTSwapUINT256(
                 50000 * 10 ** 6 + 63000 * 10 ** 6,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
+                50000 * 10 ** 6 + 63000 * 10 ** 6 
             ).amount0(),
             "after initial normalgood:metagoodkey currentState error"
         );
@@ -343,7 +343,7 @@ contract testInitNormalGood is BaseSetup {
             metagoodkeystate.currentState.amount1(),
             toTTSwapUINT256(
                 50000 * 10 ** 6 + 63000 * 10 ** 6,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
+                50000 * 10 ** 6 + 63000 * 10 ** 6 
             ).amount1(),
             "after initial normalgood:metagoodkey currentState amount1 error"
         );
