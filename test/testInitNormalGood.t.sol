@@ -233,6 +233,16 @@ contract testInitNormalGood is BaseSetup {
             .toId();
         S_ProofState memory _proof1 = market.getProofState(normalproof);
         assertEq(
+            _proof1.shares.amount0(),
+            1 * 10 ** 8,
+            "after initial:proof normal shares error"
+        );
+        assertEq(
+            _proof1.shares.amount1(),
+            62993700000,
+            "after initial:proof value shares error"
+        );
+        assertEq(
             _proof1.state.amount0(),
             63000 * 10 ** 6 - 63000 * 10 ** 2,
             "after initial:proof virtual value error"
@@ -432,6 +442,16 @@ contract testInitNormalGood is BaseSetup {
             .toId();
 
         S_ProofState memory _proof1 = market.getProofState(normalproof);
+         assertEq(
+            _proof1.shares.amount0(),
+            1 * 10 ** 8,
+            "after initial:proof normal shares error"
+        );
+        assertEq(
+            _proof1.shares.amount1(),
+            62993700000,
+            "after initial:proof value shares error"
+        );
         assertEq(
             _proof1.state.amount0(),
             63000 * 10 ** 6 - 63000 * 10 ** 2,

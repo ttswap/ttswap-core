@@ -28,6 +28,7 @@ library L_Proof {
      * @param _self The proof state to update
      * @param _currenctgood The current good value
      * @param _valuegood The value good
+     * @param _shares amount0:normal shares amount1:value shares
      * @param _state amount0 (first 128 bits) represents total value
      * @param _invest amount0 (first 128 bits) represents invest normal good quantity, amount1 (last 128 bits) represents normal good constuct fee when investing
      * @param _valueinvest amount0 (first 128 bits) represents invest value good quantity, amount1 (last 128 bits) represents value good constuct fee when investing
@@ -36,11 +37,13 @@ library L_Proof {
         S_ProofState storage _self,
         address _currenctgood,
         address _valuegood,
+        uint256 _shares,
         uint256 _state,
         uint256 _invest,
         uint256 _valueinvest
     ) internal {
         if (_self.invest.amount1() == 0) _self.currentgood = _currenctgood;
+        _self.shares = add(_self.shares, _shares);
         _self.state = add(_self.state, _state);
         _self.invest = add(_self.invest, _invest);
         if (_valuegood != address(0)) {
@@ -54,27 +57,23 @@ library L_Proof {
      * @param _self The proof state to update
      * @param _value The amount to burn
      */
-    function burnProof(S_ProofState storage _self, uint256 _value) internal {
-        // Calculate the amount of investment to burn based on the proportion of _value to total state
-        uint256 burnResult1_ = toTTSwapUINT256(
-            mulDiv(_self.invest.amount0(), _value.amount0(), _self.state.amount0()),
-            mulDiv(_self.invest.amount1(), _value.amount0(), _self.state.amount0())
-        );
-
+    function burnProof(
+        S_ProofState storage _self,
+        uint256 _shares,
+        uint256 _value,
+        uint256 _invest,
+        uint256 _valueinvest
+    ) internal {
         // If there's a value good, calculate and burn the corresponding amount of value investment
         if (_self.valuegood != address(0)) {
-            uint256 burnResult2_ = toTTSwapUINT256(
-                mulDiv(_self.valueinvest.amount0(), _value.amount0(), _self.state.amount0()),
-                mulDiv(_self.valueinvest.amount1(), _value.amount0(), _self.state.amount0())
-            );
-            // Subtract the calculated value investment from the total value investment
-            _self.valueinvest = sub(_self.valueinvest, burnResult2_);
+            _self.valueinvest = sub(_self.valueinvest, _valueinvest);
         }
 
         // Subtract the calculated investment from the total investment
-        _self.invest = sub(_self.invest, burnResult1_);
+        _self.invest = sub(_self.invest, _invest);
         // Reduce the total state by the burned value
         _self.state = sub(_self.state, _value);
+        _self.shares = sub(_self.shares, _shares);
     }
 
     /**
@@ -84,7 +83,11 @@ library L_Proof {
      * @param proofvalue The amount of proof value to stake
      * @return The staked amount
      */
-    function stake(I_TTSwap_Token contractaddress, address to, uint128 proofvalue) internal returns (uint128) {
+    function stake(
+        I_TTSwap_Token contractaddress,
+        address to,
+        uint128 proofvalue
+    ) internal returns (uint128) {
         return contractaddress.stake(to, proofvalue);
     }
 
@@ -94,7 +97,11 @@ library L_Proof {
      * @param from The address to unstake from
      * @param divestvalue The amount of proof value to unstake
      */
-    function unstake(I_TTSwap_Token contractaddress, address from, uint128 divestvalue) internal {
+    function unstake(
+        I_TTSwap_Token contractaddress,
+        address from,
+        uint128 divestvalue
+    ) internal {
         contractaddress.unstake(from, divestvalue);
     }
 }

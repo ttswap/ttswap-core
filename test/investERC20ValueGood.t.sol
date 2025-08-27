@@ -60,6 +60,8 @@ contract investERC20ValueGood is BaseSetup {
             "before invest metagood:marketcreator account invest balance error"
         );
         _proof1 = market.getProofState(normalproof);
+        assertEq(_proof1.shares.amount0(), 50000000000, "before invest:proof normal shares error");
+        assertEq(_proof1.shares.amount1(), 0, "before invest:proof value shares error");
         assertEq(_proof1.state.amount0(), 50000000000, "before invest:proof value error");
         assertEq(_proof1.state.amount1(), 50000000000, "before invest:proof value error");
         assertEq(_proof1.invest.amount0(), 50000000000, "before invest:proof quantity error");
@@ -94,6 +96,8 @@ contract investERC20ValueGood is BaseSetup {
         assertEq(good_.owner, marketcreator, "after invest metagood:metagood marketcreator error");
         
         _proof1 = market.getProofState(normalproof);
+        assertEq(_proof1.shares.amount0(), 99995000000, "after invest:proof normal shares error");
+        assertEq(_proof1.shares.amount1(), 0, "after invest:proof value shares error");
         assertEq(_proof1.state.amount0(), 99995000000, "after invest:proof value error");
         assertEq(_proof1.state.amount1(), 99995000000, "after invest:proof value error");
         assertEq(_proof1.invest.amount0(), 99995000000, "after invest:proof quantity error");
@@ -109,9 +113,11 @@ contract investERC20ValueGood is BaseSetup {
         assertEq(good_.investState.amount0(), 149987500250, "after invest metagood:metagood investState amount0 error");
         assertEq(good_.investState.amount1(), 149987500250, "after invest metagood:metagood investState amount1 error");
          _proof1 = market.getProofState(normalproof);
+        assertEq(_proof1.shares.amount0(), 149987500250, "after invest:proof normal shares error");
+        assertEq(_proof1.shares.amount1(), 0, "after invest:proof value shares error");
         assertEq(_proof1.state.amount0(), 149987500250, "after invest:proof virtual value error");
         assertEq(_proof1.state.amount1(), 149987500250, "after invest:proof value error");
-        assertEq(_proof1.invest.amount0(), 149987500250, "after invest:proof share error");
+        assertEq(_proof1.invest.amount0(), 149990000000, "after invest:proof share error");
         assertEq(_proof1.invest.amount1(), 149990000000, "after invest:proof virtual quantity error");
         assertEq(_proof1.valueinvest.amount0(), 0, "after invest:proof quantity error");
         assertEq(_proof1.valueinvest.amount1(), 0, "after invest:proof quantity error");
@@ -130,10 +136,14 @@ contract investERC20ValueGood is BaseSetup {
         S_ProofState memory _proof1 = market.getProofState(normalproof);
 
         assertEq(usdt.balanceOf(users[2]), 300000000000, "before invest metagood:users[2] account invest balance error");
+        assertEq(_proof1.shares.amount0(), 0, "before invest:proof normal shares error");
+        assertEq(_proof1.shares.amount1(), 0, "before invest:proof value shares error");
         assertEq(_proof1.state.amount0(), 0, "before invest:proof value error");
-
+        assertEq(_proof1.state.amount1(), 0, "before invest:proof value error");
         assertEq(_proof1.invest.amount1(), 0, "before invest:proof quantity error");
+        assertEq(_proof1.invest.amount0(), 0, "before invest:proof quantity error");
         assertEq(_proof1.valueinvest.amount1(), 0, "before invest:proof quantity error");
+        assertEq(_proof1.valueinvest.amount0(), 0, "before invest:proof quantity error");
 
         market.investGood(metagood, address(0), 50000 * 10 ** 6, defaultdata, defaultdata);
         snapLastCall("invest_other_erc20_valuegood_first");

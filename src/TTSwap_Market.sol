@@ -165,6 +165,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         proofs[proofid].updateInvest(
             _erc20address,
             address(0),
+            toTTSwapUINT256(_initial.amount0(), 0),
             toTTSwapUINT256(_initial.amount0(), _initial.amount0()),
             toTTSwapUINT256(_initial.amount0(), _initial.amount1()),
             0
@@ -219,10 +220,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         proofs[proofId] = S_ProofState(
             _erc20address,
             _valuegood,
+            toTTSwapUINT256(_initial.amount0(), investResult.investShare),
             toTTSwapUINT256(investResult.investValue, investResult.investValue),
             toTTSwapUINT256(_initial.amount0(), _initial.amount0()),
             toTTSwapUINT256(
-                investResult.investShare,
+                investResult.investQuantity,
                 investResult.investQuantity
             )
         );
@@ -561,7 +563,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             revert TTSwapError(18);
 
         uint128 enpower = goods[_togood].goodConfig.getPower();
-        if (_valuegood != address(0)) {
+       if (_valuegood != address(0)) {
             enpower = enpower < goods[_valuegood].goodConfig.getPower()
                 ? enpower
                 : goods[_valuegood].goodConfig.getPower();
@@ -615,14 +617,15 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         proofs[proofNo].updateInvest(
             _togood,
             _valuegood,
+            toTTSwapUINT256(normalInvest_.investShare, valueInvest_.investShare),
             toTTSwapUINT256(normalInvest_.investValue, investvalue),
             toTTSwapUINT256(
-                normalInvest_.investShare,
-                normalInvest_.investQuantity
+                normalInvest_.investQuantity,//virtualquantity待处理
+                normalInvest_.investQuantity/enpower //real quantity
             ),
             toTTSwapUINT256(
-                valueInvest_.investShare,
-                valueInvest_.investQuantity
+                valueInvest_.investQuantity,
+                valueInvest_.investQuantity/enpower
             )
         );
         emit e_investGood(
@@ -643,6 +646,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         L_Proof.stake(officialTokenContract, msg.sender, investvalue);
         return true;
     }
+
 
     /**
      * @dev Disinvests from a proof by withdrawing invested tokens and collecting profits

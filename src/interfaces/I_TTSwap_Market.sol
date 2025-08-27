@@ -253,6 +253,7 @@ interface I_TTSwap_Market {
  * @dev Represents the state of a proof
  * @member currentgood The current good  associated with the proof
  * @member valuegood The value good associated with the proof
+ * @member shares amount0:normal shares amount1:value shares
  * @member state amount0:total value  : amount1:total actualvalue
  * @member invest amount0:normal shares amount1:actualquantity
  * @member valueinvest amount0:value shares amount1:actualquantity
@@ -261,6 +262,7 @@ interface I_TTSwap_Market {
 struct S_ProofState {
     address currentgood;
     address valuegood;
+    uint256 shares;
     uint256 state; 
     uint256 invest;
     uint256 valueinvest;
