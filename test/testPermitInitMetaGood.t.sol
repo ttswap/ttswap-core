@@ -133,7 +133,7 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
             "after initial metagood:metagood investState error"
         );
-        assertEq(good_.feeQuantityState, 0, "after initial metagood:metagood feequnitity error");
+     
 
         assertEq(good_.goodConfig,79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
 
@@ -185,8 +185,7 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
             "after initial metagood:metagood investState error"
         );
-        assertEq(market.getGoodState(metagood).feeQuantityState, 0, "after initial metagood:metagood feequnitity error");
-
+      
         assertEq(market.getGoodState(metagood).goodConfig, 79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
 
         assertEq(

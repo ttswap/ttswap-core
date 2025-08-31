@@ -27,7 +27,5 @@ library GoodUtil {
         console2.log("good currentState:", uint256(p_.currentState.amount1()));
         console2.log("good investState:", uint256(p_.investState.amount0()));
         console2.log("good investState:", uint256(p_.investState.amount1()));
-        console2.log("good feeQuantityState:", uint256(p_.feeQuantityState.amount0()));
-        console2.log("good feeQuantityState:", uint256(p_.feeQuantityState.amount1()));
     }
 }

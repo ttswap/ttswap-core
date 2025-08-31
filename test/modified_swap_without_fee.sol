@@ -147,7 +147,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         market.buyGood(
             address(usdt),
             address(usdc),
-            toTTSwapUINT256(8823529411, 6000000000),
+            toTTSwapUINT256(8333333332, 6000000000),
             1,
             msg.sender,
             ""
@@ -192,22 +192,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             "afterusdc_investStateamount1:",
             afterusdc.investState.amount1()
         );
-        console2.log(
-            "beforeusdc_feeQuantityStateamount0:",
-            beforeusdc.feeQuantityState.amount0()
-        );
-        console2.log(
-            "afterusdc_feeQuantityStateamount0:",
-            afterusdc.feeQuantityState.amount0()
-        );
-        console2.log(
-            "beforeusdc_feeQuantityStateamount1:",
-            beforeusdc.feeQuantityState.amount1()
-        );
-        console2.log(
-            "afterusdc_feeQuantityStateamount1:",
-            afterusdc.feeQuantityState.amount1()
-        );
+       
         console2.log(
             "beforeusdt_currentStateamount0:",
             beforeusdt.currentState.amount0()
@@ -240,29 +225,14 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             "afterusdt_investStateamount1:",
             afterusdt.investState.amount1()
         );
-        console2.log(
-            "beforeusdt_feeQuantityStateamount0:",
-            beforeusdt.feeQuantityState.amount0()
-        );
-        console2.log(
-            "afterusdt_feeQuantityStateamount0:",
-            afterusdt.feeQuantityState.amount0()
-        );
-        console2.log(
-            "beforeusdt_feeQuantityStateamount1:",
-            beforeusdt.feeQuantityState.amount1()
-        );
-        console2.log(
-            "afterusdt_feeQuantityStateamount1:",
-            afterusdt.feeQuantityState.amount1()
-        );
+        
         vm.stopPrank();
     }
 
     function testswapA2B2C2Awithoutfee() public {
         vm.startPrank(marketcreator);
-        uint256 usdcbefore = usdc.balanceOf(marketcreator);
-        uint256 usdtbefore = usdt.balanceOf(marketcreator);
+        uint256 usdcbefore = usdc.balanceOf(address(market));
+        uint256 usdtbefore = usdt.balanceOf(address(market));
         usdc.approve(address(market), 50000 * 10 ** 6 + 1);
         usdt.approve(address(market), 50000 * 10 ** 6 + 1);
         S_GoodTmpState memory beforeusdc = market.getGoodState(address(usdc));
@@ -276,9 +246,9 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             ""
         );
         snapLastCall("testswapwithoutfee1");
-        uint256 usdcafter = usdc.balanceOf(address(marketcreator));
-        uint256 usdtafter = usdt.balanceOf(address(marketcreator));
-        uint256 btcbefore = btc.balanceOf(address(marketcreator));
+        uint256 usdcafter = usdc.balanceOf(address(address(market)));
+        uint256 usdtafter = usdt.balanceOf(address(address(market)));
+        uint256 btcbefore = btc.balanceOf(address(address(market)));
         console2.log("btcbefore:", btcbefore);
         console2.log("usdcbefore:", usdcbefore);
         console2.log("usdtbefore:", usdtbefore);
@@ -287,30 +257,30 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         market.buyGood(
             address(usdt),
             address(btc),
-            toTTSwapUINT256(7142857142, 0),
+            toTTSwapUINT256(8333333332, 0),
             1,
             address(0),
             ""
         );
         snapLastCall("testswapwithoutfee1");
-        usdcafter = usdc.balanceOf(address(marketcreator));
-        usdtafter = usdt.balanceOf(address(marketcreator));
-        uint256 btcafter = btc.balanceOf(address(marketcreator));
+        usdcafter = usdc.balanceOf(address(address(market)));
+        usdtafter = usdt.balanceOf(address(address(market)));
+        uint256 btcafter = btc.balanceOf(address(address(market)));
         console2.log("usdcafter:", usdcafter);
         console2.log("usdtafter:", usdtafter);
         console2.log("btcafter:", btcafter);
         market.buyGood(
             address(btc),
             address(usdc),
-            toTTSwapUINT256(6596306, 0),
+            toTTSwapUINT256(7418397, 0),
             1,
             address(0),
             ""
         );
         snapLastCall("testswapwithoutfee3");
-        usdcafter = usdc.balanceOf(address(marketcreator));
-        usdtafter = usdt.balanceOf(address(marketcreator));
-        btcafter = btc.balanceOf(address(marketcreator));
+        usdcafter = usdc.balanceOf(address(market));
+        usdtafter = usdt.balanceOf(address(market));
+        btcafter = btc.balanceOf(address(market));
         console2.log("usdcafter:", usdcafter);
         console2.log("usdtafter:", usdtafter);
         console2.log("btcafter:", btcafter);
@@ -452,22 +422,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             "afterusdc_investStateamount1:",
             afterusdc.investState.amount1()
         );
-        console2.log(
-            "beforeusdc_feeQuantityStateamount0:",
-            beforeusdc.feeQuantityState.amount0()
-        );
-        console2.log(
-            "afterusdc_feeQuantityStateamount0:",
-            afterusdc.feeQuantityState.amount0()
-        );
-        console2.log(
-            "beforeusdc_feeQuantityStateamount1:",
-            beforeusdc.feeQuantityState.amount1()
-        );
-        console2.log(
-            "afterusdc_feeQuantityStateamount1:",
-            afterusdc.feeQuantityState.amount1()
-        );
+       
         console2.log(
             "beforeusdt_currentStateamount0:",
             beforeusdt.currentState.amount0()
@@ -500,22 +455,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             "afterusdt_investStateamount1:",
             afterusdt.investState.amount1()
         );
-        console2.log(
-            "beforeusdt_feeQuantityStateamount0:",
-            beforeusdt.feeQuantityState.amount0()
-        );
-        console2.log(
-            "afterusdt_feeQuantityStateamount0:",
-            afterusdt.feeQuantityState.amount0()
-        );
-        console2.log(
-            "beforeusdt_feeQuantityStateamount1:",
-            beforeusdt.feeQuantityState.amount1()
-        );
-        console2.log(
-            "afterusdt_feeQuantityStateamount1:",
-            afterusdt.feeQuantityState.amount1()
-        );
+        
         vm.stopPrank();
     }
 

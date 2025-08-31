@@ -33,10 +33,19 @@ contract testInitMetaGood is BaseSetup {
             100000 * 10 ** 6,
             "before initial metagood:marketcreator account initial balance error"
         );
-        assertEq(usdt.balanceOf(address(market)), 0, "before initial metagood:market account initial balance error");
+        assertEq(
+            usdt.balanceOf(address(market)),
+            0,
+            "before initial metagood:market account initial balance error"
+        );
 
-        market.initMetaGood(address(usdt), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), goodconfig, defaultdata);
-        snapLastCall("init_erc20_metagood");
+        market.initMetaGood(
+            address(usdt),
+            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            goodconfig,
+            defaultdata
+        );
+        snapLastCall("init_ERC20_metagood");
         metagood = address(usdt);
         assertEq(
             usdt.balanceOf(marketcreator),
@@ -50,6 +59,17 @@ contract testInitMetaGood is BaseSetup {
         );
 
         assertEq(
+            market.getGoodState(metagood).goodConfig.amount0(),
+            235045548299864294854689680129989279744,
+            "after initial metagood:goodConfig error"
+        );
+        assertEq(
+            market.getGoodState(metagood).goodConfig.amount1(),
+            0,
+            "after initial metagood:goodConfig amount1error"
+        );
+
+        assertEq(
             market.getGoodState(metagood).currentState,
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
             "after initial metagood:metagood currentState error"
@@ -59,19 +79,62 @@ contract testInitMetaGood is BaseSetup {
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
             "after initial metagood:metagood investState error"
         );
-        assertEq(market.getGoodState(metagood).feeQuantityState, 0, "after initial metagood:metagood feequnitity error");
-
-        assertEq(market.getGoodState(metagood).goodConfig, 79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
 
         assertEq(
-            market.getGoodState(metagood).owner, marketcreator, "after initial metagood:metagood marketcreator error"
+            market.getGoodState(metagood).goodConfig,
+            79981855509707585827258856034506993808549382592029871491215273511520529547264,
+            "after initial metagood:metagood goodConfig error"
         );
 
-        uint256 metaproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
+        assertEq(
+            market.getGoodState(metagood).owner,
+            marketcreator,
+            "after initial metagood:metagood marketcreator error"
+        );
+
+        uint256 metaproof = S_ProofKey(marketcreator, metagood, address(0))
+            .toId();
         S_ProofState memory _proof1 = market.getProofState(metaproof);
-        assertEq(_proof1.state.amount0(), 50000 * 10 ** 6, "after initial:proof value error");
-        assertEq(_proof1.invest.amount1(), 50000 * 10 ** 6, "after initial:proof quantity error");
-        assertEq(_proof1.valueinvest.amount1(), 0, "after initial:proof quantity error");
+        assertEq(
+            _proof1.state.amount0(),
+            50000 * 10 ** 6,
+            "after initial:virtual value error"
+        );
+        assertEq(
+            _proof1.state.amount1(),
+            50000 * 10 ** 6,
+            "after initial:actual value error"
+        );
+        assertEq(
+            _proof1.shares.amount0(),
+            50000 * 10 ** 6,
+            "after initial:normal shares error"
+        );
+        assertEq(
+            _proof1.shares.amount1(),
+            0,
+            "after initial:value shares error"
+        );
+        assertEq(
+            _proof1.invest.amount0(),
+            50000 * 10 ** 6,
+            "after initial:normal virtual quantity error"
+        );
+        assertEq(
+            _proof1.invest.amount1(),
+            50000 * 10 ** 6,
+            "after initial:normal real quantity error"
+        );
+        assertEq(
+            _proof1.valueinvest.amount0(),
+            0,
+            "after initial:valuegood  virtual quantity error"
+        );
+        assertEq(
+            _proof1.valueinvest.amount1(),
+            0,
+            "after initial:valuegood real quantity error"
+        );
 
         vm.stopPrank();
     }
@@ -86,12 +149,19 @@ contract testInitMetaGood is BaseSetup {
             100000 * 10 ** 6,
             "before initial metagood:marketcreator account initial balance error"
         );
-        assertEq(usdt.balanceOf(address(market)), 0, "before initial metagood:market account initial balance error");
+        assertEq(
+            usdt.balanceOf(address(market)),
+            0,
+            "before initial metagood:market account initial balance error"
+        );
 
         market.initMetaGood{value: 50000 * 10 ** 6}(
-            nativeCurrency, toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), goodconfig, defaultdata
+            nativeCurrency,
+            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            goodconfig,
+            defaultdata
         );
-        snapLastCall("init_nativeerc20_metagood");
+        snapLastCall("init_NativeETH_metagood");
         metagood = nativeCurrency;
         assertEq(
             marketcreator.balance,
@@ -99,10 +169,22 @@ contract testInitMetaGood is BaseSetup {
             "after initial metagood:marketcreator account initial balance error"
         );
         assertEq(
-            address(market).balance, 50000 * 10 ** 6, "after initial metagood:market account initial balance error"
+            address(market).balance,
+            50000 * 10 ** 6,
+            "after initial metagood:market account initial balance error"
         );
 
         S_GoodTmpState memory good_ = market.getGoodState(metagood);
+        assertEq(
+            good_.goodConfig.amount0(),
+            235045548299864294854689680129989279744,
+            "after initial metagood:goodConfig error"
+        );
+        assertEq(
+            good_.goodConfig.amount1(),
+            0,
+            "after initial metagood:goodConfig amount1error"
+        );
         assertEq(
             good_.currentState,
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
@@ -113,18 +195,62 @@ contract testInitMetaGood is BaseSetup {
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
             "after initial metagood:metagood investState error"
         );
-        assertEq(good_.feeQuantityState, 0, "after initial metagood:metagood feequnitity error");
 
-        assertEq(good_.goodConfig, 79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
+        assertEq(
+            good_.goodConfig,
+            79981855509707585827258856034506993808549382592029871491215273511520529547264,
+            "after initial metagood:metagood goodConfig error"
+        );
 
-        assertEq(good_.owner, marketcreator, "after initial metagood:metagood marketcreator error");
+        assertEq(
+            good_.owner,
+            marketcreator,
+            "after initial metagood:metagood marketcreator error"
+        );
 
-        uint256 metaproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
+        uint256 metaproof = S_ProofKey(marketcreator, metagood, address(0))
+            .toId();
         S_ProofState memory _proof1 = market.getProofState(metaproof);
-        assertEq(_proof1.state.amount0(), 50000 * 10 ** 6, "after initial:proof value error");
-        assertEq(_proof1.invest.amount1(), 50000 * 10 ** 6, "after initial:proof quantity error");
-        assertEq(_proof1.valueinvest.amount1(), 0, "after initial:proof quantity error");
-
+        assertEq(
+            _proof1.state.amount0(),
+            50000 * 10 ** 6,
+            "after initial:virtual value error"
+        );
+        assertEq(
+            _proof1.state.amount1(),
+            50000 * 10 ** 6,
+            "after initial:actual value error"
+        );
+        assertEq(
+            _proof1.shares.amount0(),
+            50000 * 10 ** 6,
+            "after initial:normal shares error"
+        );
+        assertEq(
+            _proof1.shares.amount1(),
+            0,
+            "after initial:value shares error"
+        );
+        assertEq(
+            _proof1.invest.amount0(),
+            50000 * 10 ** 6,
+            "after initial:normal virtual quantity error"
+        );
+        assertEq(
+            _proof1.invest.amount1(),
+            50000 * 10 ** 6,
+            "after initial:normal real quantity error"
+        );
+        assertEq(
+            _proof1.valueinvest.amount0(),
+            0,
+            "after initial:valuegood  virtual quantity error"
+        );
+        assertEq(
+            _proof1.valueinvest.amount1(),
+            0,
+            "after initial:valuegood real quantity error"
+        );
         vm.stopPrank();
     }
 }

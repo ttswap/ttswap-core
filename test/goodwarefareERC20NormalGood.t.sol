@@ -75,7 +75,7 @@ contract goodwarefareERC20NormalGood is BaseSetup {
         S_GoodTmpState memory good_ = market.getGoodState(normalgoodbtc);
         assertEq(
             good_.currentState.amount0(),
-            62993700000,
+            100000000,
             "before collect erc20 good:normalgoodbtc currentState amount0 error"
         );
         assertEq(
@@ -85,48 +85,32 @@ contract goodwarefareERC20NormalGood is BaseSetup {
         );
         assertEq(
             good_.investState.amount0(),
-            62993700000,
+            100000000,
             "before collect erc20 good:normalgoodbtc investState amount0 error"
         );
         assertEq(
-            good_.investState.amount1(), 100000000, "before collect erc20 good:normalgoodbtc investState amount1 error"
+            good_.investState.amount1(), 62993700000, "before collect erc20 good:normalgoodbtc investState amount1 error"
         );
-        assertEq(
-            good_.feeQuantityState.amount0(),
-            0,
-            "before collect erc20 good:normalgoodbtc feeQuantityState amount0 error"
-        );
-        assertEq(
-            good_.feeQuantityState.amount1(),
-            0,
-            "before collect erc20 good:normalgoodbtc feeQuantityState amount1 error"
-        );
-
+        
+       
         market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata);
         snapLastCall("goodwarefare_own_erc20_normalgood_first");
         good_ = market.getGoodState(normalgoodbtc);
         assertEq(
             good_.currentState.amount0(),
-            62993700000,
+            200000000,
             "after collect erc20 good:normalgoodbtc currentState amount0 error"
         );
         assertEq(
-            good_.currentState.amount1(), 100000000, "after collect erc20 good:normalgoodbtc currentState amount1 error"
+            good_.currentState.amount1(), 200000000, "after collect erc20 good:normalgoodbtc currentState amount1 error"
         );
         assertEq(
-            good_.investState.amount0(), 62993700000, "after collect erc20 good:normalgoodbtc investState amount0 error"
+            good_.investState.amount0(), 100000000, "after collect erc20 good:normalgoodbtc investState amount0 error"
         );
         assertEq(
-            good_.investState.amount1(), 100000000, "after collect erc20 good:normalgoodbtc investState amount1 error"
+            good_.investState.amount1(), 62993700000, "after collect erc20 good:normalgoodbtc investState amount1 error"
         );
-        assertEq(
-            good_.feeQuantityState.amount0(),
-            100000000,
-            "after collect erc20 good:normalgoodbtc feeQuantityState amount0 error"
-        );
-        assertEq(
-            good_.feeQuantityState.amount1(), 0, "after collect erc20 good:normalgoodbtc feeQuantityState amount1 error"
-        );
+        
 
         market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata);
         snapLastCall("goodwarefare_own_erc20_normalgood_second");

@@ -157,7 +157,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (!_goodConfig.isvaluegood()) revert TTSwapError(4);
         if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
         _erc20address.transferFrom(msg.sender, _initial.amount1(), data);
-
         goods[_erc20address].init(_initial, _goodConfig);
         /// update good to value good
         goods[_erc20address].modifyGoodConfig(5933383808 << 223); //2**32+6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
@@ -166,8 +165,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         proofs[proofid].updateInvest(
             _erc20address,
             address(0),
+            toTTSwapUINT256(_initial.amount0(), 0),
             toTTSwapUINT256(_initial.amount0(), _initial.amount0()),
-            toTTSwapUINT256(0, _initial.amount1()),
+            toTTSwapUINT256(_initial.amount0(), _initial.amount1()),
             0
         );
         uint128 construct = L_Proof.stake(
@@ -211,7 +211,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         L_Good.S_GoodInvestReturn memory investResult;
         goods[_valuegood].investGood(_initial.amount1(), investResult, 1);
         goods[_erc20address].init(
-            toTTSwapUINT256(investResult.actualInvestValue, _initial.amount0()),
+            toTTSwapUINT256(investResult.investValue, _initial.amount0()),
             _goodConfig
         );
         uint256 proofId = S_ProofKey(msg.sender, _erc20address, _valuegood)
@@ -220,14 +220,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         proofs[proofId] = S_ProofState(
             _erc20address,
             _valuegood,
+            toTTSwapUINT256(_initial.amount0(), investResult.investShare),
+            toTTSwapUINT256(investResult.investValue, investResult.investValue),
+            toTTSwapUINT256(_initial.amount0(), _initial.amount0()),
             toTTSwapUINT256(
-                investResult.actualInvestValue,
-                investResult.actualInvestValue
-            ),
-            _initial.amount0(),
-            toTTSwapUINT256(
-                investResult.constructFeeQuantity,
-                investResult.actualInvestQuantity
+                investResult.investQuantity,
+                investResult.investQuantity
             )
         );
 
@@ -239,12 +237,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             L_Proof.stake(
                 officialTokenContract,
                 msg.sender,
-                investResult.actualInvestValue * 2
+                investResult.investValue * 2
             ),
-            toTTSwapUINT256(_initial.amount0(), investResult.actualInvestValue),
+            toTTSwapUINT256(_initial.amount0(), investResult.investValue),
             toTTSwapUINT256(
-                investResult.actualFeeQuantity,
-                investResult.actualInvestQuantity
+                investResult.investFeeQuantity,
+                investResult.investQuantity
             )
         );
         return true;
@@ -297,19 +295,25 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (goods[_goodid2].goodConfig.isFreeze()) revert TTSwapError(11);
         if (goods[_goodid1].currentState == 0) revert TTSwapError(12);
         if (goods[_goodid2].currentState == 0) revert TTSwapError(13);
-        if (
-            goods[_goodid1].investState.amount1() + _swapQuantity.amount1() >
-            goods[_goodid1].investState.amount1() * 2
-        ) revert TTSwapError(33);
+
         if (_side == 1) {
             if (_recipent != address(0) && _recipent != msg.sender) {
                 officialTokenContract.setReferral(msg.sender, _recipent);
             }
+            if (
+                goods[_goodid1].currentState.amount1() +
+                    _swapQuantity.amount0() >
+                goods[_goodid1].currentState.amount1() *
+                    2 -
+                    goods[_goodid1].goodConfig.amount1()
+            ) revert TTSwapError(33);
             L_Good.swapCache memory swapcache = L_Good.swapCache({
                 remainQuantity: _swapQuantity.amount0(),
                 outputQuantity: 0,
                 feeQuantity: 0,
                 swapvalue: 0,
+                good1value: goods[_goodid1].investState.amount1(),
+                good2value: goods[_goodid2].investState.amount1(),
                 good1currentState: goods[_goodid1].currentState,
                 good1config: goods[_goodid1].goodConfig,
                 good2currentState: goods[_goodid2].currentState,
@@ -327,24 +331,25 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 swapcache.good2currentState.amount1() <=
                 (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
-
+            swapcache.good1currentState = add(
+                swapcache.good1currentState,
+                toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity.amount0())
+            );
             good1change = toTTSwapUINT256(
                 swapcache.feeQuantity,
                 _swapQuantity.amount0()
             );
             _side = swapcache.good2config.getBuyFee(swapcache.outputQuantity);
+            swapcache.good2currentState = add(
+                swapcache.good2currentState,
+                toTTSwapUINT256(_side, _side)
+            );
             good2change = toTTSwapUINT256(
                 _side,
                 swapcache.outputQuantity - _side
             );
-            goods[_goodid1].swapCommit(
-                swapcache.good1currentState,
-                swapcache.feeQuantity
-            );
-            goods[_goodid2].swapCommit(
-                swapcache.good2currentState,
-                good2change.amount0()
-            );
+            goods[_goodid1].swapCommit(swapcache.good1currentState);
+            goods[_goodid2].swapCommit(swapcache.good2currentState);
             _goodid1.transferFrom(msg.sender, good1change.amount1(), data);
             _goodid2.safeTransfer(msg.sender, good2change.amount1());
             emit e_buyGood(
@@ -361,13 +366,15 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 outputQuantity: 0,
                 feeQuantity: 0,
                 swapvalue: 0,
+                good1value: goods[_goodid1].investState.amount1(),
+                good2value: goods[_goodid2].investState.amount1(),
                 good1currentState: goods[_goodid1].currentState,
                 good1config: goods[_goodid1].goodConfig,
                 good2currentState: goods[_goodid2].currentState,
                 good2config: goods[_goodid2].goodConfig
             });
             L_Good.swapCompute2(swapcache);
-            _side = swapcache.good2config.getBuyFee(swapcache.outputQuantity);
+            _side = swapcache.good1config.getSellFee(swapcache.outputQuantity);
             good1change = toTTSwapUINT256(
                 _side,
                 swapcache.outputQuantity + _side
@@ -381,20 +388,24 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 swapcache.good2currentState.amount1() <=
                 (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
-
+            if (
+                goods[_goodid1].currentState.amount1() +
+                    _swapQuantity.amount0() >
+                goods[_goodid1].currentState.amount0() *
+                    2 -
+                    goods[_goodid1].goodConfig.amount1()
+            ) revert TTSwapError(33);
+            swapcache.good1currentState = add(
+                swapcache.good1currentState,
+                toTTSwapUINT256(_side, _side)
+            );
             good2change = toTTSwapUINT256(
                 swapcache.feeQuantity,
                 _swapQuantity.amount1()
             );
             _goodid1.transferFrom(msg.sender, good1change.amount1(), data);
-            goods[_goodid1].swapCommit(
-                swapcache.good1currentState,
-                good1change.amount0()
-            );
-            goods[_goodid2].swapCommit(
-                swapcache.good2currentState,
-                good2change.amount0()
-            );
+            goods[_goodid1].swapCommit(swapcache.good1currentState);
+            goods[_goodid2].swapCommit(swapcache.good2currentState);
             _goodid2.safeTransfer(_recipent, _swapQuantity.amount1());
             emit e_buyGood(
                 _goodid1,
@@ -457,6 +468,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 outputQuantity: 0,
                 feeQuantity: 0,
                 swapvalue: 0,
+                good1value: goods[_goodid1].investState.amount1(),
+                good2value: goods[_goodid2].investState.amount1(),
                 good1currentState: goods[_goodid1].currentState,
                 good1config: goods[_goodid1].goodConfig,
                 good2currentState: goods[_goodid2].currentState,
@@ -491,6 +504,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 outputQuantity: 0,
                 feeQuantity: 0,
                 swapvalue: 0,
+                good1value: goods[_goodid1].investState.amount1(),
+                good2value: goods[_goodid2].investState.amount1(),
                 good1currentState: goods[_goodid1].currentState,
                 good1config: goods[_goodid1].goodConfig,
                 good2currentState: goods[_goodid2].currentState,
@@ -552,7 +567,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             revert TTSwapError(18);
 
         uint128 enpower = goods[_togood].goodConfig.getPower();
-        if (_valuegood != address(0)) {
+       if (_valuegood != address(0)) {
             enpower = enpower < goods[_valuegood].goodConfig.getPower()
                 ? enpower
                 : goods[_valuegood].goodConfig.getPower();
@@ -560,65 +575,86 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
         _togood.transferFrom(msg.sender, _quantity, data1);
         _quantity = enpower * _quantity;
+        (normalInvest_.goodShares, normalInvest_.goodValues) = goods[_togood]
+            .investState
+            .amount01();
+        (
+            normalInvest_.goodInvestQuantity,
+            normalInvest_.goodCurrentQuantity
+        ) = goods[_togood].currentState.amount01();
         goods[_togood].investGood(_quantity, normalInvest_, enpower);
 
         if (_valuegood != address(0)) {
             if (goods[_valuegood].goodConfig.isFreeze()) revert TTSwapError(10);
-            valueInvest_.actualInvestQuantity = goods[_valuegood]
-                .currentState
-                .getamount1fromamount0(normalInvest_.actualInvestValue);
-
-            valueInvest_.actualInvestQuantity = goods[_valuegood]
+            (valueInvest_.goodShares, valueInvest_.goodValues) = goods[
+                _valuegood
+            ].investState.amount01();
+            (
+                valueInvest_.goodInvestQuantity,
+                valueInvest_.goodCurrentQuantity
+            ) = goods[_valuegood].currentState.amount01();
+            valueInvest_.investQuantity = toTTSwapUINT256(
+                valueInvest_.goodCurrentQuantity,
+                valueInvest_.goodValues
+            ).getamount0fromamount1(normalInvest_.investValue);
+            valueInvest_.investQuantity = goods[_valuegood]
                 .goodConfig
+
+                .getInvestFullFee(valueInvest_.investQuantity);
+
                 .getInvestFullFee(valueInvest_.actualInvestQuantity);
 
-            _valuegood.transferFrom(
-                msg.sender,
-                valueInvest_.actualInvestQuantity/enpower,
-                data2
-            );
             goods[_valuegood].investGood(
-                valueInvest_.actualInvestQuantity,
+                valueInvest_.investQuantity,
                 valueInvest_,
                 enpower
+            );
+            _valuegood.transferFrom(
+                msg.sender,
+                valueInvest_.investQuantity /
+                    enpower +
+                    valueInvest_.investFeeQuantity,
+                data2
             );
         }
 
         uint256 proofNo = S_ProofKey(msg.sender, _togood, _valuegood).toId();
-        uint128 investvalue = normalInvest_.actualInvestValue;
+        uint128 investvalue = normalInvest_.investValue;
 
-        investvalue = (normalInvest_.actualInvestValue / enpower);
+        investvalue = (normalInvest_.investValue / enpower);
         proofs[proofNo].updateInvest(
             _togood,
             _valuegood,
-            toTTSwapUINT256(normalInvest_.actualInvestValue, investvalue),
+            toTTSwapUINT256(normalInvest_.investShare, valueInvest_.investShare),
+            toTTSwapUINT256(normalInvest_.investValue, investvalue),
             toTTSwapUINT256(
-                normalInvest_.constructFeeQuantity,
-                normalInvest_.actualInvestQuantity
+                normalInvest_.investQuantity,//virtualquantity待处理
+                normalInvest_.investQuantity/enpower //real quantity
             ),
             toTTSwapUINT256(
-                valueInvest_.constructFeeQuantity,
-                valueInvest_.actualInvestQuantity
+                valueInvest_.investQuantity,
+                valueInvest_.investQuantity/enpower
             )
         );
         emit e_investGood(
             proofNo,
             _togood,
             _valuegood,
-            toTTSwapUINT256(normalInvest_.actualInvestValue, investvalue),
+            toTTSwapUINT256(normalInvest_.investValue, investvalue),
             toTTSwapUINT256(
-                normalInvest_.actualFeeQuantity,
-                normalInvest_.actualInvestQuantity
+                normalInvest_.investFeeQuantity,
+                normalInvest_.investQuantity
             ),
             toTTSwapUINT256(
-                valueInvest_.actualFeeQuantity,
-                valueInvest_.actualInvestQuantity
+                valueInvest_.investFeeQuantity,
+                valueInvest_.investQuantity
             )
         );
         investvalue = _valuegood == address(0) ? investvalue : investvalue * 2;
         L_Proof.stake(officialTokenContract, msg.sender, investvalue);
         return true;
     }
+
 
     /**
      * @dev Disinvests from a proof by withdrawing invested tokens and collecting profits
@@ -643,7 +679,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @inheritdoc I_TTSwap_Market
     function disinvestProof(
         uint256 _proofid,
-        uint128 _goodQuantity,
+        uint128 _goodshares,
         address _gate
     ) external override noReentrant returns (uint128, uint128) {
         if (
@@ -675,7 +711,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         ].disinvestGood(
                 goods[valuegood],
                 proofs[_proofid],
-                L_Good.S_GoodDisinvestParam(_goodQuantity, _gate, referal)
+                L_Good.S_GoodDisinvestParam(_goodshares, _gate, referal)
             );
 
         uint256 tranferamount = goods[normalgood].commission[msg.sender];
@@ -795,8 +831,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 goods[goodkey].goodConfig,
                 goods[goodkey].owner,
                 goods[goodkey].currentState,
-                goods[goodkey].investState,
-                goods[goodkey].feeQuantityState
+                goods[goodkey].investState
             );
     }
 
@@ -900,13 +935,13 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         uint128 welfare,
         bytes calldata data
     ) external payable override noReentrant msgValue {
-        if (goods[goodid].feeQuantityState.amount0() + welfare >= 2 ** 109) {
+        if (goods[goodid].currentState.amount0() + welfare >= 2 ** 109) {
             revert TTSwapError(18);
         }
         goodid.transferFrom(msg.sender, welfare, data);
-        goods[goodid].feeQuantityState = add(
-            goods[goodid].feeQuantityState,
-            toTTSwapUINT256(uint128(welfare), 0)
+        goods[goodid].currentState = add(
+            goods[goodid].currentState,
+            toTTSwapUINT256(uint128(welfare), uint128(welfare))
         );
         emit e_goodWelfare(goodid, welfare);
     }

@@ -143,10 +143,6 @@ contract modified_swap_fee is Test, GasSnapshot  {
         console2.log("midusdc_investStateamount0:",midusdc.investState.amount0());
         console2.log("beforeusdc_investStateamount1:",beforeusdc.investState.amount1());
         console2.log("midusdc_investStateamount1:",midusdc.investState.amount1());
-        console2.log("beforeusdc_feeQuantityStateamount0:",beforeusdc.feeQuantityState.amount0());
-        console2.log("midusdc_feeQuantityStateamount0:",midusdc.feeQuantityState.amount0());
-        console2.log("beforeusdc_feeQuantityStateamount1:",beforeusdc.feeQuantityState.amount1());
-        console2.log("midusdc_feeQuantityStateamount1:",midusdc.feeQuantityState.amount1());
         console2.log("beforeusdt_currentStateamount0:",beforeusdt.currentState.amount0());
         console2.log("midusdt_currentStateamount0:",midusdt.currentState.amount0());
         console2.log("beforeusdt_currentStateamount1:",beforeusdt.currentState.amount1());
@@ -155,15 +151,12 @@ contract modified_swap_fee is Test, GasSnapshot  {
         console2.log("midusdt_investStateamount0:",midusdt.investState.amount0());
         console2.log("beforeusdt_investStateamount1:",beforeusdt.investState.amount1());
         console2.log("midusdt_investStateamount1:",midusdt.investState.amount1());
-        console2.log("beforeusdt_feeQuantityStateamount0:",beforeusdt.feeQuantityState.amount0());
-        console2.log("midusdt_feeQuantityStateamount0:",midusdt.feeQuantityState.amount0());
-        console2.log("beforeusdt_feeQuantityStateamount1:",beforeusdt.feeQuantityState.amount1());
-        console2.log("midusdt_feeQuantityStateamount1:",midusdt.feeQuantityState.amount1());
         console2.log("usdcbefore:",usdcbefore);
         console2.log("usdtbefore:",usdtbefore);
         console2.log("usdcafter:",usdcafter);
         console2.log("usdtafter:",usdtafter);
-        market.buyGood(address(usdt),address(usdc),toTTSwapUINT256(489419755,0),1,address(0),"");
+        console2.log("********************************************");
+        market.buyGood(address(usdt),address(usdc),toTTSwapUINT256(494261657,0),1,address(0),"");
         snapLastCall("testswapwithfee2");
         usdcafter=usdc.balanceOf(address(market));
         usdtafter=usdt.balanceOf(address(market));
@@ -179,10 +172,6 @@ contract modified_swap_fee is Test, GasSnapshot  {
         console2.log("afterusdc_investStateamount0:",afterusdc.investState.amount0());
         console2.log("beforeusdc_investStateamount1:",beforeusdc.investState.amount1());
         console2.log("afterusdc_investStateamount1:",afterusdc.investState.amount1());
-        console2.log("beforeusdc_feeQuantityStateamount0:",beforeusdc.feeQuantityState.amount0());
-        console2.log("afterusdc_feeQuantityStateamount0:",afterusdc.feeQuantityState.amount0());
-        console2.log("beforeusdc_feeQuantityStateamount1:",beforeusdc.feeQuantityState.amount1());
-        console2.log("afterusdc_feeQuantityStateamount1:",afterusdc.feeQuantityState.amount1());
         console2.log("beforeusdt_currentStateamount0:",beforeusdt.currentState.amount0());
         console2.log("afterusdt_currentStateamount0:",afterusdt.currentState.amount0());
         console2.log("beforeusdt_currentStateamount1:",beforeusdt.currentState.amount1());
@@ -191,10 +180,6 @@ contract modified_swap_fee is Test, GasSnapshot  {
         console2.log("afterusdt_investStateamount0:",afterusdt.investState.amount0());
         console2.log("beforeusdt_investStateamount1:",beforeusdt.investState.amount1());
         console2.log("afterusdt_investStateamount1:",afterusdt.investState.amount1());
-        console2.log("beforeusdt_feeQuantityStateamount0:",beforeusdt.feeQuantityState.amount0());
-        console2.log("afterusdt_feeQuantityStateamount0:",afterusdt.feeQuantityState.amount0());
-        console2.log("beforeusdt_feeQuantityStateamount1:",beforeusdt.feeQuantityState.amount1());
-        console2.log("afterusdt_feeQuantityStateamount1:",afterusdt.feeQuantityState.amount1());
         vm.stopPrank();
     }
     function testpaywithfee()public{
@@ -211,7 +196,7 @@ contract modified_swap_fee is Test, GasSnapshot  {
         console2.log("usdtbefore:",usdtbefore);
         console2.log("usdcafter:",usdcafter);
         console2.log("usdtafter:",usdtafter);
-        market.buyGood(address(usdt),address(usdc),toTTSwapUINT256(1000*10**6,511029077),0,marketcreator,"");
+        market.buyGood(address(usdt),address(usdc),toTTSwapUINT256(1000*10**6,505862995),0,marketcreator,"");
         snapLastCall("testpaywithfee2");
         usdcafter=usdc.balanceOf(address(market));
         usdtafter=usdt.balanceOf(address(market));
