@@ -303,7 +303,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             if (
                 goods[_goodid1].currentState.amount1() +
                     _swapQuantity.amount0() >
-                goods[_goodid1].currentState.amount0() *
+                goods[_goodid1].currentState.amount1() *
                     2 -
                     goods[_goodid1].goodConfig.amount1()
             ) revert TTSwapError(33);
