@@ -209,7 +209,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         _erc20address.transferFrom(msg.sender, _initial.amount0(), _normaldata);
         _valuegood.transferFrom(msg.sender, _initial.amount1(), _valuedata);
         L_Good.S_GoodInvestReturn memory investResult;
-        goods[_valuegood].investGood(_initial.amount1(), investResult, 1,true);
+        goods[_valuegood].investGood(_initial.amount1(), investResult, 1, true);
         goods[_erc20address].init(
             toTTSwapUINT256(investResult.investValue, _initial.amount0()),
             _goodConfig
@@ -239,10 +239,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 msg.sender,
                 investResult.investValue * 2
             ),
-            toTTSwapUINT256(_initial.amount0(), investResult.investValue),
+            toTTSwapUINT256(_initial.amount0(), investResult.investValue), // amount0: the quantity of the normal good,amount1: the value of the value good
             toTTSwapUINT256(
-                investResult.investFeeQuantity,
-                investResult.investQuantity
+                investResult.investFeeQuantity, // amount0: the fee of the value good
+                investResult.investQuantity // amount1: the quantity of the value good
             )
         );
         return true;
@@ -576,7 +576,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             normalInvest_.goodInvestQuantity,
             normalInvest_.goodCurrentQuantity
         ) = goods[_togood].currentState.amount01();
-        goods[_togood].investGood(_quantity, normalInvest_, enpower,true);
+        goods[_togood].investGood(_quantity, normalInvest_, enpower, true);
 
         if (_valuegood != address(0)) {
             if (goods[_valuegood].goodConfig.isFreeze()) revert TTSwapError(10);
@@ -597,7 +597,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             goods[_valuegood].investGood(
                 valueInvest_.investQuantity,
                 valueInvest_,
-                enpower,false
+                enpower,
+                false
             );
             _valuegood.transferFrom(
                 msg.sender,
@@ -615,15 +616,18 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         proofs[proofNo].updateInvest(
             _togood,
             _valuegood,
-            toTTSwapUINT256(normalInvest_.investShare, valueInvest_.investShare),
+            toTTSwapUINT256(
+                normalInvest_.investShare,
+                valueInvest_.investShare
+            ),
             toTTSwapUINT256(normalInvest_.investValue, investvalue),
             toTTSwapUINT256(
-                normalInvest_.investQuantity,//virtualquantity待处理
-                normalInvest_.investQuantity/enpower //real quantity
+                normalInvest_.investQuantity, //virtualquantity待处理
+                normalInvest_.investQuantity / enpower //real quantity
             ),
             toTTSwapUINT256(
                 valueInvest_.investQuantity,
-                valueInvest_.investQuantity/enpower
+                valueInvest_.investQuantity / enpower
             )
         );
         emit e_investGood(
@@ -644,7 +648,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         L_Proof.stake(officialTokenContract, msg.sender, investvalue);
         return true;
     }
-
 
     /**
      * @dev Disinvests from a proof by withdrawing invested tokens and collecting profits
@@ -681,9 +684,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         ) {
             revert TTSwapError(19);
         }
+
         L_Good.S_GoodDisinvestReturn memory disinvestNormalResult1_;
         L_Good.S_GoodDisinvestReturn memory disinvestValueResult2_;
         address normalgood = proofs[_proofid].currentgood;
+        if (goods[normalgood].goodConfig.isFreeze()) revert TTSwapError(10);
         address valuegood = proofs[_proofid].valuegood;
         uint256 divestvalue;
         address referal = I_TTSwap_Token(officialTokenContract).getreferral(
@@ -710,7 +715,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             goods[normalgood].commission[msg.sender] = 1;
             normalgood.safeTransfer(msg.sender, tranferamount - 1);
         }
-        if (goods[normalgood].goodConfig.isFreeze()) revert TTSwapError(10);
         if (valuegood != address(0)) {
             if (goods[valuegood].goodConfig.isFreeze()) revert TTSwapError(10);
             tranferamount = goods[valuegood].commission[msg.sender];
@@ -802,7 +806,17 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         override
         returns (uint256 good1currentstate, uint256 good2currentstate)
     {
-        return (goods[good1].currentState, goods[good2].currentState);
+        // return (goods[good1].currentState, goods[good2].currentState);
+        return (
+            toTTSwapUINT256(
+                goods[good1].investState.amount0(),
+                goods[good1].currentState.amount1()
+            ),
+            toTTSwapUINT256(
+                goods[good2].investState.amount0(),
+                goods[good2].currentState.amount1()
+            )
+        );
     }
 
     /// @inheritdoc I_TTSwap_Market
