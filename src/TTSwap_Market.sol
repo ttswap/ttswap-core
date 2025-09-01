@@ -165,9 +165,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         proofs[proofid].updateInvest(
             _erc20address,
             address(0),
-            toTTSwapUINT256(_initial.amount0(), 0),
+            toTTSwapUINT256(_initial.amount1(), 0),
             toTTSwapUINT256(_initial.amount0(), _initial.amount0()),
-            toTTSwapUINT256(_initial.amount0(), _initial.amount1()),
+            toTTSwapUINT256(_initial.amount1(), _initial.amount1()),
             0
         );
         uint128 construct = L_Proof.stake(
@@ -209,7 +209,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         _erc20address.transferFrom(msg.sender, _initial.amount0(), _normaldata);
         _valuegood.transferFrom(msg.sender, _initial.amount1(), _valuedata);
         L_Good.S_GoodInvestReturn memory investResult;
-        goods[_valuegood].investGood(_initial.amount1(), investResult, 1);
+        goods[_valuegood].investGood(_initial.amount1(), investResult, 1,true);
         goods[_erc20address].init(
             toTTSwapUINT256(investResult.investValue, _initial.amount0()),
             _goodConfig
@@ -563,14 +563,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             revert TTSwapError(18);
 
         uint128 enpower = goods[_togood].goodConfig.getPower();
-       if (_valuegood != address(0)) {
+        if (_valuegood != address(0)) {
             enpower = enpower < goods[_valuegood].goodConfig.getPower()
                 ? enpower
                 : goods[_valuegood].goodConfig.getPower();
         }
-
         _togood.transferFrom(msg.sender, _quantity, data1);
-        _quantity = enpower * _quantity;
         (normalInvest_.goodShares, normalInvest_.goodValues) = goods[_togood]
             .investState
             .amount01();
@@ -578,7 +576,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             normalInvest_.goodInvestQuantity,
             normalInvest_.goodCurrentQuantity
         ) = goods[_togood].currentState.amount01();
-        goods[_togood].investGood(_quantity, normalInvest_, enpower);
+        goods[_togood].investGood(_quantity, normalInvest_, enpower,true);
 
         if (_valuegood != address(0)) {
             if (goods[_valuegood].goodConfig.isFreeze()) revert TTSwapError(10);
@@ -599,7 +597,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             goods[_valuegood].investGood(
                 valueInvest_.investQuantity,
                 valueInvest_,
-                enpower
+                enpower,false
             );
             _valuegood.transferFrom(
                 msg.sender,
