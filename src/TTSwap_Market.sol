@@ -459,6 +459,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (goods[_goodid2].goodConfig.isFreeze()) revert TTSwapError(11);
         if (goods[_goodid1].currentState == 0) revert TTSwapError(12);
         if (goods[_goodid2].currentState == 0) revert TTSwapError(13);
+
         if (_side) {
             if (
                 goods[_goodid1].currentState.amount1() +
@@ -467,6 +468,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                     2 -
                     goods[_goodid1].goodConfig.amount1()
             ) revert TTSwapError(33);
+
             L_Good.swapCache memory swapcache = L_Good.swapCache({
                 remainQuantity: _swapQuantity.amount0(),
                 outputQuantity: 0,
@@ -608,7 +610,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             ).getamount0fromamount1(normalInvest_.investValue);
             valueInvest_.investQuantity = goods[_valuegood]
                 .goodConfig
+
                 .getInvestFullFee(valueInvest_.investQuantity);
+
+                .getInvestFullFee(valueInvest_.actualInvestQuantity);
+
             goods[_valuegood].investGood(
                 valueInvest_.investQuantity,
                 valueInvest_,
