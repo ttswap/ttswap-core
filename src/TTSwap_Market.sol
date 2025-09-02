@@ -337,7 +337,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             );
             good1change = toTTSwapUINT256(
                 swapcache.feeQuantity,
-                _swapQuantity.amount0()
+                _swapQuantity.amount0()-swapcache.feeQuantity
             );
             _side = swapcache.good2config.getBuyFee(swapcache.outputQuantity);
             swapcache.good2currentState = add(
@@ -346,12 +346,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             );
             good2change = toTTSwapUINT256(
                 _side,
-                swapcache.outputQuantity - _side
+                swapcache.outputQuantity 
             );
             goods[_goodid1].swapCommit(swapcache.good1currentState);
             goods[_goodid2].swapCommit(swapcache.good2currentState);
-            _goodid1.transferFrom(msg.sender, good1change.amount1(), data);
-            _goodid2.safeTransfer(msg.sender, good2change.amount1());
+            _goodid1.transferFrom(msg.sender, _swapQuantity.amount0(), data);
+            _goodid2.safeTransfer(msg.sender, good2change.amount1()-_side);
             emit e_buyGood(
                 _goodid1,
                 _goodid2,
@@ -377,7 +377,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             _side = swapcache.good1config.getSellFee(swapcache.outputQuantity);
             good1change = toTTSwapUINT256(
                 _side,
-                swapcache.outputQuantity + _side
+                swapcache.outputQuantity 
             );
             if (swapcache.swapvalue < 1_000_000) revert TTSwapError(14);
             if (
@@ -401,9 +401,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             );
             good2change = toTTSwapUINT256(
                 swapcache.feeQuantity,
-                _swapQuantity.amount1()
+                _swapQuantity.amount1()-swapcache.feeQuantity
             );
-            _goodid1.transferFrom(msg.sender, good1change.amount1(), data);
+            _goodid1.transferFrom(msg.sender, good1change.amount1()+_side, data);
             goods[_goodid1].swapCommit(swapcache.good1currentState);
             goods[_goodid2].swapCommit(swapcache.good2currentState);
             _goodid2.safeTransfer(_recipent, _swapQuantity.amount1());
@@ -450,7 +450,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address _goodid1,
         address _goodid2,
         uint256 _swapQuantity,
-        bool side
+        bool _side
     ) external view returns (uint256 good1change, uint256 good2change) {
         if (
             goods[_goodid1].currentState == 0 ||
@@ -458,7 +458,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             _swapQuantity == 0 ||
             _goodid1 == _goodid2
         ) revert TTSwapError(35);
-        if (side) {
+        if (_side) {
             L_Good.swapCache memory swapcache = L_Good.swapCache({
                 remainQuantity: _swapQuantity.amount0(),
                 outputQuantity: 0,
@@ -486,9 +486,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
             good1change = toTTSwapUINT256(
                 swapcache.feeQuantity,
-                _swapQuantity.amount0()
+                _swapQuantity.amount0()-swapcache.feeQuantity
             );
-
             good2change = toTTSwapUINT256(
                 swapcache.good2config.getBuyFee(swapcache.outputQuantity),
                 swapcache.outputQuantity -
@@ -517,13 +516,20 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 swapcache.good2currentState.amount1() <=
                 (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
+            if (
+                goods[_goodid1].currentState.amount1() +
+                    _swapQuantity.amount0() >
+                goods[_goodid1].currentState.amount0() *
+                    2 -
+                    goods[_goodid1].goodConfig.amount1()
+            ) revert TTSwapError(33);
             good1change = toTTSwapUINT256(
-                swapcache.feeQuantity,
+                goods[_goodid1].goodConfig.getSellFee(swapcache.feeQuantity),
                 swapcache.outputQuantity
             );
             good2change = toTTSwapUINT256(
                 swapcache.feeQuantity,
-                _swapQuantity.amount1()
+                _swapQuantity.amount1()-swapcache.feeQuantity
             );
         }
     }
