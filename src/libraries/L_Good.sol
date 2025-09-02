@@ -206,23 +206,35 @@ library L_Good {
      * @notice Invest in a good
      * @dev Calculates fees, updates states, and returns investment results
      * @param _self Storage pointer to the good state
-     * @param _invest Amount to invest
+     * @param _invest Amount to invest actual quantity
      */
     function investGood(
         S_GoodState storage _self,
         uint128 _invest,
         S_GoodInvestReturn memory investResult_,
-        uint128 enpower
+        uint128 enpower,
+        bool investtype
     ) internal {
         // Calculate the investment fee
-        investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
-            _invest
-        );
 
-        // Calculate the actual investment quantity after deducting the fee
-        investResult_.investQuantity =
-            _invest -
-            investResult_.investFeeQuantity;
+        if (investtype) {
+            investResult_.investQuantity = _invest * enpower;
+
+            investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
+                investResult_.investQuantity
+            );
+
+            investResult_.investQuantity =
+                (_invest - investResult_.investFeeQuantity) *
+                enpower;
+        } else {
+            investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
+                investResult_.investQuantity
+            );
+
+            investResult_.investQuantity = (_invest -
+                investResult_.investFeeQuantity);
+        }
 
         // Calculate the actual investment value based on the current state
         investResult_.investValue = toTTSwapUINT256(
@@ -239,7 +251,17 @@ library L_Good {
 
         _self.currentState = add(
             _self.currentState,
-            toTTSwapUINT256(_invest, _invest)
+            toTTSwapUINT256(
+                investResult_.investQuantity,
+                investResult_.investQuantity
+            )
+        );
+        _self.currentState = add(
+            _self.currentState,
+            toTTSwapUINT256(
+                investResult_.investFeeQuantity,
+                investResult_.investFeeQuantity
+            )
         );
         // Update the invest state with the new investment
 
@@ -333,7 +355,7 @@ library L_Good {
                 _investProof.invest.amount0()
             ).getamount0fromamount1(normalGoodResult1_.vitualDisinvestQuantity)
         );
-      
+
         // Ensure disinvestment conditions are met
         if (
             disinvestvalue.amount0() >
@@ -371,17 +393,18 @@ library L_Good {
         );
         _self.currentState = add(
             _self.currentState,
-            toTTSwapUINT256(normalGoodResult1_.actual_fee, 0)
+            toTTSwapUINT256(
+                normalGoodResult1_.actual_fee,
+                normalGoodResult1_.actual_fee
+            )
         );
 
-       
         _self.goodConfig = sub(
             _self.goodConfig,
             normalGoodResult1_.vitualDisinvestQuantity -
                 normalGoodResult1_.actualDisinvestQuantity
         );
 
-     
         // Calculate final profit and fee for main good
         normalGoodResult1_.profit =
             normalGoodResult1_.profit -
@@ -459,7 +482,10 @@ library L_Good {
 
             _valueGoodState.currentState = add(
                 _valueGoodState.currentState,
-                toTTSwapUINT256(valueGoodResult2_.actual_fee, 0)
+                toTTSwapUINT256(
+                    valueGoodResult2_.actual_fee,
+                    valueGoodResult2_.actual_fee
+                )
             );
             _valueGoodState.goodConfig = sub(
                 _valueGoodState.goodConfig,
@@ -559,18 +585,6 @@ library L_Good {
             _self.commission[msg.sender] = (liquidFee +
                 customerFee +
                 _divestQuantity);
-        }
-    }
-
-    /**
-     * @notice fill good
-     * @dev Preserves the top 33 bits of the existing config and updates the rest
-     * @param _self Storage pointer to the good state
-     * @param _fee New configuration value to be applied
-     */
-    function fillFee(S_GoodState storage _self, uint256 _fee) internal {
-        unchecked {
-            _self.currentState = _self.currentState + (_fee << 128);
         }
     }
 }

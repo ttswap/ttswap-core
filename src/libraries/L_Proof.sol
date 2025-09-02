@@ -29,7 +29,7 @@ library L_Proof {
      * @param _currenctgood The current good value
      * @param _valuegood The value good
      * @param _shares amount0:normal shares amount1:value shares
-     * @param _state amount0 (first 128 bits) represents total value
+     * @param _state amount0 (first 128 bits) represents total value,amount1 (last 128 bits) represents total actual value
      * @param _invest amount0 (first 128 bits) represents invest normal good quantity, amount1 (last 128 bits) represents normal good constuct fee when investing
      * @param _valueinvest amount0 (first 128 bits) represents invest value good quantity, amount1 (last 128 bits) represents value good constuct fee when investing
      */
@@ -47,7 +47,7 @@ library L_Proof {
         _self.state = add(_self.state, _state);
         _self.invest = add(_self.invest, _invest);
         if (_valuegood != address(0)) {
-            _self.valuegood = _valuegood;
+            if (_self.valuegood == address(0)) _self.valuegood = _valuegood;
             _self.valueinvest = add(_self.valueinvest, _valueinvest);
         }
     }

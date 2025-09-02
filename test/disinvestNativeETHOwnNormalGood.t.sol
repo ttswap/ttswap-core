@@ -182,7 +182,7 @@ contract disinvestNativeETHOwnNormalGood is BaseSetup {
         );
         assertEq(
             good_.currentState.amount1(),
-            99995000,
+            100025000,
             "after disinvest nativeeth good:normalgoodnativeeth currentState amount1 error"
         );
         assertEq(
