@@ -453,7 +453,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bool _side
     ) external view returns (uint256 good1change, uint256 good2change) {
         if (_swapQuantity == 0) revert TTSwapError(7);
-        if (_side > 1) revert TTSwapError(8);
         if (_goodid1 == _goodid2) revert TTSwapError(9);
         if (goods[_goodid1].goodConfig.isFreeze()) revert TTSwapError(10);
         if (goods[_goodid2].goodConfig.isFreeze()) revert TTSwapError(11);
@@ -613,7 +612,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
                 .getInvestFullFee(valueInvest_.investQuantity);
 
-                .getInvestFullFee(valueInvest_.actualInvestQuantity);
 
             goods[_valuegood].investGood(
                 valueInvest_.investQuantity,
