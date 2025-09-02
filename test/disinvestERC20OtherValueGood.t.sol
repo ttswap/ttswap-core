@@ -137,7 +137,7 @@ contract disinvestERC20OtherValueGood is BaseSetup {
         );
         assertEq(
             good_.currentState.amount1(),
-            89999499975,
+            90002499975,
             "after disinvest erc20 good:metagood currentState amount1 error"
         );
         assertEq(

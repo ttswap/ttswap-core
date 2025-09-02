@@ -251,11 +251,17 @@ library L_Good {
 
         _self.currentState = add(
             _self.currentState,
-            toTTSwapUINT256(investResult_.investQuantity , investResult_.investQuantity )
+            toTTSwapUINT256(
+                investResult_.investQuantity,
+                investResult_.investQuantity
+            )
         );
-             _self.currentState = add(
+        _self.currentState = add(
             _self.currentState,
-            toTTSwapUINT256(investResult_.investFeeQuantity , investResult_.investFeeQuantity )
+            toTTSwapUINT256(
+                investResult_.investFeeQuantity,
+                investResult_.investFeeQuantity
+            )
         );
         // Update the invest state with the new investment
 
@@ -387,7 +393,10 @@ library L_Good {
         );
         _self.currentState = add(
             _self.currentState,
-            toTTSwapUINT256(normalGoodResult1_.actual_fee, 0)
+            toTTSwapUINT256(
+                normalGoodResult1_.actual_fee,
+                normalGoodResult1_.actual_fee
+            )
         );
 
         _self.goodConfig = sub(
@@ -472,7 +481,10 @@ library L_Good {
 
             _valueGoodState.currentState = add(
                 _valueGoodState.currentState,
-                toTTSwapUINT256(valueGoodResult2_.actual_fee, 0)
+                toTTSwapUINT256(
+                    valueGoodResult2_.actual_fee,
+                    valueGoodResult2_.actual_fee
+                )
             );
             _valueGoodState.goodConfig = sub(
                 _valueGoodState.goodConfig,
@@ -572,18 +584,6 @@ library L_Good {
             _self.commission[msg.sender] = (liquidFee +
                 customerFee +
                 _divestQuantity);
-        }
-    }
-
-    /**
-     * @notice fill good
-     * @dev Preserves the top 33 bits of the existing config and updates the rest
-     * @param _self Storage pointer to the good state
-     * @param _fee New configuration value to be applied
-     */
-    function fillFee(S_GoodState storage _self, uint256 _fee) internal {
-        unchecked {
-            _self.currentState = _self.currentState + (_fee << 128);
         }
     }
 }

@@ -79,7 +79,7 @@ contract PowerWithFee is BaseSetup {
         vm.stopPrank();
     }
 
-    function testDistinvestProof() public {
+    function testDistinvestProof11() public {
         vm.startPrank(marketcreator);
         uint256 normalproof;
         normalproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
@@ -136,7 +136,7 @@ contract PowerWithFee is BaseSetup {
         );
         assertEq(
             good_.currentState.amount1(),
-            289899166320,
+            289902166320,
             "after disinvest nativeeth good:metagood currentState amount1 error"
         );
         assertEq(
