@@ -8,30 +8,14 @@ import {S_ProofState, S_ProofKey} from "../interfaces/I_TTSwap_Market.sol";
 library L_Proof {
     using L_TTSwapUINT256Library for uint256;
     /**
-     * @dev Represents the state of a proof
-     * @member currentgood The current good  associated with the proof
-     * @member valuegood The value good associated with the proof
-     * @member state amount0 (first 128 bits) represents total value
-     * @member invest amount0 (first 128 bits) represents invest normal good quantity, amount1 (last 128 bits) represents normal good constuct fee when investing
-     * @member valueinvest amount0 (first 128 bits) represents invest value good quantity, amount1 (last 128 bits) represents value good constuct fee when investing
-     */
-    // struct S_ProofState {
-    //     uint256 currentgood;
-    //     uint256 valuegood;
-    //     uint256 state;
-    //     uint256 invest;
-    //     uint256 valueinvest;
-    // }
-
-    /**
      * @dev Updates the investment state of a proof
      * @param _self The proof state to update
      * @param _currenctgood The current good value
      * @param _valuegood The value good
      * @param _shares amount0:normal shares amount1:value shares
      * @param _state amount0 (first 128 bits) represents total value,amount1 (last 128 bits) represents total actual value
-     * @param _invest amount0 (first 128 bits) represents invest normal good quantity, amount1 (last 128 bits) represents normal good constuct fee when investing
-     * @param _valueinvest amount0 (first 128 bits) represents invest value good quantity, amount1 (last 128 bits) represents value good constuct fee when investing
+     * @param _invest amount0 (first 128 bits) represents normal virtual invest quantity, amount1 (last 128 bits) represents normal actual invest quantity
+     * @param _valueinvest amount0 (first 128 bits) represents value virtual invest quantity, amount1 (last 128 bits) represents value actual invest quantity
      */
     function updateInvest(
         S_ProofState storage _self,
@@ -55,12 +39,15 @@ library L_Proof {
     /**
      * @dev Burns a portion of the proof
      * @param _self The proof state to update
-     * @param _value The amount to burn
+     * @param _shares amount0:normal shares amount1:value shares
+     * @param _state amount0 (first 128 bits) represents total value,amount1 (last 128 bits) represents total actual value
+     * @param _invest amount0 (first 128 bits) represents normal virtual invest quantity, amount1 (last 128 bits) represents normal actual invest quantity
+     * @param _valueinvest amount0 (first 128 bits) represents value virtual invest quantity, amount1 (last 128 bits) represents value actual invest quantity
      */
     function burnProof(
         S_ProofState storage _self,
         uint256 _shares,
-        uint256 _value,
+        uint256 _state,
         uint256 _invest,
         uint256 _valueinvest
     ) internal {
@@ -72,7 +59,7 @@ library L_Proof {
         // Subtract the calculated investment from the total investment
         _self.invest = sub(_self.invest, _invest);
         // Reduce the total state by the burned value
-        _self.state = sub(_self.state, _value);
+        _self.state = sub(_self.state, _state);
         _self.shares = sub(_self.shares, _shares);
     }
 
@@ -81,7 +68,7 @@ library L_Proof {
      * @param contractaddress The address of the staking contract
      * @param to The address to stake for
      * @param proofvalue The amount of proof value to stake
-     * @return The staked amount
+     * @return The contruct amount
      */
     function stake(
         I_TTSwap_Token contractaddress,
