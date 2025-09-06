@@ -19,7 +19,7 @@ library L_Good {
     using L_Proof for S_ProofState;
 
     /**
-     * @notice Update the good configuration
+     * @notice Update the good configuration only goodowner
      * @dev Preserves the top 33 bits of the existing config and updates the rest
      * @param _self Storage pointer to the good state
      * @param _goodConfig New configuration value to be applied
@@ -31,7 +31,6 @@ library L_Good {
         if (_self.goodConfig.getLimitPower() < _goodConfig.getPower())
             revert TTSwapError(23);
         // Clear the top 33 bits of the new config
-
         assembly {
             _goodConfig := shr(33, shl(33, _goodConfig))
             _goodConfig := shl(128, shr(128, _goodConfig))

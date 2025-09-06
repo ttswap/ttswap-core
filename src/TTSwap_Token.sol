@@ -363,7 +363,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         if (!userConfig[msg.sender].isCallMintTTS()) revert TTSwapError(71);
         _stakeFee();
         uint256 restakeid = uint256(keccak256(abi.encode(_staker, msg.sender)));
-        netconstruct = poolstate.amount1() == 0 ? 0 : mulDiv(poolstate.amount1(), proofvalue, stakestate.amount1());
+        netconstruct = poolstate.amount1() == 0 ? 0 : mulDiv(poolstate.amount0(), proofvalue, stakestate.amount1());
         poolstate = add(poolstate, toTTSwapUINT256(netconstruct, netconstruct));
         stakestate = add(stakestate, toTTSwapUINT256(0, proofvalue));
         stakeproof[restakeid].fromcontract = msg.sender;
