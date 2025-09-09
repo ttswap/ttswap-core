@@ -153,6 +153,7 @@ library L_Good {
             uint256(_stepCache.remainQuantity) -
             uint256(_stepCache.good2value) *
             uint256(_stepCache.remainQuantity);
+        require(b > 1000, "b is 0");
         _stepCache.outputQuantity = toUint128(a / b);
         _stepCache.swapvalue = toTTSwapUINT256(
             _stepCache.good1value,
@@ -581,7 +582,7 @@ library L_Good {
                 marketfee += referFee;
             }
             _self.commission[address(0)] += marketfee;
-            _self.commission[msg.sender] = (liquidFee +
+            _self.commission[msg.sender] += (liquidFee +
                 customerFee +
                 _divestQuantity);
         }

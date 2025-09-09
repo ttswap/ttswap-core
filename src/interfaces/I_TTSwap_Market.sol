@@ -228,13 +228,13 @@ interface I_TTSwap_Market {
 
     /// @notice Collects commission for specified goods
     /// @param _goodid Array of good IDs
-    function collectCommission(address[] memory _goodid) external;
+    function collectCommission(address[] calldata _goodid) external;
 
     /// @notice Queries commission for specified goods and recipient
     /// @param _goodid Array of good IDs
     /// @param _recipent The recipient's address
     /// @return Array of commission amounts
-    function queryCommission(address[] memory _goodid, address _recipent) external returns (uint256[] memory);
+    function queryCommission(address[] calldata _goodid, address _recipent) external returns (uint256[] memory);
 
     
 
