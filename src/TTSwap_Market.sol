@@ -9,11 +9,12 @@ import {L_Proof, L_ProofIdLibrary} from "./libraries/L_Proof.sol";
 import {L_GoodConfigLibrary} from "./libraries/L_GoodConfig.sol";
 import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
 import {L_CurrencyLibrary} from "./libraries/L_Currency.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, add, sub, addsub, subadd, lowerprice} from "./libraries/L_TTSwapUINT256.sol";
+import {L_TTSwapUINT256Library, toTTSwapUINT256, add, lowerprice} from "./libraries/L_TTSwapUINT256.sol";
 import {IMulticall_v4} from "./interfaces/IMulticall_v4.sol";
 import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
 /**
  * @title TTSwap_Market
+ * @author ttswap.exchange@gmail.com
  * @dev Core market contract for TTSwap protocol that manages goods trading, investing, and staking operations
  * @notice This contract implements a decentralized market system with the following key features:
  * - Meta good, value goods, and normal goods management
@@ -39,7 +40,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * - Referral tracking and rewards
      * - Governance token functionality
      */
-    I_TTSwap_Token private immutable officialTokenContract;
+    I_TTSwap_Token private immutable TTS_CONTRACT;
     address internal securitykeeper;
 
     /**
@@ -64,26 +65,26 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
     /**
      * @dev Constructor for TTSwap_Market
-     * @param _officialTokenContract The address of the official token contract
+     * @param _TTS_Contract The address of the official token contract
      */
     constructor(
-        I_TTSwap_Token _officialTokenContract,
+        I_TTSwap_Token _TTS_Contract,
         address _securitykeeper
     ) {
-        officialTokenContract = _officialTokenContract;
+        TTS_CONTRACT = _TTS_Contract;
         securitykeeper = _securitykeeper;
     }
 
     /// onlydao admin can execute
     modifier onlyMarketadmin() {
-        if (!officialTokenContract.userConfig(msg.sender).isMarketAdmin())
+        if (!TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin())
             revert TTSwapError(1);
         _;
     }
 
     /// onlydao manager can execute
     modifier onlyMarketor() {
-        if (!officialTokenContract.userConfig(msg.sender).isMarketManager())
+        if (!TTS_CONTRACT.userConfig(msg.sender).isMarketManager())
             revert TTSwapError(2);
         _;
     }
@@ -171,7 +172,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             0
         );
         uint128 construct = L_Proof.stake(
-            officialTokenContract,
+            TTS_CONTRACT,
             msg.sender,
             _initial.amount0()
         );
@@ -235,7 +236,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             _valuegood,
             _goodConfig,
             L_Proof.stake(
-                officialTokenContract,
+                TTS_CONTRACT,
                 msg.sender,
                 investResult.investValue * 2
             ),
@@ -298,7 +299,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
         if (_side == 1) {
             if (_recipent != address(0) && _recipent != msg.sender) {
-                officialTokenContract.setReferral(msg.sender, _recipent);
+                TTS_CONTRACT.setReferral(msg.sender, _recipent);
             }
             if (
                 goods[_goodid1].currentState.amount1() +
@@ -328,7 +329,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 _swapQuantity.amount1() > 0
             ) revert TTSwapError(15);
             if (
-                swapcache.good2currentState.amount1() <=
+                swapcache.good2currentState.amount1() <
                 (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
             swapcache.good1currentState = add(
@@ -385,7 +386,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 _swapQuantity.amount0() > 0
             ) revert TTSwapError(15);
             if (
-                swapcache.good2currentState.amount1() <=
+                swapcache.good2currentState.amount1() <
                 (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
             if (
@@ -489,7 +490,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 _swapQuantity.amount1() > 0
             ) revert TTSwapError(15);
             if (
-                swapcache.good2currentState.amount1() <=
+                swapcache.good2currentState.amount1() <
                 (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
             
@@ -523,7 +524,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 _swapQuantity.amount0() > 0
             ) revert TTSwapError(15);
             if (
-                swapcache.good2currentState.amount1() <=
+                swapcache.good2currentState.amount1() <
                 (swapcache.good2config.amount1() * 11) / 10
             ) revert TTSwapError(16);
             if (
@@ -575,7 +576,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             !(goods[_togood].goodConfig.isvaluegood() ||
                 goods[_valuegood].goodConfig.isvaluegood())
         ) revert TTSwapError(17);
-        if (goods[_togood].currentState.amount1() + _quantity >= 2 ** 109)
+        if (goods[_togood].currentState.amount1() + _quantity > 2 ** 109)
             revert TTSwapError(18);
 
         uint128 enpower = goods[_togood].goodConfig.getPower();
@@ -664,7 +665,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             )
         );
         investvalue = _valuegood == address(0) ? investvalue : investvalue * 2;
-        L_Proof.stake(officialTokenContract, msg.sender, investvalue);
+        L_Proof.stake(TTS_CONTRACT, msg.sender, investvalue);
         return true;
     }
 
@@ -710,14 +711,14 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (goods[normalgood].goodConfig.isFreeze()) revert TTSwapError(10);
         address valuegood = proofs[_proofid].valuegood;
         uint256 divestvalue;
-        address referal = I_TTSwap_Token(officialTokenContract).getreferral(
+        address referal = I_TTSwap_Token(TTS_CONTRACT).getreferral(
             msg.sender
         );
-        _gate = officialTokenContract.userConfig(_gate).isBan()
+        _gate = TTS_CONTRACT.userConfig(_gate).isBan()
             ? address(0)
             : _gate;
         referal = _gate == referal ? address(0) : referal;
-        referal = officialTokenContract.userConfig(referal).isBan()
+        referal = TTS_CONTRACT.userConfig(referal).isBan()
             ? address(0)
             : referal;
         (disinvestNormalResult1_, disinvestValueResult2_, divestvalue) = goods[
@@ -743,7 +744,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             }
         }
         L_Proof.unstake(
-            officialTokenContract,
+            TTS_CONTRACT,
             msg.sender,
             divestvalue.amount0()
         );
@@ -890,9 +891,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @inheritdoc I_TTSwap_Market
 
     function collectCommission(
-        address[] memory _goodid
+        address[] calldata _goodid
     ) external override noReentrant {
-        address recipent = officialTokenContract
+        address recipent = TTS_CONTRACT
             .userConfig(msg.sender)
             .isDAOAdmin()
             ? address(0)
@@ -905,7 +906,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 commissionamount[i] = 0;
                 continue;
             } else {
-                commissionamount[i] = commissionamount[i] - 1;
+                    commissionamount[i] = commissionamount[i] - 1;
                 goods[_goodid[i]].commission[recipent] = 1;
                 _goodid[i].safeTransfer(msg.sender, commissionamount[i]);
             }
@@ -928,10 +929,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      */
     /// @inheritdoc I_TTSwap_Market
     function queryCommission(
-        address[] memory _goodid,
+        address[] calldata _goodid,
         address _recipent
     ) external view override returns (uint256[] memory) {
-        if (_goodid.length >= 100) revert TTSwapError(21);
+        if (_goodid.length > 100) revert TTSwapError(21);
         uint256[] memory feeamount = new uint256[](_goodid.length);
         for (uint256 i = 0; i < _goodid.length; i++) {
             feeamount[i] = goods[_goodid[i]].commission[_recipent];
@@ -958,7 +959,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         uint128 welfare,
         bytes calldata data
     ) external payable override noReentrant msgValue {
-        if (goods[goodid].currentState.amount0() + welfare >= 2 ** 109) {
+        if (goods[goodid].currentState.amount0() + welfare > 2 ** 109) {
             revert TTSwapError(18);
         }
         goodid.transferFrom(msg.sender, welfare, data);

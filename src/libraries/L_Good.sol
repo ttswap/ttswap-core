@@ -6,7 +6,7 @@ import {TTSwapError} from "./L_Error.sol";
 import {L_GoodConfigLibrary} from "./L_GoodConfig.sol";
 
 import {S_GoodState, S_ProofState} from "../interfaces/I_TTSwap_Market.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, toUint128, add, sub, addsub, subadd, lowerprice} from "./L_TTSwapUINT256.sol";
+import {L_TTSwapUINT256Library, toTTSwapUINT256, toUint128, add, sub} from "./L_TTSwapUINT256.sol";
 
 /**
  * @title L_Good Library
@@ -153,6 +153,7 @@ library L_Good {
             uint256(_stepCache.remainQuantity) -
             uint256(_stepCache.good2value) *
             uint256(_stepCache.remainQuantity);
+        require(b > 1000, "b is 0");
         _stepCache.outputQuantity = toUint128(a / b);
         _stepCache.swapvalue = toTTSwapUINT256(
             _stepCache.good1value,
@@ -581,7 +582,7 @@ library L_Good {
                 marketfee += referFee;
             }
             _self.commission[address(0)] += marketfee;
-            _self.commission[msg.sender] = (liquidFee +
+            _self.commission[msg.sender] += (liquidFee +
                 customerFee +
                 _divestQuantity);
         }
