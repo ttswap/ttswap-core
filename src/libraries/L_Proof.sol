@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import {toTTSwapUINT256, mulDiv, sub, add, L_TTSwapUINT256Library} from "./L_TTSwapUINT256.sol";
+import {  sub, add, L_TTSwapUINT256Library} from "./L_TTSwapUINT256.sol";
 import {I_TTSwap_Token} from "../interfaces/I_TTSwap_Token.sol";
 import {S_ProofState, S_ProofKey} from "../interfaces/I_TTSwap_Market.sol";
 
@@ -94,7 +94,9 @@ library L_Proof {
 }
 
 library L_ProofIdLibrary {
-    function toId(S_ProofKey memory proofKey) internal pure returns (uint256) {
-        return uint256(keccak256(abi.encode(proofKey)));
+    function toId(S_ProofKey memory proofKey) internal pure returns (uint256 poolId) {
+        assembly {
+            poolId := keccak256(proofKey,0x60)
+        }
     }
 }

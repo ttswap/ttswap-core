@@ -519,10 +519,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             });
             L_Good.swapCompute2(swapcache);
             if (swapcache.swapvalue < 1_000_000) revert TTSwapError(14);
-            good1change = toTTSwapUINT256(
-                goods[_goodid1].goodConfig.getSellFee(swapcache.outputQuantity),
-                swapcache.outputQuantity
-            );
             if (
                 good1change.amount1() > _swapQuantity.amount0() &&
                 _swapQuantity.amount0() > 0
@@ -538,7 +534,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                     2 -
                     goods[_goodid1].goodConfig.amount1()
             ) revert TTSwapError(33);
-            
+            good1change = toTTSwapUINT256(
+                goods[_goodid1].goodConfig.getSellFee(swapcache.outputQuantity),
+                swapcache.outputQuantity
+            );
             good2change = toTTSwapUINT256(
                 swapcache.feeQuantity,
                 _swapQuantity.amount1()-swapcache.feeQuantity
@@ -907,7 +906,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 commissionamount[i] = 0;
                 continue;
             } else {
-                commissionamount[i] = commissionamount[i] - 1;
+                    commissionamount[i] = commissionamount[i] - 1;
                 goods[_goodid[i]].commission[recipent] = 1;
                 _goodid[i].safeTransfer(msg.sender, commissionamount[i]);
             }

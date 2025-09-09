@@ -6,7 +6,7 @@ import {TTSwapError} from "./L_Error.sol";
 import {L_GoodConfigLibrary} from "./L_GoodConfig.sol";
 
 import {S_GoodState, S_ProofState} from "../interfaces/I_TTSwap_Market.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, toUint128, add, sub, addsub, subadd, lowerprice} from "./L_TTSwapUINT256.sol";
+import {L_TTSwapUINT256Library, toTTSwapUINT256, toUint128, add, sub} from "./L_TTSwapUINT256.sol";
 
 /**
  * @title L_Good Library
