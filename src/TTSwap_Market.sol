@@ -207,6 +207,13 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         _erc20address.transferFrom(msg.sender, _initial.amount0(), _normaldata);
         _valuegood.transferFrom(msg.sender, _initial.amount1(), _valuedata);
         L_Good.S_GoodInvestReturn memory investResult;
+        (investResult.goodShares, investResult.goodValues) = goods[_valuegood]
+            .investState
+            .amount01();
+        (
+            investResult.goodInvestQuantity,
+            investResult.goodCurrentQuantity
+        ) = goods[_valuegood].currentState.amount01();
         goods[_valuegood].investGood(_initial.amount1(), investResult, 1);
         goods[_erc20address].init(
             toTTSwapUINT256(investResult.investValue, _initial.amount0()),
@@ -701,7 +708,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (goods[normalgood].goodConfig.isFreeze()) revert TTSwapError(10);
         address valuegood = proofs[_proofid].valuegood;
         uint256 divestvalue;
-        address referal = I_TTSwap_Token(TTS_CONTRACT).getreferral(msg.sender);
+        address referal = TTS_CONTRACT.getreferral(msg.sender);
         _gate = TTS_CONTRACT.userConfig(_gate).isBan() ? address(0) : _gate;
         referal = _gate == referal ? address(0) : referal;
         referal = TTS_CONTRACT.userConfig(referal).isBan()

@@ -157,7 +157,7 @@ library L_Good {
         _stepCache.outputQuantity = toUint128(a / b);
         _stepCache.swapvalue = toTTSwapUINT256(
             _stepCache.good1value,
-            _stepCache.good1currentState.amount1() + _stepCache.outputQuantity
+            _stepCache.good1currentState.amount1() + _stepCache.outputQuantity/2
         ).getamount0fromamount1(_stepCache.outputQuantity);
 
         _stepCache.good1currentState = add(
@@ -228,15 +228,15 @@ library L_Good {
 
         // Calculate the actual investment value based on the current state
         investResult_.investValue = toTTSwapUINT256(
-            _self.investState.amount1(),
-            _self.currentState.amount1()
+            investResult_.goodValues,
+            investResult_.goodCurrentQuantity
         ).getamount0fromamount1(investResult_.investQuantity);
 
         // Update the current state with the new investment
 
         investResult_.investShare = toTTSwapUINT256(
-            _self.investState.amount0(),
-            _self.currentState.amount0()
+            investResult_.goodShares,
+            investResult_.goodInvestQuantity
         ).getamount0fromamount1(investResult_.investQuantity);
 
         _self.currentState = add(
