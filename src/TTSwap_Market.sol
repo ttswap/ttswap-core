@@ -902,11 +902,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         uint256[] memory commissionamount = new uint256[](_goodid.length);
         for (uint256 i = 0; i < _goodid.length; i++) {
             commissionamount[i] = goods[_goodid[i]].commission[recipent];
-            if (commissionamount[i] < 2) {
-                commissionamount[i] = 0;
-                continue;
-            } else {
-                    commissionamount[i] = commissionamount[i] - 1;
+            if (commissionamount[i] > 2) {
+                commissionamount[i] = commissionamount[i] - 1;
                 goods[_goodid[i]].commission[recipent] = 1;
                 _goodid[i].safeTransfer(msg.sender, commissionamount[i]);
             }
