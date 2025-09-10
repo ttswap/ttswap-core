@@ -212,29 +212,19 @@ library L_Good {
         S_GoodState storage _self,
         uint128 _invest,
         S_GoodInvestReturn memory investResult_,
-        uint128 enpower,
-        bool investtype
+        uint128 enpower
     ) internal {
         // Calculate the investment fee
 
-        if (investtype) {
-            investResult_.investQuantity = _invest * enpower;
+        investResult_.investQuantity = _invest * enpower;
 
-            investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
-                investResult_.investQuantity
-            );
+        investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
+            investResult_.investQuantity
+        );
 
-            investResult_.investQuantity =
-                (_invest - investResult_.investFeeQuantity) *
-                enpower;
-        } else {
-            investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
-                investResult_.investQuantity
-            );
-
-            investResult_.investQuantity = (_invest -
-                investResult_.investFeeQuantity);
-        }
+        investResult_.investQuantity =
+            (_invest - investResult_.investFeeQuantity) *
+            enpower;
 
         // Calculate the actual investment value based on the current state
         investResult_.investValue = toTTSwapUINT256(
@@ -476,7 +466,6 @@ library L_Good {
                 toTTSwapUINT256(
                     valueGoodResult2_.shares,
                     disinvestvalue.amount1()
-
                 )
             );
 
