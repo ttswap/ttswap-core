@@ -5,6 +5,6 @@
 
 
 ```solidity
-function toId(uint256 proofkey) internal view returns (uint256);
+function toId(S_ProofKey memory proofKey) internal pure returns (uint256 poolId);
 ```
 

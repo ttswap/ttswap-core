@@ -8,7 +8,6 @@ struct S_GoodState {
     address owner;
     uint256 currentState;
     uint256 investState;
-    uint256 feeQuantityState;
     mapping(address => uint256) commission;
 }
 ```

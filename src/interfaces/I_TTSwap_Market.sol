@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.29;
 
-import {toTTSwapUINT256, addsub, subadd} from "../libraries/L_TTSwapUINT256.sol";
 
 /// @title Market Management Interface
 /// @notice Defines the interface for managing market operations
 interface I_TTSwap_Market {
-   
     /// @notice Emitted when a good's configuration is updated
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
@@ -37,22 +35,27 @@ interface I_TTSwap_Market {
     /// @param feeamount The amount of fee collected
     event e_collectProtocolFee(address goodid, uint256 feeamount);
 
-
     /// @notice Emitted when a meta good is created and initialized
     /// @dev The decimal precision of _initial.amount0() defaults to 6
     /// @param _proofNo The ID of the investment proof
     /// @param _goodid A 256-bit value where the first 128 bits represent the good's ID and the last 128 bits represent the stake construct
-    /// @param _construct A 256-bit value where the first 128 bits represent the good's ID and the last 128 bits represent the stake construct
+    /// @param _construct The stake construct of mint tts token
     /// @param _goodConfig The configuration of the meta good (refer to the whitepaper for details)
     /// @param _initial Market initialization parameters: amount0 is the value, amount1 is the quantity
-    event e_initMetaGood(uint256 _proofNo, address _goodid, uint256 _construct, uint256 _goodConfig, uint256 _initial);
+    event e_initMetaGood(
+        uint256 _proofNo,
+        address _goodid,
+        uint256 _construct,
+        uint256 _goodConfig,
+        uint256 _initial
+    );
 
     /// @notice Emitted when a good is created and initialized
     /// @param _proofNo The ID of the investment proof
-    /// @param _goodid A 256-bit value where the first 128 bits represent the good's ID and the last 128 bits represent the stake construct
-    /// @param _construct A 256-bit value where the first 128 bits represent the good's ID and the last 128 bits represent the stake construct
+    /// @param _goodid The ID of the good
     /// @param _valuegoodNo The ID of the good
     /// @param _goodConfig The configuration of the meta good (refer to the whitepaper for details)
+    /// @param _construct The stake construct of mint tts token
     /// @param _normalinitial Normal good initialization parameters: amount0 is the quantity, amount1 is the value
     /// @param _value Value good initialization parameters: amount0 is the investment fee, amount1 is the investment quantity
     event e_initGood(
@@ -72,14 +75,18 @@ interface I_TTSwap_Market {
     /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
     /// @param good2change The status of the bought good (amount0: fee, amount1: quantity)
     event e_buyGood(
-        address indexed sellgood, address indexed forgood, uint256 swapvalue, uint256 good1change, uint256 good2change
+        address indexed sellgood,
+        address indexed forgood,
+        uint256 swapvalue,
+        uint256 good1change,
+        uint256 good2change
     );
 
     /// @notice Emitted when a user invests in a normal good
     /// @param _proofNo The ID of the investment proof
     /// @param _normalgoodid Packed data: first 128 bits for good's ID, last 128 bits for stake construct
     /// @param _valueGoodNo The ID of the value good
-    /// @param _value Investment value (amount0: invest value, amount1: restake construct)
+    /// @param _value Investment value (amount0: virtual invest value, amount1: actual invest value)
     /// @param _invest Normal good investment details (amount0: actual fee, amount1: actual invest quantity)
     /// @param _valueinvest Value good investment details (amount0: actual fee, amount1: actual invest quantity)
     event e_investGood(
@@ -91,7 +98,7 @@ interface I_TTSwap_Market {
         uint256 _valueinvest
     );
 
-    /// @notice Emitted when a user disinvests from a normal good
+    /// @notice Emitted when a user disinvests from  good
     /// @param _proofNo The ID of the investment proof
     /// @param _normalGoodNo The ID of the normal good
     /// @param _valueGoodNo The ID of the value good
@@ -113,17 +120,18 @@ interface I_TTSwap_Market {
         uint256 _valuedisvest
     );
 
-   
     /// @notice Initialize the first good in the market
     /// @param _erc20address The contract address of the good
     /// @param _initial Initial parameters for the good (amount0: value, amount1: quantity)
     /// @param _goodconfig Configuration of the good
     /// @param data Configuration of the good
     /// @return Success status
-    function initMetaGood(address _erc20address, uint256 _initial, uint256 _goodconfig, bytes calldata data)
-        external
-        payable
-        returns (bool);
+    function initMetaGood(
+        address _erc20address,
+        uint256 _initial,
+        uint256 _goodconfig,
+        bytes calldata data
+    ) external payable returns (bool);
 
     /// @notice Initialize a normal good in the market
     /// @param _valuegood The ID of the value good used to measure the normal good's value
@@ -146,9 +154,11 @@ interface I_TTSwap_Market {
      * @dev Buys a good
      * @param _goodid1 The ID of the first good
      * @param _goodid2 The ID of the second good
-     * @param _swapQuantity The quantity to swap
-     * @param _side tradeside
-     * @param _referal The referral address
+     * @param _swapQuantity The amount of _goodid1 to swap
+     *        - amount0: The quantity of the input good
+     *        - amount1: The limit quantity of the output good
+     * @param _side tradeside,0:buy,1:sell
+     * @param _referal when side is buy, _referal is the referral address when side is sell, _referal is the address to receive the fee
      * @return good1change amount0() good1tradefee,good1tradeamount
      * @return good2change amount0() good1tradefee,good2tradeamount
      */
@@ -165,15 +175,19 @@ interface I_TTSwap_Market {
      * @dev check before buy good
      * @param _goodid1 The ID of the first good
      * @param _goodid2 The ID of the second good
-     * @param _swapQuantity The quantity to swap
-     * @param side trade side
+     * @param _swapQuantity The amount of _goodid1 to swap
+     *        - amount0: The quantity of the input good
+     *        - amount1: The limit quantity of the output good
+     * @param side trade side:true:buy,false:sell
      * @return good1change amount0()good1tradeamount,good1tradefee
      * @return good2change amount0()good2tradeamount,good2tradefee
      */
-    function buyGoodCheck(address _goodid1, address _goodid2, uint256 _swapQuantity, bool side)
-        external
-        view
-        returns (uint256 good1change, uint256 good2change);
+    function buyGoodCheck(
+        address _goodid1,
+        address _goodid2,
+        uint256 _swapQuantity,
+        bool side
+    ) external view returns (uint256 good1change, uint256 good2change);
 
     /// @notice Invest in a normal good
     /// @param _togood ID of the normal good to invest in
@@ -194,32 +208,64 @@ interface I_TTSwap_Market {
     /// @param _gate Address of the gate
     /// @return reward1 status
     /// @return reward2 status
-    function disinvestProof(uint256 _proofid, uint128 _goodQuantity, address _gate)
-        external
-        returns (uint128 reward1, uint128 reward2);
+    function disinvestProof(
+        uint256 _proofid,
+        uint128 _goodQuantity,
+        address _gate
+    ) external returns (uint128 reward1, uint128 reward2);
 
     /// @notice Check if the price of a good is higher than a comparison price
     /// @param goodid ID of the good to check
     /// @param valuegood ID of the value good
     /// @param compareprice Price to compare against
     /// @return Whether the good's price is higher
-    function ishigher(address goodid, address valuegood, uint256 compareprice) external view returns (bool);
+    function ishigher(
+        address goodid,
+        address valuegood,
+        uint256 compareprice
+    ) external view returns (bool);
 
-    function getProofState(uint256 proofid) external view returns (S_ProofState memory);
-
-    function getGoodState(address goodkey) external view returns (S_GoodTmpState memory);
+    /// @notice Retrieves the current state of a proof
+    /// @param proofid The ID of the proof to query
+    /// @return proofstate The current state of the proof,
+    ///  currentgood The current good associated with the proof
+    ///  valuegood The value good associated with the proof
+    ///  shares normal good shares, value good shares
+    ///  state Total value, Total actual value
+    ///  invest normal good virtual quantity, normal good actual quantity
+    ///  valueinvest value good virtual quantity, value good actual quantity
+    function getProofState(
+        uint256 proofid
+    ) external view returns (S_ProofState memory);
+    
+    /// @notice Retrieves the current state of a good
+    /// @param good The address of the good to query
+    /// @return goodstate The current state of the good,
+    ///  goodConfig Configuration of the good, check goodconfig.sol or whitepaper for details
+    ///  owner Creator of the good
+    ///  currentState Present investQuantity, CurrentQuantity
+    ///  investState Shares, value
+    function getGoodState(
+        address good
+    ) external view returns (S_GoodTmpState memory);
 
     /// @notice Updates a good's configuration
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
     /// @return Success status
-    function updateGoodConfig(address _goodid, uint256 _goodConfig) external returns (bool);
+    function updateGoodConfig(
+        address _goodid,
+        uint256 _goodConfig
+    ) external returns (bool);
 
     /// @notice Allows market admin to modify a good's attributes
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
     /// @return Success status
-    function modifyGoodConfig(address _goodid, uint256 _goodConfig) external returns (bool);
+    function modifyGoodConfig(
+        address _goodid,
+        uint256 _goodConfig
+    ) external returns (bool);
 
     /// @notice Changes the owner of a good
     /// @param _goodid The ID of the good
@@ -230,69 +276,106 @@ interface I_TTSwap_Market {
     /// @param _goodid Array of good IDs
     function collectCommission(address[] calldata _goodid) external;
 
-    /// @notice Queries commission for specified goods and recipient
-    /// @param _goodid Array of good IDs
-    /// @param _recipent The recipient's address
-    /// @return Array of commission amounts
-    function queryCommission(address[] calldata _goodid, address _recipent) external returns (uint256[] memory);
-
-    
-
+    /**
+     * @dev Queries commission amounts for multiple goods for a specific recipient
+     * @param _goodid Array of good addresses to query commission for
+     * @param _recipent The address to check commission amounts for
+     * @return feeamount Array of commission amounts corresponding to each good
+     * @notice This function:
+     * - Returns commission amounts for up to 100 goods in a single call
+     * - Each amount represents the commission available for the recipient
+     * - Returns 0 for goods where no commission is available
+     * - Maintains gas efficiency by using a fixed array size
+     * @custom:security Reverts if more than 100 goods are queried
+     * @custom:security View function, does not modify state
+     */
+    function queryCommission(
+        address[] calldata _goodid,
+        address _recipent
+    ) external returns (uint256[] memory);
 
     /// @notice Delivers welfare to investors
     /// @param goodid The ID of the good
     /// @param welfare The amount of welfare
-    function goodWelfare(address goodid, uint128 welfare, bytes calldata data1) external payable;
-   
-    function getRecentGoodState(address good1, address good2)
+    function goodWelfare(
+        address goodid,
+        uint128 welfare,
+        bytes calldata data1
+    ) external payable;
+
+    /**
+     * @notice Retrieves the current state of two goods in a single call
+     * @dev Retrieves the current state of two goods in a single call
+     * @param good1 The address of the first good to query
+     * @param good2 The address of the second good to query
+     * @return good1correntstate The current state of the first good, representing its latest trading iteration,amount0:good current value,amount1:good current quantity
+     * @return good2correntstate The current state of the second good, representing its latest trading iteration,amount0:good current value,amount1:good current quantity
+     */
+    function getRecentGoodState(
+        address good1,
+        address good2
+    )
         external
         view
         returns (uint256 good1correntstate, uint256 good2correntstate);
 }
+
 /**
  * @dev Represents the state of a proof
  * @member currentgood The current good  associated with the proof
  * @member valuegood The value good associated with the proof
- * @member shares amount0:normal shares amount1:value shares
- * @member state amount0:total value  : amount1:total actualvalue
- * @member invest amount0:normal shares amount1:actualquantity
- * @member valueinvest amount0:value shares amount1:actualquantity
+ * @member shares amount0:normal good shares amount1:value good shares
+ * @member state amount0:total value : amount1:total actual value
+ * @member invest amount0:normal good virtual quantity amount1:normal good actual quantity
+ * @member valueinvest amount0:value good virtual quantity amount1:value good actual quantity
  */
-
 struct S_ProofState {
     address currentgood;
     address valuegood;
     uint256 shares;
-    uint256 state; 
+    uint256 state;
     uint256 invest;
     uint256 valueinvest;
 }
+
 /**
  * @dev Struct representing the state of a good
+ * @member goodConfig amount0:Configuration of the good, check goodconfig.sol or whitepaper for details  amount1:is total virtual quantity of the good
+ * @member owner Creator of the good
+ * @member currentState Present investQuantity, CurrentQuantity
+ * @member investState Shares, value
  */
-
 struct S_GoodState {
-    uint256 goodConfig; // amount0:Configuration of the good amount1:is total virtual quantity of the good
-    address owner; // Creator of the good 
-    uint256 currentState; // amount0:present investQuantity, amount1:represent CurrentQuantity
-    uint256 investState; // amount0:represent shares, amount1:represent value
+    uint256 goodConfig;
+    address owner;
+    uint256 currentState;
+    uint256 investState;
     mapping(address => uint256) commission;
 }
+
 /**
  * @dev Struct representing a temporary state of a good
+ * @member goodConfig amount0:Configuration of the good, check goodconfig.sol or whitepaper for details  amount1:is total virtual quantity of the good
+ * @member owner Creator of the good
+ * @member currentState Present investQuantity, CurrentQuantity
+ * @member investState Shares, value
  */
- 
+
 struct S_GoodTmpState {
-    uint256 goodConfig; // amount0:Configuration of the good amount1:is total virtual quantity of the good
-    address owner; // Creator of the good 
-    uint256 currentState; // amount0:present investQuantity, amount1:represent CurrentQuantity
-    uint256 investState; // amount0:represent shares, amount1:represent value
+    uint256 goodConfig;
+    address owner;
+    uint256 currentState;
+    uint256 investState;
 }
 
+/**
+ * @dev Struct representing a key of a proof
+ * @member owner The owner of the proof
+ * @member currentgood The current good associated with the proof
+ * @member valuegood The value good associated with the proof
+ */
 struct S_ProofKey {
     address owner;
     address currentgood;
     address valuegood;
 }
-
-

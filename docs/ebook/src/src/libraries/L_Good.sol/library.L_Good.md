@@ -7,7 +7,7 @@ This library provides functions for investing, disinvesting, swapping, and fee m
 ## Functions
 ### updateGoodConfig
 
-Update the good configuration
+Update the good configuration only goodowner
 
 *Preserves the top 33 bits of the existing config and updates the rest*
 
@@ -21,6 +21,24 @@ function updateGoodConfig(S_GoodState storage _self, uint256 _goodConfig) intern
 |----|----|-----------|
 |`_self`|`S_GoodState`|Storage pointer to the good state|
 |`_goodConfig`|`uint256`|New configuration value to be applied|
+
+
+### modifyGoodConfig
+
+Modify the good configuration
+
+*This function modifies the good configuration by preserving the top 33 bits and updating the rest*
+
+
+```solidity
+function modifyGoodConfig(S_GoodState storage _self, uint256 _goodconfig) internal;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_self`|`S_GoodState`|Storage pointer to the good state|
+|`_goodconfig`|`uint256`|The new configuration value to be applied|
 
 
 ### init
@@ -50,32 +68,30 @@ Compute the swap result from good1 to good2
 
 
 ```solidity
-function swapCompute1(swapCache memory _stepCache, uint256 _limitPrice) internal pure;
+function swapCompute1(swapCache memory _stepCache) internal pure;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`_stepCache`|`swapCache`|A cache structure containing swap state and configurations|
-|`_limitPrice`|`uint256`|The price limit for the swap|
 
 
 ### swapCompute2
 
-Compute the swap result from good2 to good1
+Compute the swap result from good1 to good2
 
 *Implements a complex swap algorithm considering price limits, fees, and minimum swap amounts*
 
 
 ```solidity
-function swapCompute2(swapCache memory _stepCache, uint256 _limitPrice) internal pure;
+function swapCompute2(swapCache memory _stepCache) internal pure;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`_stepCache`|`swapCache`|A cache structure containing swap state and configurations|
-|`_limitPrice`|`uint256`|The price limit for the swap|
 
 
 ### swapCommit
@@ -86,7 +102,7 @@ Commit the result of a swap operation to the good's state
 
 
 ```solidity
-function swapCommit(S_GoodState storage _self, uint256 _swapstate, uint128 _fee) internal;
+function swapCommit(S_GoodState storage _self, uint256 _swapstate) internal;
 ```
 **Parameters**
 
@@ -94,7 +110,6 @@ function swapCommit(S_GoodState storage _self, uint256 _swapstate, uint128 _fee)
 |----|----|-----------|
 |`_self`|`S_GoodState`|Storage pointer to the good state|
 |`_swapstate`|`uint256`|The new state of the good after the swap|
-|`_fee`|`uint128`|The fee amount collected from the swap|
 
 
 ### investGood
@@ -105,15 +120,21 @@ Invest in a good
 
 
 ```solidity
-function investGood(S_GoodState storage _self, uint128 _invest, S_GoodInvestReturn memory investResult_) internal;
+function investGood(
+    S_GoodState storage _self,
+    uint128 _invest,
+    S_GoodInvestReturn memory investResult_,
+    uint128 enpower
+) internal;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`_self`|`S_GoodState`|Storage pointer to the good state|
-|`_invest`|`uint128`|Amount to invest|
+|`_invest`|`uint128`|Amount to invest actual quantity|
 |`investResult_`|`S_GoodInvestReturn`||
+|`enpower`|`uint128`||
 
 
 ### disinvestGood
@@ -134,7 +155,7 @@ function disinvestGood(
     returns (
         S_GoodDisinvestReturn memory normalGoodResult1_,
         S_GoodDisinvestReturn memory valueGoodResult2_,
-        uint128 disinvestvalue
+        uint256 disinvestvalue
     );
 ```
 **Parameters**
@@ -152,44 +173,7 @@ function disinvestGood(
 |----|----|-----------|
 |`normalGoodResult1_`|`S_GoodDisinvestReturn`|Struct containing disinvestment results for the main good|
 |`valueGoodResult2_`|`S_GoodDisinvestReturn`|Struct containing disinvestment results for the value good (if applicable)|
-|`disinvestvalue`|`uint128`|The total value being disinvested|
-
-
-### collectGoodFee
-
-Collect fees for a good and its associated value good
-
-*This function handles the process of collecting fees for a good and its associated value good, if applicable*
-
-
-```solidity
-function collectGoodFee(
-    S_GoodState storage _self,
-    S_GoodState storage _valuegood,
-    S_ProofState storage _investProof,
-    address _gater,
-    address _referral,
-    uint256 _marketconfig,
-    address _marketcreator
-) internal returns (uint256 profit);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_self`|`S_GoodState`|Storage pointer to the main good state|
-|`_valuegood`|`S_GoodState`|Storage pointer to the value good state (if applicable)|
-|`_investProof`|`S_ProofState`|Storage pointer to the investment proof state|
-|`_gater`|`address`|The address of the gater (if applicable)|
-|`_referral`|`address`|The address of the referrer (if applicable)|
-|`_marketconfig`|`uint256`|The market configuration|
-|`_marketcreator`|`address`|The address of the market creator|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`profit`|`uint256`|The total profit collected|
+|`disinvestvalue`|`uint256`|The total value being disinvested|
 
 
 ### allocateFee
@@ -203,10 +187,8 @@ Allocate fees to various parties
 function allocateFee(
     S_GoodState storage _self,
     uint128 _profit,
-    uint256 _marketconfig,
     address _gater,
     address _referral,
-    address _marketcreator,
     uint128 _divestQuantity
 ) private;
 ```
@@ -216,47 +198,9 @@ function allocateFee(
 |----|----|-----------|
 |`_self`|`S_GoodState`|Storage pointer to the good state|
 |`_profit`|`uint128`|The total profit to be allocated|
-|`_marketconfig`|`uint256`|The market configuration|
 |`_gater`|`address`|The address of the gater (if applicable)|
 |`_referral`|`address`|The address of the referrer (if applicable)|
-|`_marketcreator`|`address`|The address of the market creator|
 |`_divestQuantity`|`uint128`|The quantity of goods being divested (if applicable)|
-
-
-### modifyGoodConfig
-
-Modify the good configuration
-
-*This function modifies the good configuration by preserving the top 33 bits and updating the rest*
-
-
-```solidity
-function modifyGoodConfig(S_GoodState storage _self, uint256 _goodconfig) internal;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_self`|`S_GoodState`|Storage pointer to the good state|
-|`_goodconfig`|`uint256`|The new configuration value to be applied|
-
-
-### fillFee
-
-fill good
-
-*Preserves the top 33 bits of the existing config and updates the rest*
-
-
-```solidity
-function fillFee(S_GoodState storage _self, uint256 _fee) internal;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_self`|`S_GoodState`|Storage pointer to the good state|
-|`_fee`|`uint256`|New configuration value to be applied|
 
 
 ## Structs
@@ -270,6 +214,8 @@ struct swapCache {
     uint128 outputQuantity;
     uint128 feeQuantity;
     uint128 swapvalue;
+    uint128 good1value;
+    uint128 good2value;
     uint256 good1currentState;
     uint256 good1config;
     uint256 good2currentState;
@@ -285,10 +231,14 @@ Struct to hold the return values of an investment operation
 
 ```solidity
 struct S_GoodInvestReturn {
-    uint128 actualFeeQuantity;
-    uint128 constructFeeQuantity;
-    uint128 actualInvestValue;
-    uint128 actualInvestQuantity;
+    uint128 investFeeQuantity;
+    uint128 investShare;
+    uint128 investValue;
+    uint128 investQuantity;
+    uint128 goodShares;
+    uint128 goodValues;
+    uint128 goodInvestQuantity;
+    uint128 goodCurrentQuantity;
 }
 ```
 
@@ -302,6 +252,8 @@ Struct to hold the return values of a disinvestment operation
 struct S_GoodDisinvestReturn {
     uint128 profit;
     uint128 actual_fee;
+    uint128 shares;
+    uint128 vitualDisinvestQuantity;
     uint128 actualDisinvestQuantity;
 }
 ```
@@ -314,11 +266,9 @@ Struct to hold the parameters for a disinvestment operation
 
 ```solidity
 struct S_GoodDisinvestParam {
-    uint128 _goodQuantity;
+    uint128 _goodshares;
     address _gater;
     address _referral;
-    uint256 _marketconfig;
-    address _marketcreator;
 }
 ```
 

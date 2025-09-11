@@ -8,7 +8,6 @@ struct S_GoodTmpState {
     address owner;
     uint256 currentState;
     uint256 investState;
-    uint256 feeQuantityState;
 }
 ```
 

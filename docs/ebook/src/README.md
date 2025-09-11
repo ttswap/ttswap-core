@@ -3,34 +3,32 @@ TTSWAP (token-token swap) protocol is a decentralized automated market-making pr
 The whitepaper explains the design logic of the ttswap project, covering principles and implementations of goods trading, investment, and withdrawal of value goods, as well as ordinary goods investment and withdrawal, and the generation and distribution of goods transaction fees.
 
 # 2 Features
-***Value Conservation Trading Strategy***
+1. ***Value Conservation Trading Strategy***
 The value conservation trading strategy accurately reflects the true market value of currencies and facilitates fast goods transactions.
 
-1. Direct Trading without Intermediaries
+1. ***Direct Trading without Intermediaries***
 On this platform, any two types of items can be directly traded without the need for intermediate conversions.
 
-2. No Slippage within Trading Threshold
-Transactions below the goods trading threshold incur no slippage.
+1. ***Lower Slippage with Strengthened & Concentrated Invest***
+Through stengthened and concentrated invest, reduce the slippage more then 50%.
 
-3. No Impermanent Loss for Liquidity Providers or goods Investors
+1. ***No Impermanent Loss for Liquidity Providers or goods Investors***
 Constant market value inherently prevents impermanent loss. When users withdraw their investment, they receive the original invested goods plus profits generated from providing liquidity.
 
-4. Low Gas Fees with Simple Computational Logic
+1. ***Low Gas Fees with Simple Computational Logic***
 The logic behind the constant value trading model is simple, resulting in low computational load and gas consumption.
 
-5. Fee Distribution Based on Roles for Everyone
+1. ***Fee Distribution Based on Roles for Everyone***
 Fees are distributed based on roles, allowing anyone to become a goods investor (liquidity provider), goods seller, gater, referrer, user, or platform role, sharing in the platform's growth earnings.
 
-6. Support Native ETH Exchange and Invest
+1. ***Support Native ETH Exchange and Invest***
 anyone can you native ETH without wrap to swap, invest easily.
 
-7. Support customize goods' trigger
-the trigger can be trigge when the customer's swap,invest,divest.
 
-8. Support customer restaking TTS token
+7. ***Support customer restaking TTS token***
 when customer invest good, the protocol will auto restake tts token for customer.
 
-9.  Community-Driven Developement and Innovation
+8. ***Community-Driven Developement and Innovation***
 ttswap emphasizes a community-driven approach to development and innovation. Since its code release, there has been active community engagement, with many issues, pull requests, and unique feature ideas contributed by users. The protocol is designed to encourage innovation, allowing the global community to shape the future of AMMs.
 # 3. Contributing
 
@@ -44,14 +42,6 @@ A more detailed description of ttswap Core can be found in the draft of the [TTS
 
 `ttswap-core` uses a singleton-style architecture, where all goods state is managed in the `MarketManager.sol` contract.
 
-the contract devide four part:
-
-Part 1: the action relate to good'initial ,goods investing (stake or add liquidity),goods disinvestint (unstake or remove liquidity),goods swaping , or disinvesting proof ( burn stake proof or liquidity position )  are defined in marketmanager.sol.
-
-Part 2: the action relate goods config , collect fee of goods , good's attribute defined in goodmanage.sol.
-
-Part 3: because proof is ERC721 standard, and it's define in proofmanage.sol
-
 # 6. Repository Structure && License
 
 All contracts are held within the `ttswap-core/Contracts` folder.
@@ -61,25 +51,21 @@ Note  but all foundry tests are in the `ttswap-core/test` folder.
 ```markdown
 Contract
 ├── TTSwap_Market.sol(BUSL-1.1)  
-├── TTSwap_NFT.sol(BUSL-1.1)  
 ├── TTSwap_Token.sol(BUSL-1.1)
-├── TTSwap_MainTrigger.sol(BUSL-1.1)  
 ├── interfaces  
-│   ├── I_TTSwap_Market.sol(MIT)  
-│   ├── I_TTSwap_Token.sol(MIT)  
-│   ├── I_TTSwap_NFT.sol(MIT)  
-│   ├── I_TTSwap_MainTrigger.sol(MIT)  
-│   └── I_TTSwap_APP.sol(MIT)   
-└── libraries      
+│   ├── I_TTSwap_Market.sol(MIT)   
+│   └── I_TTSwap_Token.sol(MIT)    
+└── libraries           
+   ├── L_Currency.sol (MIT)    
+   ├── L_Error.sol (MIT)     
    ├── L_Good.sol(BUSL-1.1)    
    ├── L_GoodConfig.sol(MIT)     
    ├── L_MarketConfig.sol(MIT)    
    ├── L_Proof.sol(BUSL-1.1)   
+   ├── L_Transient.sol (MIT)  
+   ├── L_TTSTokenConfig.sol (MIT)     
    ├── L_TTSwapUINT256.sol (MIT)     
-   ├── L_Currency.sol (MIT)       
-   ├── L_Struct.sol (MIT)     
-   ├── L_Lock.sol (MIT)     
-   └── L_TTSTokenConfig.sol(MIT)    
+   └── L_UserConfig.sol(MIT)    
 docs
 ├── ebook
 ├── whitepaper-cn
@@ -121,53 +107,12 @@ contract MyPortal  {
 }
 ```
 
-# 8. Every goods'owner can design a good trigger
-
-## 8.1. Design the contract
-
-```solidity
-import {I_TTSwap_APP} from 'ttswap-core/contracts/interfaces/I_TTSwap_APP.sol';
-
-contract MygoodTrigger is  I_TTSwap_APP {
-    function swaptake(
-        uint256 opgood,
-        uint256 trade,
-        uint256 currentstate,
-        uint256 opstate,
-        address recipent
-    ) external override returns (bool) {}
-
-    function swapmake(
-        uint256 opgood,
-        uint256 trade,
-        uint256 currentstate,
-        uint256 opstate,
-        address recipent
-    ) external override returns (bool) {}
-
-    function invest(
-        uint256 investquanity,
-        uint256 currentstate,
-        address recipent
-    ) external override returns (bool) {}
-
-    function divest(
-        uint256 divestquanity,
-        uint256 currentstate,
-        address recipent
-    ) external override returns (bool) {}
-}
-```
-## 8.2. Update good config and add trigger to good
-go to the profile page in the website , update the goodconfig and add the triger to the goods;
-
-# 9. User deploy local instruction only can be for study 
+# 8. Deploy local instruction only for study 
 step 1:instrall forge  
-step 2:forge install OpenZeppelin/openzeppelin-contracts@v4.9.6  
-step 3:forge install marktoda/forge-gas-snapshot  
+step 2:forge install permit2  
 
 
-# 10. Socials / Contract
+# 9. Socials / Contract
 Twitter:[ttswap_exchange](https://x.com/ttswap_exchange)  
 Telegram:[@ttswap01](https://t.me/ttswap01)  
 Email:[ttswap.exchange@gmail.com](mailto:ttswap.exchange@gmail.com)  

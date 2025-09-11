@@ -3,17 +3,10 @@
 
 
 ## State Variables
-### NATIVE
+### defualtvalue
 
 ```solidity
-address public constant NATIVE = address(1);
-```
-
-
-### simplepermit
-
-```solidity
-address public constant simplepermit = address(2);
+bytes constant defualtvalue = bytes("");
 ```
 
 
@@ -29,14 +22,21 @@ function balanceof(address token, address _sender) internal view returns (uint25
 
 
 ```solidity
-function transferFrom(address token, address from, address to, uint256 amount, bytes memory detail) internal;
+function transferFrom(address token, address from, address to, uint256 amount, bytes calldata detail) internal;
 ```
 
 ### transferFrom
 
 
 ```solidity
-function transferFrom(address token, address from, uint256 amount, bytes memory trandata) internal;
+function transferFrom(address token, address from, uint256 amount, bytes calldata trandata) internal;
+```
+
+### transferFromInter
+
+
+```solidity
+function transferFromInter(address currency, address from, address to, uint256 amount) internal;
 ```
 
 ### safeTransfer
@@ -53,13 +53,27 @@ function safeTransfer(address currency, address to, uint256 amount) internal;
 function isNative(address currency) internal pure returns (bool);
 ```
 
-## Errors
-### NativeTransferFailed
-Thrown when a native transfer fails
+### to_uint160
 
 
 ```solidity
-error NativeTransferFailed();
+function to_uint160(uint256 amount) internal pure returns (uint160);
+```
+
+### to_uint256
+
+
+```solidity
+function to_uint256(address amount) internal pure returns (uint256 a);
+```
+
+## Errors
+### NativeETHTransferFailed
+Thrown when an ERC20 transfer fails
+
+
+```solidity
+error NativeETHTransferFailed();
 ```
 
 ### ERC20TransferFailed
@@ -70,24 +84,40 @@ Thrown when an ERC20 transfer fails
 error ERC20TransferFailed();
 ```
 
-## Structs
-### SimplePermit
+### ERC20PermitFailed
+Thrown when an ERC20Permit transfer fails
+
 
 ```solidity
-struct SimplePermit {
-    uint8 transfertype;
-    bytes detail;
-}
+error ERC20PermitFailed();
 ```
 
+### ApproveFailed
+
+```solidity
+error ApproveFailed();
+```
+
+## Structs
 ### S_Permit
 
 ```solidity
 struct S_Permit {
-    address owner;
-    address spender;
     uint256 value;
     uint256 deadline;
+    uint8 v;
+    bytes32 r;
+    bytes32 s;
+}
+```
+
+### S_Permit2
+
+```solidity
+struct S_Permit2 {
+    uint256 value;
+    uint256 deadline;
+    uint256 nonce;
     uint8 v;
     bytes32 r;
     bytes32 s;
@@ -99,7 +129,7 @@ struct S_Permit {
 ```solidity
 struct S_transferData {
     uint8 transfertype;
-    bytes transdata;
+    bytes sigdata;
 }
 ```
 

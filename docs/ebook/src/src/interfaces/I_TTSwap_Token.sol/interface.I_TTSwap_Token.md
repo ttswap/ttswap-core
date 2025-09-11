@@ -3,64 +3,265 @@ Contains a series of interfaces for goods
 
 
 ## Functions
-### dao_admin
+### usershares
 
-*Returns the address of the DAO admin*
+*Returns the share information for a given user address.*
 
 
 ```solidity
-function dao_admin() external view returns (address _dao_admin);
+function usershares(address user) external view returns (s_share memory);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`user`|`address`|The address to query for share information.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`s_share`|The s_share struct containing the user's share details.|
+
+
+### stakestate
+
+*Returns the current staking state.*
+
+
+```solidity
+function stakestate() external view returns (uint256);
 ```
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_dao_admin`|`address`|Returns the address of the DAO admin|
+|`<none>`|`uint256`|The staking state as a uint256 value.|
 
 
-### marketcontract
+### poolstate
 
-*Returns the address of the market contract*
+*Returns the current pool state.*
 
 
 ```solidity
-function marketcontract() external view returns (address _marketcontract);
+function poolstate() external view returns (uint256);
 ```
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_marketcontract`|`address`|Returns the address of marketcontract|
+|`<none>`|`uint256`|The pool state as a uint256 value.|
 
 
-### normalgoodid
+### ttstokenconfig
 
-*Returns the ID of the normal good*
+*Returns the TTS token configuration value.*
 
 
 ```solidity
-function normalgoodid() external view returns (address _normalgoodid);
+function ttstokenconfig() external view returns (uint256);
 ```
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_normalgoodid`|`address`|Returns the id of normalgood|
+|`<none>`|`uint256`|The configuration as a uint256 value.|
 
 
-### valuegoodid
+### left_share
 
-*Returns the ID of the value good*
+*Returns the amount of left share available for minting.*
 
 
 ```solidity
-function valuegoodid() external view returns (address _valuegoodid);
+function left_share() external view returns (uint128);
 ```
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_valuegoodid`|`address`|Returns the id of the valuegoodid|
+|`<none>`|`uint128`|The left share as a uint128 value.|
+
+
+### stakeproofinfo
+
+*Returns the stake proof information for a given index.*
+
+
+```solidity
+function stakeproofinfo(uint256 index) external view returns (s_proof memory);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`index`|`uint256`|The index to query for stake proof information.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`s_proof`|The s_proof struct containing the stake proof details.|
+
+
+### setRatio
+
+*Sets the trading volume ratio for the protocol.*
+
+
+```solidity
+function setRatio(uint256 _ratio) external;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_ratio`|`uint256`|The new ratio value (max 10000).|
+
+
+### setDAOAdmin
+
+*Grants or revokes DAO admin privileges to a recipient address.*
+
+
+```solidity
+function setDAOAdmin(address _recipient, bool result) external;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke DAO admin rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setTokenAdmin
+
+*Grants or revokes Token admin privileges to a recipient address.*
+
+
+```solidity
+function setTokenAdmin(address _recipient, bool result) external;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Token admin rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setTokenManager
+
+*Grants or revokes Token manager privileges to a recipient address.*
+
+
+```solidity
+function setTokenManager(address _recipient, bool result) external;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Token manager rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setCallMintTTS
+
+*Grants or revokes permission to call mintTTS to a recipient address.*
+
+
+```solidity
+function setCallMintTTS(address _recipient, bool result) external;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke permission.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setMarketAdmin
+
+*Grants or revokes Market admin privileges to a recipient address.*
+
+
+```solidity
+function setMarketAdmin(address _recipient, bool result) external;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Market admin rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setMarketManager
+
+*Grants or revokes Market manager privileges to a recipient address.*
+
+
+```solidity
+function setMarketManager(address _recipient, bool result) external;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Market manager rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setStakeAdmin
+
+*Grants or revokes Stake admin privileges to a recipient address.*
+
+
+```solidity
+function setStakeAdmin(address _recipient, bool result) external;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Stake admin rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setStakeManager
+
+*Grants or revokes Stake manager privileges to a recipient address.*
+
+
+```solidity
+function setStakeManager(address _recipient, bool result) external;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Stake manager rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setBan
+
+*Sets or unsets a ban on a recipient address, restricting their access.*
+
+
+```solidity
+function setBan(address _recipient, bool result) external;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to ban or unban.|
+|`result`|`bool`|Boolean indicating whether to ban (true) or unban (false) the address.|
 
 
 ### publicsell
@@ -78,34 +279,13 @@ function publicsell() external view returns (uint128 _publicsell);
 |`_publicsell`|`uint128`|Returns the amount of TTS available for public sale|
 
 
-### referrals
-
-*Returns the referrer address for a given user*
-
-
-```solidity
-function referrals(address _recipent) external view returns (address _referral);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_recipent`|`address`|user's address|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_referral`|`address`|Returns the referrer address for a given user|
-
-
-### auths
+### userConfig
 
 *Returns the authorization level for a given address*
 
 
 ```solidity
-function auths(address recipent) external view returns (uint256 _auth);
+function userConfig(address recipent) external view returns (uint256 _auth);
 ```
 **Parameters**
 
@@ -122,24 +302,17 @@ function auths(address recipent) external view returns (uint256 _auth);
 
 ### setEnv
 
-
-```solidity
-function setEnv(address _normalgoodid, address _valuegoodid, address _marketcontract) external;
-```
-
-### changeDAOAdmin
-
-*Changes the DAO admin to the specified recipient address*
+*Sets the environment variables for normal good ID, value good ID, and market contract address*
 
 
 ```solidity
-function changeDAOAdmin(address _recipient) external;
+function setEnv(address _marketcontract) external;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_recipient`|`address`|user's address|
+|`_marketcontract`|`address`|The address of the market contract|
 
 
 ### addShare
@@ -156,13 +329,14 @@ Emits an e_addShare event with the share details
 
 
 ```solidity
-function addShare(s_share calldata _share) external;
+function addShare(s_share calldata _share, address owner) external;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`_share`|`s_share`|The share structure containing recipient, amount, metric, and chips|
+|`owner`|`address`||
 
 
 ### burnShare
@@ -171,43 +345,38 @@ function addShare(s_share calldata _share) external;
 
 
 ```solidity
-function burnShare(uint8 index) external;
+function burnShare(address owner) external;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`index`|`uint8`|index of share|
+|`owner`|`address`|owner of share|
 
 
 ### shareMint
 
-*Mints a share at the specified index*
+*Mints a share at the specified*
 
 
 ```solidity
-function shareMint(uint8 index) external;
+function shareMint() external;
 ```
-**Parameters**
 
-|Name|Type|Description|
-|----|----|-----------|
-|`index`|`uint8`|index of share|
-
-
-### public_Sell
+### publicSell
 
 *how much cost to buy tts*
 
 
 ```solidity
-function public_Sell(uint256 usdtamount) external;
+function publicSell(uint256 usdtamount, bytes calldata data) external;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`usdtamount`|`uint256`|usdt amount|
+|`data`|`bytes`||
 
 
 ### withdrawPublicSell
@@ -226,159 +395,28 @@ function withdrawPublicSell(uint256 amount, address recipent) external;
 |`recipent`|`address`|user's address|
 
 
-### syncChainStake
-
-*Synchronizes the chain stake and returns the pool asset value*
-
-
-```solidity
-function syncChainStake(uint32 chainid, uint128 chainvalue) external returns (uint128 poolasset);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`chainid`|`uint32`| the chain's id|
-|`chainvalue`|`uint128`|the chain's stake value|
-
-
-### syncPoolAsset
-
-*Synchronizes the pool asset with the specified amount to the subchain in stakepool*
-
-
-```solidity
-function syncPoolAsset(uint128 amount) external;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`amount`|`uint128`|the  amount will be Synchronizes|
-
-
-### chain_withdraw
-
-*Withdraws the specified asset from the subchain to the recipient*
-
-
-```solidity
-function chain_withdraw(uint32 chainid, uint128 asset) external;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`chainid`|`uint32`|the subchain id|
-|`asset`|`uint128`|the asset amount will be withdraw|
-
-
-### chain_deposit
-
-*Deposit the specified asset from the subchain to the recipient*
-
-
-```solidity
-function chain_deposit(uint32 chainid, uint128 asset) external;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`chainid`|`uint32`|the subchain id|
-|`asset`|`uint128`|the asset amount will be deposit|
-
-
-### subchainWithdraw
-
-*Withdraws the specified asset from the subchain to the recipient*
-
-
-```solidity
-function subchainWithdraw(uint128 asset, address recipient) external;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`asset`|`uint128`|the asset amount will be withdraw|
-|`recipient`|`address`|the asset owner|
-
-
-### subchainDeposit
-
-*Deposits the specified asset to the subchain for the recipient*
-
-
-```solidity
-function subchainDeposit(uint128 asset, address recipient) external;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`asset`|`uint128`|the asset amount will be deposit|
-|`recipient`|`address`|the receiver|
-
-
 ### burn
 
 *Burns the specified value of tokens from the given account*
 
 
 ```solidity
-function burn(address account, uint256 value) external;
+function burn(uint256 value) external;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`account`|`address`|the given account|
 |`value`|`uint256`|the amount will be burned|
 
 
-### addauths
-
-Only the DAO admin can call this function
-
-*Adds or updates authorization for an address*
-
-
-```solidity
-function addauths(address _auths, uint256 _priv) external;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_auths`|`address`|The address to authorize|
-|`_priv`|`uint256`|The privilege level to assign|
-
-
-### rmauths
-
-Only the DAO admin can call this function
-
-*Removes authorization from an address*
-
-
-```solidity
-function rmauths(address _auths) external;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_auths`|`address`|The address to remove authorization from|
-
-
-### addreferral
+### setReferral
 
 Add a referral relationship
 
 
 ```solidity
-function addreferral(address user, address referral) external;
+function setReferral(address user, address referral) external;
 ```
 **Parameters**
 
@@ -426,13 +464,13 @@ function unstake(address staker, uint128 proofvalue) external;
 |`proofvalue`|`uint128`|The proof value for unstaking|
 
 
-### getreferralanddaoadmin
+### getreferral
 
 Get the DAO admin and referral for a customer
 
 
 ```solidity
-function getreferralanddaoadmin(address _customer) external view returns (address dba_admin, address referral);
+function getreferral(address _customer) external view returns (address referral);
 ```
 **Parameters**
 
@@ -444,91 +482,100 @@ function getreferralanddaoadmin(address _customer) external view returns (addres
 
 |Name|Type|Description|
 |----|----|-----------|
-|`dba_admin`|`address`|The address of the DAO admin|
 |`referral`|`address`|The address of the referrer|
 
 
-## Events
-### e_addreferral
-Emitted when a referral is added
+### permitShare
+
+*Permits a share to be transferred*
 
 
 ```solidity
-event e_addreferral(address users, address referral);
+function permitShare(s_share memory _share, uint128 dealline, bytes calldata signature, address signer) external;
 ```
-
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`users`|`address`|The address of the user|
-|`referral`|`address`|The address of the referrer|
+|`_share`|`s_share`|The share structure containing recipient, amount, metric, and chips|
+|`dealline`|`uint128`|The deadline for the share transfer|
+|`signature`|`bytes`|The signature of the share transfer|
+|`signer`|`address`|The address of the signer|
 
+
+### shareHash
+
+*Calculates the hash of a share transfer*
+
+
+```solidity
+function shareHash(s_share memory _share, address owner, uint128 leftamount, uint128 deadline, uint256 nonce)
+    external
+    pure
+    returns (bytes32);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_share`|`s_share`|The share structure containing recipient, amount, metric, and chips|
+|`owner`|`address`|The address of the owner|
+|`leftamount`|`uint128`|The amount of left share|
+|`deadline`|`uint128`|The deadline for the share transfer|
+|`nonce`|`uint256`||
+
+
+## Events
 ### e_setenv
 Emitted when environment variables are set
 
 
 ```solidity
-event e_setenv(address normalgoodid, address valuegoodid, address marketcontract);
+event e_setenv(address marketcontract);
 ```
 
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`normalgoodid`|`address`|The ID of the normal good|
-|`valuegoodid`|`address`|The ID of the value good|
 |`marketcontract`|`address`|The address of the market contract|
 
-### e_setdaoadmin
-Emitted when a DAO admin is set
+### e_updateUserConfig
+Emitted when user config is updated
 
 
 ```solidity
-event e_setdaoadmin(address recipient);
+event e_updateUserConfig(address user, uint256 config);
 ```
 
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`recipient`|`address`|The address of the new DAO admin|
+|`user`|`address`|The address of the user|
+|`config`|`uint256`|The new config value|
 
-### e_addauths
-Emitted when authorizations are added
+### e_addreferral
+Emitted when a referral relationship is added
 
 
 ```solidity
-event e_addauths(address auths, uint256 priv);
+event e_addreferral(address user, address referal);
 ```
 
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`auths`|`address`|The address being authorized|
-|`priv`|`uint256`|The privilege level being granted|
-
-### e_rmauths
-Emitted when authorizations are removed
-
-
-```solidity
-event e_rmauths(address auths);
-```
-
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`auths`|`address`|The address being deauthorized|
+|`user`|`address`|The address of the user being referred|
+|`referal`|`address`||
 
 ### e_addShare
 Emitted when minting is added
 
 
 ```solidity
-event e_addShare(address recipient, uint256 leftamount, uint120 metric, uint8 chips, uint32 index);
+event e_addShare(address recipient, uint128 leftamount, uint120 metric, uint8 chips);
 ```
 
 **Parameters**
@@ -536,31 +583,30 @@ event e_addShare(address recipient, uint256 leftamount, uint120 metric, uint8 ch
 |Name|Type|Description|
 |----|----|-----------|
 |`recipient`|`address`|The address receiving the minted tokens|
-|`leftamount`|`uint256`|The remaining amount to be minted|
+|`leftamount`|`uint128`|The remaining amount to be minted|
 |`metric`|`uint120`|The metric used for minting|
 |`chips`|`uint8`|The number of chips|
-|`index`|`uint32`|The index of the minting operation|
 
 ### e_burnShare
 Emitted when minting is burned
 
 
 ```solidity
-event e_burnShare(uint32 index);
+event e_burnShare(address owner);
 ```
 
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`index`|`uint32`|The index of the minting operation being burned|
+|`owner`|`address`|The index of the minting operation being burned|
 
 ### e_shareMint
 Emitted when DAO minting occurs
 
 
 ```solidity
-event e_shareMint(uint128 mintamount, uint32 index);
+event e_shareMint(uint128 mintamount, address owner);
 ```
 
 **Parameters**
@@ -568,7 +614,7 @@ event e_shareMint(uint128 mintamount, uint32 index);
 |Name|Type|Description|
 |----|----|-----------|
 |`mintamount`|`uint128`|The amount being minted|
-|`index`|`uint32`|The index of the minting operation|
+|`owner`|`address`|The index of the minting operation|
 
 ### e_publicsell
 Emitted during a public sale
@@ -601,12 +647,12 @@ event e_syncChainStake(uint32 chain, uint128 poolasset, uint256 proofstate);
 |`poolasset`|`uint128`|The pool asset value|
 |`proofstate`|`uint256`| The value of the pool|
 
-### e_unstake
+### e_stakeinfo
 Emitted when unstaking occurs
 
 
 ```solidity
-event e_unstake(address recipient, uint256 proofvalue, uint256 unstakestate, uint256 stakestate, uint256 poolstate);
+event e_stakeinfo(address recipient, uint256 proofvalue, uint256 unstakestate, uint256 stakestate, uint256 poolstate);
 ```
 
 **Parameters**
@@ -632,4 +678,18 @@ event e_updatepool(uint256 poolstate);
 |Name|Type|Description|
 |----|----|-----------|
 |`poolstate`|`uint256`|The new state of the pool|
+
+### e_updatettsconfig
+Emitted when the pool state is updated
+
+
+```solidity
+event e_updatettsconfig(uint256 ttsconfig);
+```
+
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`ttsconfig`|`uint256`|The new state of the pool|
 

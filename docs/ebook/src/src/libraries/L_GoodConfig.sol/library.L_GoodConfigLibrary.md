@@ -47,27 +47,68 @@ function isnormalgood(uint256 config) internal pure returns (bool a);
 |`a`|`bool`|True if it's a normal good, false otherwise|
 
 
-### getFlashFee
-
-Calculate the investment fee for a given amount
+### isFreeze
 
 
 ```solidity
-function getFlashFee(uint256 config, uint256 amount) internal pure returns (uint256 a);
+function isFreeze(uint256 config) internal pure returns (bool a);
 ```
-**Parameters**
 
-|Name|Type|Description|
-|----|----|-----------|
-|`config`|`uint256`|The configuration value|
-|`amount`|`uint256`|The investment amount|
+### getLiquidFee
 
-**Returns**
 
-|Name|Type|Description|
-|----|----|-----------|
-|`a`|`uint256`|The calculated investment fee|
+```solidity
+function getLiquidFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+```
 
+### getOperatorFee
+
+
+```solidity
+function getOperatorFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+```
+
+### getGateFee
+
+
+```solidity
+function getGateFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+```
+
+### getReferFee
+
+
+```solidity
+function getReferFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+```
+
+### getCustomerFee
+
+
+```solidity
+function getCustomerFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+```
+
+### getPlatformFee128
+
+
+```solidity
+function getPlatformFee128(uint256 config, uint256 amount) internal pure returns (uint128 a);
+```
+
+### getPlatformFee256
+
+
+```solidity
+function getPlatformFee256(uint256 config, uint256 amount) internal pure returns (uint256 a);
+```
+
+### getLimitPower
+
+
+```solidity
+function getLimitPower(uint256 config) internal pure returns (uint128 a);
+```
 
 ### getInvestFee
 
@@ -164,13 +205,13 @@ function getSellFee(uint256 config, uint256 amount) internal pure returns (uint1
 |`a`|`uint128`|The calculated selling fee|
 
 
-### getSwapChips
+### getPowerBig
 
 Get the swap chips for a given amount
 
 
 ```solidity
-function getSwapChips(uint256 config, uint128 amount) internal pure returns (uint128);
+function getPowerBig(uint256 config, uint128 amount) internal pure returns (uint128);
 ```
 **Parameters**
 
@@ -178,6 +219,49 @@ function getSwapChips(uint256 config, uint128 amount) internal pure returns (uin
 |----|----|-----------|
 |`config`|`uint256`|The configuration value|
 |`amount`|`uint128`|The amount|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint128`|The swap chips for the given amount|
+
+
+### getPowerLow
+
+Get the swap chips for a given amount
+
+
+```solidity
+function getPowerLow(uint256 config, uint128 amount) internal pure returns (uint128);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`config`|`uint256`|The configuration value|
+|`amount`|`uint128`|The amount|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`uint128`|The swap chips for the given amount|
+
+
+### getPower
+
+Get the swap chips for a given amount
+
+
+```solidity
+function getPower(uint256 config) internal pure returns (uint128);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`config`|`uint256`|The configuration value|
 
 **Returns**
 
@@ -207,4 +291,11 @@ function getDisinvestChips(uint256 config, uint128 amount) internal pure returns
 |----|----|-----------|
 |`<none>`|`uint128`|The disinvestment chips for the given amount|
 
+
+### checkGoodConfig
+
+
+```solidity
+function checkGoodConfig(uint256 config) internal pure returns (bool result);
+```
 
