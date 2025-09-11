@@ -22,6 +22,10 @@ import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
  * - Automated market making (AMM) with configurable fees
  * - Investment and disinvestment mechanisms
  * - Commission distribution system
+ * website http://www.ttswap.io
+ * twitter https://x.com/ttswapfinance
+ * telegram https://t.me/ttswapfinance
+ * discord https://discord.gg/XygqnmQgX3
  */
 contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     using L_GoodConfigLibrary for uint256;
