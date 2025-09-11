@@ -1,8 +1,10 @@
 # 1. TTSWAP
+
 TTSWAP (token-token swap) protocol is a decentralized automated market-making protocol built on the EVM blockchain. Its underlying principle is based on the transfer of market value triggered by user behavior, and it constructs a platform using value conservation trading strategies.
 The whitepaper explains the design logic of the ttswap project, covering principles and implementations of goods trading, investment, and withdrawal of value goods, as well as ordinary goods investment and withdrawal, and the generation and distribution of goods transaction fees.
 
 # 2 Features
+
 1. ***Value Conservation Trading Strategy***
 The value conservation trading strategy accurately reflects the true market value of currencies and facilitates fast goods transactions.
 
@@ -24,12 +26,12 @@ Fees are distributed based on roles, allowing anyone to become a goods investor 
 1. ***Support Native ETH Exchange and Invest***
 anyone can you native ETH without wrap to swap, invest easily.
 
+1. ***Support mint TTS token***
+when customer invest good, the protocol will auto mint tts token for customer.
 
-7. ***Support customer restaking TTS token***
-when customer invest good, the protocol will auto restake tts token for customer.
-
-8. ***Community-Driven Developement and Innovation***
+1. ***Community-Driven Developement and Innovation***
 ttswap emphasizes a community-driven approach to development and innovation. Since its code release, there has been active community engagement, with many issues, pull requests, and unique feature ideas contributed by users. The protocol is designed to encourage innovation, allowing the global community to shape the future of AMMs.
+
 # 3. Contributing
 
 If you’re interested in contributing please see our [contribution guidelines](./CONTRIBUTING.md)!
@@ -82,7 +84,7 @@ The primary license for ttswap-core is the Business Source License 1.1 (`BUSL-1.
 To utilize the contracts and deploy to a local testnet, you can install the code in your repo with forge:
 
 ```markdown
-forge install https://github.com/tt-swap/ttswap-core
+forge install https://github.com/ttswap/ttswap-core
 ```
 
 To integrate with the contracts, the interfaces are available to use:
@@ -97,11 +99,9 @@ contract MyPortal  {
 
     function doThing () {
         market.buyGood(...);
-        market.buyGoodForPay(...);
         market.initGood(...);
         market.investGood(...);
         market.disinvestProof(....,IamGater,referal);
-        market.collectProof(....,IamGater,referal);
         ....
     }
 }
@@ -113,8 +113,10 @@ step 2:forge install permit2
 
 
 # 9. Socials / Contract
-Twitter:[ttswap_exchange](https://x.com/ttswap_exchange)  
-Telegram:[@ttswap01](https://t.me/ttswap01)  
-Email:[ttswap.exchange@gmail.com](mailto:ttswap.exchange@gmail.com)  
-Discord:[ttswap](https://discord.gg/5PhXn9DR)  
-Website:[ttswap.io](http://www.ttswap.io)  
+Twitter:[@ttswapfinance](https://x.com/ttswapfinance)  
+Telegram:[@ttswapfinance](https://t.me/ttswapfinance)  
+Email:[bussiness@ttswap.io](mailto:bussiness@ttswap.io)  
+Discord:[ttswap](https://discord.gg/XygqnmQgX3)  
+Github:[ttswap](http://github.com/ttswap)  
+Website:[ttswap.io](https://ttswap.io)
+
