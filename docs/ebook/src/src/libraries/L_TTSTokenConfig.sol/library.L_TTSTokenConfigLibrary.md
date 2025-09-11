@@ -26,3 +26,17 @@ function ismain(uint256 config) internal pure returns (bool a);
 |`a`|`bool`|True if the configuration represents a main item, false otherwise|
 
 
+### getratio
+
+
+```solidity
+function getratio(uint256 config, uint128 amount) internal pure returns (uint128 b);
+```
+
+### setratio
+
+
+```solidity
+function setratio(uint256 config, uint256 ttsconfig) internal pure returns (uint256 b);
+```
+

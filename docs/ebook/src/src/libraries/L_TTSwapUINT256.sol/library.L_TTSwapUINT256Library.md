@@ -45,6 +45,28 @@ function amount1(uint256 balanceDelta) internal pure returns (uint128 _amount1);
 |`_amount1`|`uint128`|The extracted second 128-bit amount|
 
 
+### amount01
+
+Extracts the first and second 128-bit amounts from a T_BalanceUINT256
+
+
+```solidity
+function amount01(uint256 balanceDelta) internal pure returns (uint128 _amount0, uint128 _amount1);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`balanceDelta`|`uint256`|The T_BalanceUINT256 to extract from|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_amount0`|`uint128`|The extracted first 128-bit amount|
+|`_amount1`|`uint128`|The extracted second 128-bit amount|
+
+
 ### getamount0fromamount1
 
 Calculates amount0 based on a given amount1 and the ratio in balanceDelta

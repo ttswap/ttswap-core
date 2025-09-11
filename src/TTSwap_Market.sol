@@ -12,6 +12,7 @@ import {L_CurrencyLibrary} from "./libraries/L_Currency.sol";
 import {L_TTSwapUINT256Library, toTTSwapUINT256, add, lowerprice} from "./libraries/L_TTSwapUINT256.sol";
 import {IMulticall_v4} from "./interfaces/IMulticall_v4.sol";
 import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
+
 /**
  * @title TTSwap_Market
  * @author ttswap.exchange@gmail.com
@@ -21,7 +22,6 @@ import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
  * - Automated market making (AMM) with configurable fees
  * - Investment and disinvestment mechanisms
  * - Commission distribution system
- * - ETH or WETH staking integration
  */
 contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     using L_GoodConfigLibrary for uint256;
@@ -41,52 +41,58 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * - Governance token functionality
      */
     I_TTSwap_Token private immutable TTS_CONTRACT;
+
+    /// @notice Address of the security keeper
+    /// @dev The address of the security keeper
+    /// @custom:security The address of the security keeper when deploy market contract
+    /// @custom:security The address of the security keeper will be removed by market admin when contract run safety
     address internal securitykeeper;
 
     /**
      * @dev Mapping of good addresses to their state information
      * @notice Stores the complete state of each good including:
-     * - Current trading state(current value & current quantitys)
-     * - Investment state (current invest value & current invest quantitys)
-     * - Fee collection state (current total fee & current total construnct fee)
+     * - Current trading state(invest quantity & current quantity)
+     * - Investment state (invest shares & invest value)
      * - Owner information
      * - Configuration parameters
      */
     mapping(address goodid => S_GoodState) private goods;
+
     /**
      * @dev Mapping of proof IDs to their state information
      * @notice Records all investment proofs in the system:
-     * - Investment amounts and timestamps
-     * - Associated goods (normal and value)
-     * - Fee calculations and distributions
-     * - Profit/loss tracking and performance metrics
+     * shares amount0:normal good shares amount1:value good shares
+     * state amount0:total value : amount1:total actual value
+     * invest amount0:normal good virtual quantity amount1:normal good actual quantity
+     * valueinvest amount0:value good virtual quantity amount1:value good actual quantity
      */
     mapping(uint256 proofid => S_ProofState) private proofs;
 
     /**
      * @dev Constructor for TTSwap_Market
      * @param _TTS_Contract The address of the official token contract
+     * @param _securitykeeper The address of the security keeper
      */
     constructor(I_TTSwap_Token _TTS_Contract, address _securitykeeper) {
         TTS_CONTRACT = _TTS_Contract;
         securitykeeper = _securitykeeper;
     }
 
-    /// onlydao admin can execute
+    /// only market admin can execute
     modifier onlyMarketadmin() {
         if (!TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin())
             revert TTSwapError(1);
         _;
     }
 
-    /// onlydao manager can execute
+    /// only market manager can execute
     modifier onlyMarketor() {
         if (!TTS_CONTRACT.userConfig(msg.sender).isMarketManager())
             revert TTSwapError(2);
         _;
     }
 
-    /// run when eth token
+    /// run when eth token transfer to market contract
     modifier msgValue() {
         L_Transient.checkbefore();
         _;
@@ -132,20 +138,18 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param _goodConfig Configuration parameters for the good:
      *        - Fee rates (trading, investment)
      *        - Trading limits (min/max amounts)
-     *        - Special flags (staking enabled, emergency pause)
+     *        - Special flags ( emergency pause)
      * @param data Additional data for token transfer
      * @return bool Success status of the initialization
      * @notice This function:
      * - Creates a new meta good with specified parameters
      * - Sets up initial liquidity pool
-     * - Mints corresponding tokens to the creator
+     * - Mints corresponding tokens to the market creator
      * - Initializes proof tracking
      * - Emits initialization events
-     * @custom:security Only callable by DAO admin
-     * @custom:security Requires reentrancy protection
+     * @custom:security Only callable by market admin
      */
     /// @inheritdoc I_TTSwap_Market
-
     function initMetaGood(
         address _erc20address,
         uint256 _initial,
@@ -156,7 +160,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
         _erc20address.transferFrom(msg.sender, _initial.amount1(), data);
         goods[_erc20address].init(_initial, _goodConfig);
-        /// update good to value good
+        /// update good to value good & initialize good config
         goods[_erc20address].modifyGoodConfig(5933383808 << 223); //2**32+6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
         uint256 proofid = S_ProofKey(msg.sender, _erc20address, address(0))
             .toId();
@@ -189,6 +193,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param _initial The initial balance,amount0 is the amount of the normal good,amount1 is the amount of the value good
      * @param _erc20address The address of the ERC20 token
      * @param _goodConfig The good configuration
+     * @param _normaldata The data of the normal good
+     * @param _valuedata The data of the value good
      * @return bool Returns true if successful
      */
     /// @inheritdoc I_TTSwap_Market
@@ -200,6 +206,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata _normaldata,
         bytes calldata _valuedata
     ) external payable override noReentrant msgValue returns (bool) {
+        if (_initial.amount0() < 500000 || _initial.amount0() > 2 ** 109)
+            revert TTSwapError(36);
         if (!goods[_valuegood].goodConfig.isvaluegood()) {
             revert TTSwapError(6);
         }
@@ -215,6 +223,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             investResult.goodCurrentQuantity
         ) = goods[_valuegood].currentState.amount01();
         goods[_valuegood].investGood(_initial.amount1(), investResult, 1);
+        if (investResult.investValue < 500000000) revert TTSwapError(35);
+        if (
+            goods[_valuegood].currentState.amount1() > 2 ** 109 ||
+            goods[_valuegood].currentState.amount0() > 2 ** 109
+        ) revert TTSwapError(37);
         goods[_erc20address].init(
             toTTSwapUINT256(investResult.investValue, _initial.amount0()),
             _goodConfig
@@ -252,14 +265,15 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         );
         return true;
     }
+
     /**
      * @dev Executes a buy order between two goods
      * @param _goodid1 The address of the input good
      * @param _goodid2 The address of the output good
      * @param _swapQuantity The amount of _goodid1 to swap
-     * @param _tradetimes The number of trading iterations:
-     *        - < 100: Normal trading with price impact
-     *        - >= 100: Direct trading with fixed price
+     *        - amount0: The quantity of the input good
+     *        - amount1: The limit quantity of the output good
+     * @param _side 0:for pay 1for buy
      * @param _recipent The address to receive referral rewards
      * @param data Additional data for token transfer
      * @return good1change The amount of _goodid1 used:
@@ -349,6 +363,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 swapcache.good2currentState,
                 toTTSwapUINT256(_side, _side)
             );
+            if (
+                swapcache.good1currentState.amount1() > 2 ** 109 ||
+                swapcache.good1currentState.amount0() > 2 ** 109
+            ) revert TTSwapError(37);
             good2change = toTTSwapUINT256(_side, swapcache.outputQuantity);
             goods[_goodid1].swapCommit(swapcache.good1currentState);
             goods[_goodid2].swapCommit(swapcache.good2currentState);
@@ -407,6 +425,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 good1change.amount1() + _side,
                 data
             );
+            if (
+                swapcache.good1currentState.amount1() > 2 ** 109 ||
+                swapcache.good1currentState.amount0() > 2 ** 109
+            ) revert TTSwapError(37);
             goods[_goodid1].swapCommit(swapcache.good1currentState);
             goods[_goodid2].swapCommit(swapcache.good2currentState);
             _goodid2.safeTransfer(_recipent, _swapQuantity.amount1());
@@ -419,14 +441,15 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             );
         }
     }
+
     /**
      * @dev Simulates a buy order between two goods to check expected amounts
      * @param _goodid1 The address of the input good
      * @param _goodid2 The address of the output good
      * @param _swapQuantity The amount of _goodid1 to swap
-     * @param _tradetimes The number of trading iterations:
-     *        - < 100: user sell _goodid1 for _goodid2
-     *        - >= 100: user pay _goodid1 use _goodid2
+     *        - amount0: The quantity of the input good
+     *        - amount1: The limit quantity of the output good
+     * @param _side 1:for buy 0:for pay
      * @return good1change The expected amount of _goodid1 to be used:
      *         - amount0: Expected trading fees
      *         - amount1: Expected swap amount
@@ -448,7 +471,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * - Insufficient liquidity for the swap
      */
     /// @inheritdoc I_TTSwap_Market
-
     function buyGoodCheck(
         address _goodid1,
         address _goodid2,
@@ -834,6 +856,15 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         );
     }
 
+    /// @notice Retrieves the current state of a proof
+    /// @param proofid The ID of the proof to query
+    /// @return proofstate The current state of the proof,
+    ///  currentgood The current good associated with the proof
+    ///  valuegood The value good associated with the proof
+    ///  shares normal good shares, value good shares
+    ///  state Total value, Total actual value
+    ///  invest normal good virtual quantity, normal good actual quantity
+    ///  valueinvest value good virtual quantity, value good actual quantity
     /// @inheritdoc I_TTSwap_Market
     function getProofState(
         uint256 proofid
@@ -841,19 +872,30 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         return proofs[proofid];
     }
 
+    /// @notice Retrieves the current state of a good
+    /// @param good The address of the good to query
+    /// @return goodstate The current state of the good,
+    ///  goodConfig Configuration of the good, check goodconfig.sol or whitepaper for details
+    ///  owner Creator of the good
+    ///  currentState Present investQuantity, CurrentQuantity
+    ///  investState Shares, value
     /// @inheritdoc I_TTSwap_Market
     function getGoodState(
-        address goodkey
+        address good
     ) external view override returns (S_GoodTmpState memory) {
         return
             S_GoodTmpState(
-                goods[goodkey].goodConfig,
-                goods[goodkey].owner,
-                goods[goodkey].currentState,
-                goods[goodkey].investState
+                goods[good].goodConfig,
+                goods[good].owner,
+                goods[good].currentState,
+                goods[good].investState
             );
     }
 
+    /// @notice Updates a good's configuration
+    /// @param _goodid The ID of the good
+    /// @param _goodConfig The new configuration
+    /// @return Success status
     /// @inheritdoc I_TTSwap_Market
     function updateGoodConfig(
         address _goodid,
@@ -865,6 +907,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         return true;
     }
 
+    /// @param _goodid The ID of the good
+    /// @param _goodConfig The new configuration
+    /// @return Success status
     /// @inheritdoc I_TTSwap_Market
     function modifyGoodConfig(
         address _goodid,
@@ -875,6 +920,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         return true;
     }
 
+    /// @notice Changes the owner of a good
+    /// @param _goodid The ID of the good
+    /// @param _to The new owner's address
     /// @inheritdoc I_TTSwap_Market
     function changeGoodOwner(
         address _goodid,
@@ -883,8 +931,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         goods[_goodid].owner = _to;
         emit e_changegoodowner(_goodid, _to);
     }
-    /// @inheritdoc I_TTSwap_Market
 
+    /// @notice Collects commission for specified goods
+    /// @param _goodid Array of good IDs
+    /// @inheritdoc I_TTSwap_Market
     function collectCommission(
         address[] calldata _goodid
     ) external override noReentrant {

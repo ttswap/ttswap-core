@@ -1,107 +1,50 @@
 # TTSwap_Token
 **Inherits:**
-ERC20Permit, [I_TTSwap_Token](/src/interfaces/I_TTSwap_Token.sol/interface.I_TTSwap_Token.md)
+[I_TTSwap_Token](/src/interfaces/I_TTSwap_Token.sol/interface.I_TTSwap_Token.md), [ERC20](/src/base/ERC20.sol/abstract.ERC20.md), [IEIP712](/src/interfaces/IEIP712.sol/interface.IEIP712.md)
 
 *Implements ERC20 token with additional staking and cross-chain functionality*
 
 
 ## State Variables
-### ttstokenconfig
+### implementation
 
 ```solidity
-uint256 public ttstokenconfig;
+address internal implementation;
 ```
 
 
-### shares
+### upgradeable
 
 ```solidity
-mapping(uint32 => s_share) public shares;
+bool internal upgradeable;
+```
+
+
+### usdt
+
+```solidity
+address internal usdt;
+```
+
+
+### ttstokenconfig
+
+```solidity
+uint256 public override ttstokenconfig;
 ```
 
 
 ### stakestate
 
 ```solidity
-uint256 public stakestate;
-```
-
-
-### poolstate
-
-```solidity
-uint256 public poolstate;
-```
-
-
-### stakeproof
-
-```solidity
-mapping(uint256 => s_proof) public stakeproof;
-```
-
-
-### chains
-
-```solidity
-mapping(uint32 => s_chain) public chains;
-```
-
-
-### normalgoodid
-*Returns the ID of the normal good*
-
-
-```solidity
-address public override normalgoodid;
-```
-
-
-### valuegoodid
-*Returns the ID of the value good*
-
-
-```solidity
-address public override valuegoodid;
-```
-
-
-### dao_admin
-*Returns the address of the DAO admin*
-
-
-```solidity
-address public override dao_admin;
-```
-
-
-### marketcontract
-*Returns the address of the market contract*
-
-
-```solidity
-address public override marketcontract;
-```
-
-
-### shares_index
-
-```solidity
-uint32 public shares_index;
-```
-
-
-### chainindex
-
-```solidity
-uint32 public chainindex;
+uint256 public override stakestate;
 ```
 
 
 ### left_share
 
 ```solidity
-uint128 public left_share = 5 * 10 ** 8 * 10 ** 6;
+uint128 public override left_share = 45_000_000_000_000;
 ```
 
 
@@ -114,50 +57,59 @@ uint128 public override publicsell;
 ```
 
 
-### referrals
-*Returns the referrer address for a given user*
-
-
-```solidity
-mapping(address => address) public override referrals;
-```
-
-
-### auths
+### userConfig
 *Returns the authorization level for a given address*
 
 
 ```solidity
-mapping(address => uint256) public override auths;
+mapping(address => uint256) public override userConfig;
 ```
 
 
-### usdt
+### marketcontract
 
 ```solidity
-address public immutable usdt;
+address internal marketcontract;
+```
+
+
+### poolstate
+
+```solidity
+uint256 public override poolstate;
+```
+
+
+### shares
+
+```solidity
+mapping(address => s_share) internal shares;
+```
+
+
+### stakeproof
+
+```solidity
+mapping(uint256 => s_proof) internal stakeproof;
+```
+
+
+### _PERMITSHARE_TYPEHASH
+
+```solidity
+bytes32 internal constant _PERMITSHARE_TYPEHASH = keccak256(
+    "permitShare(uint128 amount,uint120 chips,uint8 metric,address owner,uint128 existamount,uint128 deadline,uint256 nonce)"
+);
 ```
 
 
 ## Functions
 ### constructor
 
-*Constructor to initialize the TTS token*
-
 
 ```solidity
-constructor(address _usdt, address _dao_admin, uint256 _ttsconfig)
-    ERC20Permit("TTSwap Token")
-    ERC20("TTSwap Token", "TTS");
+constructor() ERC20("TTSwap Token", "TTS", 6);
 ```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_usdt`|`address`|Address of the USDT token contract|
-|`_dao_admin`|`address`|Address of the DAO admin|
-|`_ttsconfig`|`uint256`|Configuration for the TTS token|
-
 
 ### onlymain
 
@@ -168,14 +120,267 @@ constructor(address _usdt, address _dao_admin, uint256 _ttsconfig)
 modifier onlymain();
 ```
 
-### onlysub
+### setDAOAdmin
 
-*Modifier to ensure function is only called on sub-chains*
+Only callable by an existing DAO admin.
+
+*Grants or revokes DAO admin privileges to a recipient address.*
 
 
 ```solidity
-modifier onlysub();
+function setDAOAdmin(address _recipient, bool result) external override;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke DAO admin rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setTokenAdmin
+
+Only callable by a DAO admin.
+
+*Grants or revokes Token admin privileges to a recipient address.*
+
+
+```solidity
+function setTokenAdmin(address _recipient, bool result) external override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Token admin rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setTokenManager
+
+Only callable by a Token admin.
+
+*Grants or revokes Token manager privileges to a recipient address.*
+
+
+```solidity
+function setTokenManager(address _recipient, bool result) external override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Token manager rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setCallMintTTS
+
+Only callable by a Token admin.
+
+*Grants or revokes permission to call mintTTS to a recipient address.*
+
+
+```solidity
+function setCallMintTTS(address _recipient, bool result) external override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke permission.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setMarketAdmin
+
+Only callable by a DAO admin.
+
+*Grants or revokes Market admin privileges to a recipient address.*
+
+
+```solidity
+function setMarketAdmin(address _recipient, bool result) external override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Market admin rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setMarketManager
+
+Only callable by a Market admin.
+
+*Grants or revokes Market manager privileges to a recipient address.*
+
+
+```solidity
+function setMarketManager(address _recipient, bool result) external override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Market manager rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setStakeAdmin
+
+Only callable by a DAO admin.
+
+*Grants or revokes Stake admin privileges to a recipient address.*
+
+
+```solidity
+function setStakeAdmin(address _recipient, bool result) external override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Stake admin rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setStakeManager
+
+Only callable by a Stake admin.
+
+*Grants or revokes Stake manager privileges to a recipient address.*
+
+
+```solidity
+function setStakeManager(address _recipient, bool result) external override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to grant or revoke Stake manager rights.|
+|`result`|`bool`|Boolean indicating whether to grant (true) or revoke (false) the privilege.|
+
+
+### setBan
+
+Only callable by a Token manager.
+
+*Sets or unsets a ban on a recipient address, restricting their access.*
+
+
+```solidity
+function setBan(address _recipient, bool result) external override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_recipient`|`address`|The address to ban or unban.|
+|`result`|`bool`|Boolean indicating whether to ban (true) or unban (false) the address.|
+
+
+### usershares
+
+*Returns the share information for a given user address.*
+
+
+```solidity
+function usershares(address user) external view override returns (s_share memory);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`user`|`address`|The address to query for share information.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`s_share`|The s_share struct containing the user's share details.|
+
+
+### stakeproofinfo
+
+*Returns the stake proof information for a given index.*
+
+
+```solidity
+function stakeproofinfo(uint256 index) external view override returns (s_proof memory);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`index`|`uint256`|The index to query for stake proof information.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`s_proof`|The s_proof struct containing the stake proof details.|
+
+
+### setReferral
+
+Only callable by authorized addresses (auths[msg.sender] == 1)
+
+Will only set the referral if the user doesn't already have one
+
+*Adds a referral relationship between a user and a referrer*
+
+
+```solidity
+function setReferral(address user, address referral) external override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`user`|`address`|The address of the user being referred|
+|`referral`|`address`|The address of the referrer|
+
+
+### getreferral
+
+Get the DAO admin and referral for a customer
+
+*Retrieves both the DAO admin address and the referrer address for a given customer*
+
+
+```solidity
+function getreferral(address _customer) external view override returns (address);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_customer`|`address`|The address of the customer|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`address`|A tuple containing the DAO admin address and the customer's referrer address|
+
+
+### setRatio
+
+*this chain trade vol ratio in protocol*
+
+
+```solidity
+function setRatio(uint256 _ratio) external override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_ratio`|`uint256`|The new ratio value (max 10000).|
+
 
 ### setEnv
 
@@ -183,67 +388,13 @@ modifier onlysub();
 
 
 ```solidity
-function setEnv(address _normalgoodid, address _valuegoodid, address _marketcontract) external override;
+function setEnv(address _marketcontract) external override;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_normalgoodid`|`address`|ID for normal goods|
-|`_valuegoodid`|`address`|ID for value goods|
 |`_marketcontract`|`address`|Address of the market contract|
-
-
-### changeDAOAdmin
-
-Only the current DAO admin can call this function
-
-*Changes the DAO admin address*
-
-
-```solidity
-function changeDAOAdmin(address _recipient) external override;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_recipient`|`address`|The address of the new DAO admin|
-
-
-### addauths
-
-Only the DAO admin can call this function
-
-*Adds or updates authorization for an address*
-
-
-```solidity
-function addauths(address _auths, uint256 _priv) external override;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_auths`|`address`|The address to authorize|
-|`_priv`|`uint256`|The privilege level to assign|
-
-
-### rmauths
-
-Only the DAO admin can call this function
-
-*Removes authorization from an address*
-
-
-```solidity
-function rmauths(address _auths) external override;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_auths`|`address`|The address to remove authorization from|
 
 
 ### addShare
@@ -260,14 +411,22 @@ Emits an e_addShare event with the share details
 
 
 ```solidity
-function addShare(s_share calldata _share) external override onlymain;
+function addShare(s_share memory _share, address owner) external override onlymain;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`_share`|`s_share`|The share structure containing recipient, amount, metric, and chips|
+|`owner`|`address`||
 
+
+### _addShare
+
+
+```solidity
+function _addShare(s_share memory _share, address owner) internal;
+```
 
 ### burnShare
 
@@ -281,13 +440,13 @@ Emits an e_burnShare event and deletes the share from the shares mapping
 
 
 ```solidity
-function burnShare(uint8 index) external override onlymain;
+function burnShare(address owner) external override onlymain;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`index`|`uint8`|The index of the share to burn|
+|`owner`|`address`|owner of share|
 
 
 ### shareMint
@@ -304,87 +463,23 @@ Emits an e_daomint event with the minted amount and index
 
 
 ```solidity
-function shareMint(uint8 index) external override onlymain;
+function shareMint() external override onlymain;
 ```
-**Parameters**
 
-|Name|Type|Description|
-|----|----|-----------|
-|`index`|`uint8`|The index of the share to mint from|
-
-
-### addreferral
-
-Only callable by authorized addresses (auths[msg.sender] == 1)
-
-Will only set the referral if the user doesn't already have one
-
-*Adds a referral relationship between a user and a referrer*
-
-
-```solidity
-function addreferral(address user, address referral) external override;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`user`|`address`|The address of the user being referred|
-|`referral`|`address`|The address of the referrer|
-
-
-### decimals
-
-*Returns the number of decimals used to get its user representation*
-
-
-```solidity
-function decimals() public pure override returns (uint8);
-```
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`<none>`|`uint8`|The number of decimals|
-
-
-### getreferralanddaoadmin
-
-Get the DAO admin and referral for a customer
-
-*Retrieves both the DAO admin address and the referrer address for a given customer*
-
-
-```solidity
-function getreferralanddaoadmin(address _customer) external view override returns (address, address);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_customer`|`address`|The address of the customer|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`<none>`|`address`|A tuple containing the DAO admin address and the customer's referrer address|
-|`<none>`|`address`|dba_admin The address of the DAO admin|
-
-
-### public_Sell
+### publicSell
 
 *Perform public token sale*
 
 
 ```solidity
-function public_Sell(uint256 usdtamount) external onlymain;
+function publicSell(uint256 usdtamount, bytes calldata data) external override onlymain;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`usdtamount`|`uint256`|Amount of USDT to spend on token purchase|
+|`data`|`bytes`||
 
 
 ### withdrawPublicSell
@@ -397,7 +492,7 @@ Transfers the specified amount of USDT to the recipient
 
 
 ```solidity
-function withdrawPublicSell(uint256 amount, address recipient) external onlymain;
+function withdrawPublicSell(uint256 amount, address recipient) external override onlymain;
 ```
 **Parameters**
 
@@ -405,133 +500,6 @@ function withdrawPublicSell(uint256 amount, address recipient) external onlymain
 |----|----|-----------|
 |`amount`|`uint256`|The amount of USDT to withdraw|
 |`recipient`|`address`|The address to receive the withdrawn funds|
-
-
-### syncChainStake
-
-*Synchronize stake across chains*
-
-
-```solidity
-function syncChainStake(uint32 chainid, uint128 chainvalue) external override onlymain returns (uint128 poolasset);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`chainid`|`uint32`|ID of the chain|
-|`chainvalue`|`uint128`|Value to synchronize|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`poolasset`|`uint128`|Amount of pool asset|
-
-
-### syncPoolAsset
-
-Only callable on sub-chains by authorized addresses (auths[msg.sender] == 5)
-
-*Synchronizes the pool asset on sub-chains*
-
-
-```solidity
-function syncPoolAsset(uint128 amount) external override onlysub;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`amount`|`uint128`|The amount to add to the pool state|
-
-
-### chain_withdraw
-
-Only callable on the main chain by authorized addresses (auths[msg.sender] == 6)
-
-Requires the caller to be the recipient of the chain or the chain to have no recipient
-
-Updates the chain's asset balance and checks if the caller has sufficient balance
-
-*Withdraws assets from a specific chain*
-
-
-```solidity
-function chain_withdraw(uint32 chainid, uint128 asset) external override onlymain;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`chainid`|`uint32`|The ID of the chain to withdraw from|
-|`asset`|`uint128`|The amount of assets to withdraw|
-
-
-### chain_deposit
-
-Only callable on the main chain by authorized addresses (auths[msg.sender] == 6)
-
-Requires the caller to be the recipient of the chain or the chain to have no recipient
-
-Updates the chain's asset balance
-
-*Deposits assets to a specific chain*
-
-
-```solidity
-function chain_deposit(uint32 chainid, uint128 asset) external override onlymain;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`chainid`|`uint32`|The ID of the chain to deposit to|
-|`asset`|`uint128`|The amount of assets to deposit|
-
-
-### subchainWithdraw
-
-Only callable on sub-chains by authorized addresses (auths[msg.sender] == 6)
-
-Requires the caller to be the recipient of the chain or the chain to have no recipient
-
-Updates the chain's asset balance and burns the withdrawn amount from the recipient
-
-*Withdraws assets on a sub-chain*
-
-
-```solidity
-function subchainWithdraw(uint128 asset, address recipient) external override onlysub;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`asset`|`uint128`|The amount of assets to withdraw|
-|`recipient`|`address`|The address to receive the withdrawn assets|
-
-
-### subchainDeposit
-
-Only callable on sub-chains by authorized addresses (auths[msg.sender] == 6)
-
-Requires the caller to be the recipient of the chain or the chain to have no recipient
-
-Updates the chain's asset balance and mints the deposited amount to the recipient
-
-*Deposits assets on a sub-chain*
-
-
-```solidity
-function subchainDeposit(uint128 asset, address recipient) external onlysub;
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`asset`|`uint128`|The amount of assets to deposit|
-|`recipient`|`address`|The address to receive the deposited assets|
 
 
 ### stake
@@ -591,13 +559,108 @@ function _stakeFee() internal;
 
 
 ```solidity
-function burn(address account, uint256 value) external override;
+function burn(uint256 value) external override;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`account`|`address`|Address of the account to burn tokens from|
 |`value`|`uint256`|Amount of tokens to burn|
 
+
+### _mint
+
+
+```solidity
+function _mint(address to, uint256 amount) internal override;
+```
+
+### _burn
+
+
+```solidity
+function _burn(address from, uint256 amount) internal override;
+```
+
+### permitShare
+
+*Permits a share to be transferred*
+
+
+```solidity
+function permitShare(s_share memory _share, uint128 dealline, bytes calldata signature, address signer)
+    external
+    override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_share`|`s_share`|The share structure containing recipient, amount, metric, and chips|
+|`dealline`|`uint128`|The deadline for the share transfer|
+|`signature`|`bytes`|The signature of the share transfer|
+|`signer`|`address`|The address of the signer|
+
+
+### shareHash
+
+*Calculates the hash of a share transfer*
+
+
+```solidity
+function shareHash(s_share memory _share, address owner, uint128 leftamount, uint128 deadline, uint256 nonce)
+    public
+    pure
+    override
+    returns (bytes32);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_share`|`s_share`|The share structure containing recipient, amount, metric, and chips|
+|`owner`|`address`|The address of the owner|
+|`leftamount`|`uint128`|The amount of left share|
+|`deadline`|`uint128`|The deadline for the share transfer|
+|`nonce`|`uint256`||
+
+
+### _buildDomainSeparator
+
+Builds a domain separator using the current chainId and contract address.
+
+
+```solidity
+function _buildDomainSeparator(bytes32 typeHash, bytes32 nameHash) private view returns (bytes32);
+```
+
+### _hashTypedData
+
+Creates an EIP-712 typed data hash
+
+
+```solidity
+function _hashTypedData(bytes32 dataHash) internal view returns (bytes32);
+```
+
+### DOMAIN_SEPARATOR
+
+
+```solidity
+function DOMAIN_SEPARATOR() public view override(ERC20, IEIP712) returns (bytes32);
+```
+
+### computeDomainSeparator
+
+
+```solidity
+function computeDomainSeparator() internal view override returns (bytes32);
+```
+
+### disableUpgrade
+
+
+```solidity
+function disableUpgrade() external;
+```
 
