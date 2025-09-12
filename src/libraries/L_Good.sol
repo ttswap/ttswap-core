@@ -17,6 +17,12 @@ library L_Good {
     using L_GoodConfigLibrary for uint256;
     using L_TTSwapUINT256Library for uint256;
     using L_Proof for S_ProofState;
+    //(2**256-1)-(2**223-1)+(2**128-1)
+    uint256 internal constant updateConfigMask=0xffffffff800000000000000000000000ffffffffffffffffffffffffffffffff;
+    //2**223-1
+    uint256 internal constant modifyConfigMask=0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    //1638416512<<233  (6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6)<<223
+    uint256 internal constant initialConfig=0x30d4204000000000000000000000000000000000000000000000000000000000;
 
     /**
      * @notice Update the good configuration only goodowner
@@ -30,15 +36,12 @@ library L_Good {
     ) internal {
         if (_self.goodConfig.getLimitPower() < _goodConfig.getPower())
             revert TTSwapError(23);
-        // Clear the top 33 bits of the new config
+        uint256 tmpconfig=_self.goodConfig;
         assembly {
-            _goodConfig := shr(33, shl(33, _goodConfig))
-            _goodConfig := shl(128, shr(128, _goodConfig))
+            _goodConfig := and(not(updateConfigMask), _goodConfig)
+            tmpconfig:= add(and(tmpconfig, updateConfigMask),_goodConfig)
         }
-        uint256 a = (_self.goodConfig >> 223) << 223;
-        uint256 b = (_self.goodConfig << 128) >> 128;
-        // Preserve the top 33 bits of the existing config and add the new config
-        _self.goodConfig = a + b + _goodConfig;
+        _self.goodConfig=tmpconfig;
     }
 
     /**
@@ -52,9 +55,12 @@ library L_Good {
         uint256 _goodconfig
     ) internal {
         if (!_goodconfig.checkGoodConfig()) revert TTSwapError(24);
-        _goodconfig = (_goodconfig >> 223) << 223;
-        _goodconfig = _goodconfig + (_self.goodConfig % (2 ** 223));
-        _self.goodConfig = _goodconfig;
+        uint256 tmpconfig=_self.goodConfig;
+        assembly {
+            _goodconfig := and(not(modifyConfigMask), _goodconfig)
+            tmpconfig:= add(and(tmpconfig, modifyConfigMask),_goodconfig)
+        }
+         _self.goodConfig=tmpconfig;
     }
 
     /**
@@ -71,9 +77,13 @@ library L_Good {
     ) internal {
         self.currentState = toTTSwapUINT256(_init.amount1(), _init.amount1());
         self.investState = toTTSwapUINT256(_init.amount1(), _init.amount0());
-        _goodConfig = (_goodConfig << 33) >> 33;
-        _goodConfig = (_goodConfig >> 128) << 128;
-        _goodConfig = _goodConfig + (1638416512 << 223); //1638416512 6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
+        assembly {
+            _goodConfig := and(not(updateConfigMask), _goodConfig)
+            _goodConfig := add(_goodConfig, initialConfig)
+        }
+        // _goodConfig = (_goodConfig << 33) >> 33;
+        // _goodConfig = (_goodConfig >> 128) << 128;
+        // _goodConfig = _goodConfig + (1638416512 << 223); //1638416512 6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
         if (_goodConfig.getPower() > 1) revert TTSwapError(25);
         self.goodConfig = _goodConfig;
         self.owner = msg.sender;
@@ -101,21 +111,27 @@ library L_Good {
      * @param _stepCache A cache structure containing swap state and configurations
      */
     function swapCompute1(swapCache memory _stepCache) internal pure {
-        // Check if the current price is lower than the limit price, if not, return immediately
+        // compute Token1 fee quantity
         _stepCache.feeQuantity = _stepCache.good1config.getSellFee(
             _stepCache.remainQuantity
         );
+        // minus fee quantity
         _stepCache.remainQuantity =
             _stepCache.remainQuantity -
             _stepCache.feeQuantity;
+        //  Δv=(Va*Δa)/(Qa+Δa/2)
+        //  =(2*Va*Δa)/(2*Qa+Δa)
         uint256 a = uint256(_stepCache.good1value) *
             uint256(_stepCache.remainQuantity) *
             2;
         uint256 b = uint256(_stepCache.good1currentState.amount1()) *
             2 +
             uint256(_stepCache.remainQuantity);
-        // Calculate and deduct the sell fee
+        // Calculate swap value
         _stepCache.swapvalue = toUint128(a / b);
+        // calclulate Token2 output quantity
+        //  Δb=(Qb*Δv)/(Vb+Δv/2)
+        //  =(2*Qb*Δv)/(2*Vb+Δv)
         a =
             uint256(_stepCache.good2currentState.amount1()) *
             uint256(_stepCache.swapvalue) *
@@ -129,18 +145,22 @@ library L_Good {
     }
 
     /**
-     * @notice Compute the swap result from good1 to good2
+     * @notice Compute the swap result from good2 to good1
      * @dev Implements a complex swap algorithm considering price limits, fees, and minimum swap amounts
      * @param _stepCache A cache structure containing swap state and configurations
      */
     function swapCompute2(swapCache memory _stepCache) internal pure {
-        // Check if the current price is lower than the limit price, if not, return immediately
+        // compute Token2 fee quantity
         _stepCache.feeQuantity = _stepCache.good2config.getBuyFee(
             _stepCache.remainQuantity
         );
+        // plus fee quantity
         _stepCache.remainQuantity =
             _stepCache.remainQuantity +
             _stepCache.feeQuantity;
+        // according to the swapCompute1
+        // Δb=(2*Qb*Va*Δa)/(2*Vb*Qa+Vb*Δa+Va*Δa)
+        // Δa=(2*Δb*Vb*Qa)/(2*Qb*Va-Δb*Vb-Δb*Va)
 
         uint256 a = uint256(_stepCache.good1currentState.amount1()) *
             uint256(_stepCache.good2value) *
@@ -154,20 +174,28 @@ library L_Good {
             uint256(_stepCache.good2value) *
             uint256(_stepCache.remainQuantity);
         require(b > 1000, "b is 0");
+        // calclulate Token1 output quantity
         _stepCache.outputQuantity = toUint128(a / b);
+
+        // Δv=(Va*Δa)/(Qa+Δa/2)
         _stepCache.swapvalue = toTTSwapUINT256(
             _stepCache.good1value,
-            _stepCache.good1currentState.amount1() + _stepCache.outputQuantity/2
+            _stepCache.good1currentState.amount1() +
+                _stepCache.outputQuantity /
+                2
         ).getamount0fromamount1(_stepCache.outputQuantity);
 
+        // add input quantity to token1 pool
         _stepCache.good1currentState = add(
             _stepCache.good1currentState,
             toTTSwapUINT256(0, _stepCache.outputQuantity)
         );
+        // minus output quantity from token2 pool
         _stepCache.good2currentState = sub(
             _stepCache.good2currentState,
             toTTSwapUINT256(0, _stepCache.remainQuantity)
         );
+        // add fee quantity to token2 pool
         _stepCache.good2currentState = add(
             _stepCache.good2currentState,
             toTTSwapUINT256(_stepCache.feeQuantity, _stepCache.feeQuantity)
@@ -214,31 +242,30 @@ library L_Good {
         S_GoodInvestReturn memory investResult_,
         uint128 enpower
     ) internal {
-        // Calculate the investment fee
-
+        // Calculate the invest virtual quantity
         investResult_.investQuantity = _invest * enpower;
-
+        // calculate the fee quantity
         investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
             investResult_.investQuantity
         );
-
+        // before inpower,minus the fee quantity
         investResult_.investQuantity =
             (_invest - investResult_.investFeeQuantity) *
             enpower;
 
-        // Calculate the actual investment value based on the current state
+        // Calculate the actual investment value based from investQuantity on the current state
         investResult_.investValue = toTTSwapUINT256(
             investResult_.goodValues,
             investResult_.goodCurrentQuantity
         ).getamount0fromamount1(investResult_.investQuantity);
 
-        // Update the current state with the new investment
-
+        // Calculate the invest share based from investQuantity on the invest state
         investResult_.investShare = toTTSwapUINT256(
             investResult_.goodShares,
             investResult_.goodInvestQuantity
         ).getamount0fromamount1(investResult_.investQuantity);
 
+        // add invest quantity to token1 pool
         _self.currentState = add(
             _self.currentState,
             toTTSwapUINT256(
@@ -246,6 +273,7 @@ library L_Good {
                 investResult_.investQuantity
             )
         );
+        // add fee quantity to token1 pool
         _self.currentState = add(
             _self.currentState,
             toTTSwapUINT256(
@@ -254,7 +282,6 @@ library L_Good {
             )
         );
         // Update the invest state with the new investment
-
         _self.investState = add(
             _self.investState,
             toTTSwapUINT256(
@@ -262,7 +289,7 @@ library L_Good {
                 investResult_.investValue
             )
         );
-
+        // add invest true virtual quantity to good config
         _self.goodConfig = add(
             _self.goodConfig,
             toTTSwapUINT256(
