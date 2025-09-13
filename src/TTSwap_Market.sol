@@ -346,10 +346,14 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             ) revert TTSwapError(15);
             if (
                 swapcache.good2currentState.amount1() <
-                (swapcache.good2config.amount1() * 11) / 10 ||
+                (swapcache.good2config.amount1() * 11) / 10
+            ) revert TTSwapError(16);
+
+            if (
                 swapcache.good2currentState.amount1() <
                 swapcache.good2currentState.amount0() / 10
             ) revert TTSwapError(16);
+
             swapcache.good1currentState = add(
                 swapcache.good1currentState,
                 toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity.amount0())
@@ -401,7 +405,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             ) revert TTSwapError(15);
             if (
                 swapcache.good2currentState.amount1() <
-                (swapcache.good2config.amount1() * 11) / 10 ||
+                (swapcache.good2config.amount1() * 11) / 10 
+            ) revert TTSwapError(16);
+
+            if (
                 swapcache.good2currentState.amount1() <
                 swapcache.good2currentState.amount0() / 10
             ) revert TTSwapError(16);
