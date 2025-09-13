@@ -4,8 +4,7 @@ TTSwapError(uint256) 0xd1b51911
 3:Execute Error, task is lock ,waiting a minute
 4:Execute Error, token config must config to value token
 5:Execute Error, token has been created
-6:Execute Error, token must be value token
-7:Execute Error, swap amount must be bigger then 0
+6:Execute Error, value token   config wrong
 8:Execute Error, swap side config is not corrected
 9:Execute Error, two token can't be same
 10:Execute Error, token 1 is freezed
@@ -14,12 +13,13 @@ TTSwapError(uint256) 0xd1b51911
 13:Execute Error, token 1 is not initialize
 14:Execute Error, swap value is less than 1
 15:Execute Error, not commit when protected by MeV attacks
-16:Execute Error, liquidity does not cover this price, please try again later
+16:Execute Error, liquidity can not cover this price, Have't Support the transactions
+7:Execute Error, liquidity can not cover this price, Have't Support the transactions
 17:Execute Error, one of the two tokens needs to be a value token
 18:Execute Error, the investment quantity exceeds the threshold
 19:Execute Error, you are not the creator of this proof
 20:Execute Error, you are not the creator of this token
-21:Execute Error, the quantity of goods exceeds 100
+21:Execute Error, query exceeds 100
 22:Execute Error, you are not a protocol security officer
 23:Execute Error, exceeding the maximum investment amplification factor
 24:Execute Error, the sum of fee ratios is not 100
@@ -30,6 +30,12 @@ TTSwapError(uint256) 0xd1b51911
 29:Execute Error, the corresponding value token withdrawal quantity is greater than the maximum single token quantity. Please reduce the withdrawal quantity
 30:Execute Error, nativeETH insufficient
 31:Execute Error, return of remaining NativeETH failed
+32:Execute Error, the receive address  can't be null
+33:Execute Error, the good quantity of the protocol received is exceeds the invest quantity*2
+34:Execute Error, please freezen the token before
+36:Execute Error, the initial quantity is too big or to small
+38:Execute Error, the invest value of the good is to small
+
 61:Execute Error, not be mainnet
 62:Execute Error, not a DAO administrator
 63:Execute Error, not a token super administrator
