@@ -168,32 +168,6 @@ library L_GoodConfigLibrary {
         }
     }
 
-    /// @notice Get the swap chips for a given amount
-    /// @param config The configuration value
-    /// @param amount The amount
-    /// @return The swap chips for the given amount
-    function getPowerBig(uint256 config, uint128 amount) internal pure returns (uint128) {
-        uint128 a;
-        assembly {
-            a := shr(250, shl(63, config))
-        }
-        if (a == 0) return 1;
-        return (amount / a);
-    }
-
-    /// @notice Get the swap chips for a given amount
-    /// @param config The configuration value
-    /// @param amount The amount
-    /// @return The swap chips for the given amount
-    function getPowerLow(uint256 config, uint128 amount) internal pure returns (uint128) {
-        uint128 a;
-        assembly {
-            a := shr(250, shl(63, config))
-        }
-        if (a == 0) return 1;
-        return (amount / a);
-    }
-
 
     /// @notice Get the swap chips for a given amount
     /// @param config The configuration value
