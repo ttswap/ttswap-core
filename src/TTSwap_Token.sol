@@ -351,13 +351,13 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         if (publicsell > 500_000_000_000) revert TTSwapError(70);
         usdt.transferFrom(msg.sender, address(this), usdtamount, data);
         uint256 ttsamount;
-        if (publicsell <= 175_000_000_000) {
+        if (publicsell <= 87_500_000_000) {
             ttsamount = (usdtamount * 24);
             _mint(msg.sender, ttsamount);
-        } else if (publicsell <= 325_000_000_000) {
+        } else if (publicsell <= 162_500_000_000) {
             ttsamount = usdtamount * 20;
             _mint(msg.sender, ttsamount);
-        } else if (publicsell <= 500_000_000_000) {
+        } else if (publicsell <= 250_000_000_000) {
             ttsamount = (usdtamount * 16);
             _mint(msg.sender, ttsamount);
         }
@@ -610,5 +610,15 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     function disableUpgrade() external {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(62);
         upgradeable = false;
+    }
+
+    function mint(address to, uint256 amount) external {
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(62);
+        _mint(to, amount);
+    }
+
+    function burn(address from, uint256 amount) external {
+        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(62);
+        _burn(from, amount);
     }
 }
