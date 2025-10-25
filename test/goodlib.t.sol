@@ -41,7 +41,7 @@ contract testBuy11 is Test {
         console2.log(good1.goodConfig.isvaluegood());
         assertEq(
             _goodConfig1  + _goodConfig,
-            good1.goodConfig,
+            good1.goodConfig+2**255,
             "modified godoconfig error"
         );
     }

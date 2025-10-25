@@ -267,6 +267,16 @@ interface I_TTSwap_Market {
         uint256 _goodConfig
     ) external returns (bool);
 
+    // @param _goodid The ID of the good
+    /// @param _goodConfig The new configuration
+    /// @return Success status
+    function modifyGoodCoreConfig(
+        address _goodid,
+        uint256 _goodConfig
+    ) external   returns (bool);
+
+    function lockGood(address _goodid) external ;
+
     /// @notice Changes the owner of a good
     /// @param _goodid The ID of the good
     /// @param _to The new owner's address

@@ -165,7 +165,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         _erc20address.transferFrom(msg.sender, _initial.amount1(), data);
         goods[_erc20address].init(_initial, _goodConfig);
         /// update good to value good & initialize good config
-        goods[_erc20address].modifyGoodConfig(5933383808 << 223); //2**32+6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
+        goods[_erc20address].modifyGoodConfig(0x30d4204000000000000000000000000000000000000000000000000000000000); //6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
+        goods[_erc20address].modifyGoodCoreConfig(0x8000000000000000000000000000000000000000000000000000000000000000);//2**255
         uint256 proofid = S_ProofKey(msg.sender, _erc20address, address(0))
             .toId();
         proofs[proofid].updateInvest(
@@ -865,7 +866,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     ) external override returns (bool) {
         if (msg.sender != goods[_goodid].owner) revert TTSwapError(20);
         goods[_goodid].updateGoodConfig(_goodConfig);
-        emit e_updateGoodConfig(_goodid, _goodConfig);
+        emit e_updateGoodConfig(_goodid, goods[_goodid].goodConfig);
         return true;
     }
 
@@ -877,9 +878,29 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address _goodid,
         uint256 _goodConfig
     ) external override onlyMarketor returns (bool) {
+        if(!_goodConfig.checkGoodConfig()) revert TTSwapError(24);
         goods[_goodid].modifyGoodConfig(_goodConfig);
-        emit e_modifyGoodConfig(_goodid, _goodConfig);
+        emit e_modifyGoodConfig(_goodid, goods[_goodid].goodConfig);
         return true;
+    }
+
+    /// @param _goodid The ID of the good
+    /// @param _goodConfig The new configuration
+    /// @return Success status
+    /// @inheritdoc I_TTSwap_Market
+    function modifyGoodCoreConfig(
+        address _goodid,
+        uint256 _goodConfig
+    ) external override onlyMarketadmin returns (bool) {
+        goods[_goodid].modifyGoodCoreConfig(_goodConfig);
+        emit e_modifyGoodConfig(_goodid, goods[_goodid].goodConfig);
+        return true;
+    }
+
+    function lockGood(address _goodid) external override  {
+        require(TTS_CONTRACT.userConfig(msg.sender).isMarketManager()||goods[_goodid].owner==msg.sender);
+        goods[_goodid].lockGood();
+        emit e_updateGoodConfig(_goodid, goods[_goodid].goodConfig);
     }
 
     /// @notice Changes the owner of a good
