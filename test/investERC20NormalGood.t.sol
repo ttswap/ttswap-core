@@ -62,7 +62,7 @@ contract investERC20NormalGood is BaseSetup {
             address(btc),
             normalgoodconfig,
             defaultdata,
-            defaultdata
+            defaultdata,users[1],defaultdata
         );
         normalgoodbtc = address(btc);
         vm.stopPrank();
@@ -106,7 +106,7 @@ contract investERC20NormalGood is BaseSetup {
         assertEq(_proof1.valueinvest.amount1(), 62993700000, "before invest:proof quantity error");
         assertEq(_proof1.valueinvest.amount0(), 62993700000, "before invest:proof quantity error");
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[1],defaultdata);
         snapLastCall("invest_own_erc20_normalgood_first");
         assertEq(
             btc.balanceOf(users[1]),
@@ -171,10 +171,10 @@ contract investERC20NormalGood is BaseSetup {
         assertEq(_proof1.valueinvest.amount1(), 125984610279, "after invest:proof quantity error");
         assertEq(_proof1.valueinvest.amount0(), 125984610279, "after invest:proof quantity error");
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[1],defaultdata);
         snapLastCall("invest_own_erc20_normalgood_second");
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[1],defaultdata);
         snapLastCall("invest_own_erc20_normalgood_three");
 
         vm.stopPrank();
@@ -220,7 +220,7 @@ contract investERC20NormalGood is BaseSetup {
         assertEq(_proof1.valueinvest.amount0(), 0, "before invest:proof quantity error");
 
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[4],defaultdata);
         snapLastCall("invest_other_erc20_normalgood_first");
         normalproof = 3;
         assertEq(
@@ -288,10 +288,10 @@ contract investERC20NormalGood is BaseSetup {
         assertEq(_proof1.valueinvest.amount1(), 62990910279, "after invest:proof quantity error");
         assertEq(_proof1.valueinvest.amount0(), 62990910279, "after invest:proof quantity error");
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[4],defaultdata);
         snapLastCall("invest_other_erc20_normalgood_second");
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[4],defaultdata);
         snapLastCall("invest_other_erc20_normalgood_three");
         vm.stopPrank();
     }

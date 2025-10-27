@@ -79,6 +79,8 @@ contract payNativeETHByERC20 is BaseSetup {
             address(1),
             normalgoodconfig,
             defaultdata,
+            defaultdata,
+            users[1],
             defaultdata
         );
         normalgoodbtc = address(1);
@@ -138,11 +140,12 @@ contract payNativeETHByERC20 is BaseSetup {
             "before  pay NativeETH  normalgood:normalgoodkey currentState amount1 error"
         );
         
-        market.buyGood(
+        market.payGood(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1 * 10 ** 6),
-            0,
+            users[1],
+            defaultdata,
             users[1],
             defaultdata
         );
@@ -183,11 +186,13 @@ contract payNativeETHByERC20 is BaseSetup {
             "after  pay NativeETH  normalgood:normalgoodkey currentState amount1 error"
         );
        
-        market.buyGood(
+        market.payGood(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(16300 * 10 ** 6, 1 * 10 ** 6),
-            0,
+            
+            users[1],
+            defaultdata,
             users[1],
             defaultdata
         );
@@ -249,13 +254,13 @@ contract payNativeETHByERC20 is BaseSetup {
             "before  pay NativeETH  normalgood:normalgoodkey currentState amount1 error"
         );
         
-        market.buyGood(
+        market.payGood(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1 * 10 ** 6),
-            0,
+            
             address(100),
-            defaultdata
+            defaultdata,users[1],defaultdata
         );
         snapLastCall("pay_NativeETH_by_erc20_to_other_user_first");
         assertEq(
@@ -294,13 +299,12 @@ contract payNativeETHByERC20 is BaseSetup {
             "after  pay NativeETH  normalgood:normalgoodkey currentState amount1 error"
         );
         
-        market.buyGood(
+        market.payGood(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(16300 * 10 ** 6, 1 * 10 ** 6),
-            0,
             address(100),
-            defaultdata
+            defaultdata,users[1],defaultdata
         );
         snapLastCall("pay_NativeETH_by_erc20_to_other_user_second");
 

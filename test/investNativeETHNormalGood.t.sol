@@ -61,7 +61,7 @@ contract investNativeETHNormalGood is BaseSetup {
             address(1),
             normalgoodconfig,
             defaultdata,
-            defaultdata
+            defaultdata,users[1],defaultdata
         );
         nativeeth = address(1);
         vm.stopPrank();
@@ -102,7 +102,7 @@ contract investNativeETHNormalGood is BaseSetup {
         assertEq(_proof1.valueinvest.amount1(), 62993700000, "before invest:proof quantity error");
         assertEq(_proof1.valueinvest.amount0(), 62993700000, "before invest:proof quantity error");
 
-        market.investGood{value: 100000000}(nativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood{value: 100000000}(nativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[1],defaultdata);
         snapLastCall("invest_own_nativeeth_normalgood_first");
         assertEq(
             users[1].balance, 800000000, "after invest nativeeth_normalgood:btc users[1] account invest balance error"
@@ -165,10 +165,10 @@ contract investNativeETHNormalGood is BaseSetup {
         assertEq(_proof1.invest.amount0(), 199990000, "after invest:proof quantity error");
         assertEq(_proof1.valueinvest.amount1(), 125984610279, "after invest:proof quantity error");
         assertEq(_proof1.valueinvest.amount0(), 125984610279, "after invest:proof quantity error");
-        market.investGood{value: 100000000}(nativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood{value: 100000000}(nativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[1],defaultdata);
         snapLastCall("invest_own_nativeeth_normalgood_second");
 
-        market.investGood{value: 100000000}(nativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood{value: 100000000}(nativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[1],defaultdata);
         snapLastCall("invest_own_nativeeth_normalgood_three");
 
         vm.stopPrank();
@@ -205,7 +205,7 @@ contract investNativeETHNormalGood is BaseSetup {
         assertEq(_proof1.invest.amount1(), 0, "before invest:proof quantity error");
         assertEq(_proof1.valueinvest.amount1(), 0, "before invest:proof quantity error");
 
-        market.investGood{value: 100000000}(nativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood{value: 100000000}(nativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[4],defaultdata);
         snapLastCall("invest_other_nativeeth_normalgood_first");
 
         assertEq(
@@ -271,7 +271,7 @@ contract investNativeETHNormalGood is BaseSetup {
         assertEq(_proof1.valueinvest.amount0(), 62990910279, "after invest:proof quantity error");
 
 
-        market.investGood{value: 100000000}(nativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood{value: 100000000}(nativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[4],defaultdata);
         snapLastCall("invest_other_nativeeth_normalgood_second");
 
         vm.stopPrank();

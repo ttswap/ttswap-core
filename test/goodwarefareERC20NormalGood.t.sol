@@ -62,7 +62,7 @@ contract goodwarefareERC20NormalGood is BaseSetup {
             address(btc),
             normalgoodconfig,
             defaultdata,
-            defaultdata
+            defaultdata,users[1],defaultdata
         );
         normalgoodbtc = address(btc);
         vm.stopPrank();
@@ -93,7 +93,7 @@ contract goodwarefareERC20NormalGood is BaseSetup {
         );
         
        
-        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata);
+        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata,users[1],defaultdata);
         snapLastCall("goodwarefare_own_erc20_normalgood_first");
         good_ = market.getGoodState(normalgoodbtc);
         assertEq(
@@ -112,10 +112,10 @@ contract goodwarefareERC20NormalGood is BaseSetup {
         );
         
 
-        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata);
+        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata,users[1],defaultdata);
         snapLastCall("goodwarefare_own_erc20_normalgood_second");
 
-        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata);
+        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata,users[1],defaultdata);
         snapLastCall("goodwarefare_own_erc20_normalgood_three");
         vm.stopPrank();
     }

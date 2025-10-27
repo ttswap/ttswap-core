@@ -66,6 +66,8 @@ contract testInitNormalGood is BaseSetup {
             address(btc),
             normalgoodconfig,
             defaultdata,
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("init_ERC20_By_ERC20");
@@ -308,6 +310,8 @@ contract testInitNormalGood is BaseSetup {
             address(1),
             normalgoodconfig,
             defaultdata,
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("init_NativeETH_By_ERC20");

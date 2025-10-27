@@ -63,7 +63,7 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
             address(btc),
             normalgoodconfig,
             defaultdata,
-            defaultdata
+            defaultdata,users[1],defaultdata
         );
         normalgoodbtc = address(btc);
         vm.stopPrank();
@@ -73,7 +73,7 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
         vm.startPrank(users[1]);
         usdt.approve(address(market), 800000 * 10 ** 6 + 1);
         btc.approve(address(market), 10 * 10 ** 8 + 1);
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[1],defaultdata);
         vm.stopPrank();
     }
 
@@ -140,7 +140,7 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
     
         normalproof = S_ProofKey(users[1], normalgoodbtc, metagood).toId();
 
-        market.disinvestProof(normalproof, 1 * 10 ** 8, address(0));
+        market.disinvestProof(normalproof, 1 * 10 ** 8, address(0),users[1],defaultdata);
         snapLastCall("disinvest_own_erc20_normalgood_first");
         good_ = market.getGoodState(normalgoodbtc);
         assertEq(
@@ -197,10 +197,10 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
             "before invest:proof quantity error"
         );
 
-        market.disinvestProof(normalproof, 1 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 1 * 10 ** 6, address(0),users[1],defaultdata);
         snapLastCall("disinvest_own_erc20_normalgood_second");
 
-        market.disinvestProof(normalproof, 1 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 1 * 10 ** 6, address(0),users[1],defaultdata);
         snapLastCall("disinvest_own_erc20_normalgood_three");
         vm.stopPrank();
     }

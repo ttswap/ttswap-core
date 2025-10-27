@@ -7,32 +7,32 @@ interface I_TTSwap_Market {
     /// @notice Emitted when a good's configuration is updated
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
-    event e_updateGoodConfig(address _goodid, uint256 _goodConfig);
+    event e_updateGoodConfig(address _goodid, uint256 _goodConfig,address _trader);
 
     /// @notice Emitted when a good's configuration is modified by market admin
     /// @param _goodid The ID of the good
     /// @param _goodconfig The new configuration
-    event e_modifyGoodConfig(address _goodid, uint256 _goodconfig);
+    event e_modifyGoodConfig(address _goodid, uint256 _goodconfig,address _trader);
 
     /// @notice Emitted when a good's owner is changed
     /// @param goodid The ID of the good
     /// @param to The new owner's address
-    event e_changegoodowner(address goodid, address to);
+    event e_changegoodowner(address goodid, address to,address _trader);
 
     /// @notice Emitted when market commission is collected
     /// @param _gooid Array of good IDs
     /// @param _commisionamount Array of commission amounts
-    event e_collectcommission(address[] _gooid, uint256[] _commisionamount);
+    event e_collectcommission(address[] _gooid, uint256[] _commisionamount,address _trader);
 
     /// @notice Emitted when welfare is delivered to investors
     /// @param goodid The ID of the good
     /// @param welfare The amount of welfare
-    event e_goodWelfare(address goodid, uint128 welfare);
+    event e_goodWelfare(address goodid, uint128 welfare,address _trader);
 
     /// @notice Emitted when protocol fee is collected
     /// @param goodid The ID of the good
     /// @param feeamount The amount of fee collected
-    event e_collectProtocolFee(address goodid, uint256 feeamount);
+    event e_collectProtocolFee(address goodid, uint256 feeamount,address _trader);
 
     /// @notice Emitted when a meta good is created and initialized
     /// @dev The decimal precision of _initial.amount0() defaults to 6
@@ -64,7 +64,8 @@ interface I_TTSwap_Market {
         uint256 _goodConfig,
         uint256 _construct,
         uint256 _normalinitial,
-        uint256 _value
+        uint256 _value,
+        address _trader
     );
 
     /// @notice Emitted when a user buys a good
@@ -78,7 +79,20 @@ interface I_TTSwap_Market {
         address indexed forgood,
         uint256 swapvalue,
         uint256 good1change,
-        uint256 good2change
+        uint256 good2change,
+        address _trader
+    );
+
+    /// @notice Emitted when a user buys a good
+    /// @param good The ID of the good being sold
+    /// @param _trader The trade value
+    /// @param _swapQuantity The status of the sold good (amount0: fee, amount1: quantity)
+    /// @param _feeQuantity The status of the bought good (amount0: fee, amount1: quantity)
+    event e_payGood(
+        address indexed good,
+        address _trader,
+        uint256 _swapQuantity,
+        uint128 _feeQuantity
     );
 
     /// @notice Emitted when a user invests in a normal good
@@ -94,7 +108,8 @@ interface I_TTSwap_Market {
         address _valueGoodNo,
         uint256 _value,
         uint256 _invest,
-        uint256 _valueinvest
+        uint256 _valueinvest,
+        address _trader
     );
 
     /// @notice Emitted when a user disinvests from  good
@@ -116,7 +131,8 @@ interface I_TTSwap_Market {
         uint256 _normalprofit,
         uint256 _normaldisvest,
         uint256 _valueprofit,
-        uint256 _valuedisvest
+        uint256 _valuedisvest,
+        address _trader
     );
 
     /// @notice Initialize the first good in the market
@@ -158,7 +174,6 @@ interface I_TTSwap_Market {
      * @param _swapQuantity The amount of _goodid1 to swap
      *        - amount0: The quantity of the input good
      *        - amount1: The limit quantity of the output good
-     * @param _side tradeside,0:buy,1:sell
      * @param _referal when side is buy, _referal is the referral address when side is sell, _referal is the address to receive the fee
      * @return good1change amount0() good1tradefee,good1tradeamount
      * @return good2change amount0() good1tradefee,good2tradeamount
@@ -167,7 +182,6 @@ interface I_TTSwap_Market {
         address _goodid1,
         address _goodid2,
         uint256 _swapQuantity,
-        uint128 _side,
         address _referal,
         bytes calldata data,
         address _trader,
@@ -178,15 +192,11 @@ interface I_TTSwap_Market {
         address _goodid1,
         address _goodid2,
         uint256 _swapQuantity,
-        uint128 _side,
         address _recipent,
         bytes calldata data,
         address _trader,
         bytes calldata signature
-    )
-        external
-        payable
-        returns (uint256 good1change, uint256 good2change);
+    ) external payable returns (uint256 good1change, uint256 good2change);
 
     /// @notice Invest in a normal good
     /// @param _togood ID of the normal good to invest in
@@ -258,7 +268,8 @@ interface I_TTSwap_Market {
     /// @return Success status
     function updateGoodConfig(
         address _goodid,
-        uint256 _goodConfig, address _trader,
+        uint256 _goodConfig,
+        address _trader,
         bytes calldata signature
     ) external returns (bool);
 
@@ -283,16 +294,29 @@ interface I_TTSwap_Market {
         bytes calldata signature
     ) external returns (bool);
 
-    function lockGood(address _goodid,address _trader,bytes calldata signature) external;
+    function lockGood(
+        address _goodid,
+        address _trader,
+        bytes calldata signature
+    ) external;
 
     /// @notice Changes the owner of a good
     /// @param _goodid The ID of the good
     /// @param _to The new owner's address
-    function changeGoodOwner(address _goodid, address _to,address _trader,bytes calldata signature) external;
+    function changeGoodOwner(
+        address _goodid,
+        address _to,
+        address _trader,
+        bytes calldata signature
+    ) external;
 
     /// @notice Collects commission for specified goods
     /// @param _goodid Array of good IDs
-    function collectCommission(address[] calldata _goodid,address _trader,bytes calldata signature) external;
+    function collectCommission(
+        address[] calldata _goodid,
+        address _trader,
+        bytes calldata signature
+    ) external;
 
     /**
      * @dev Queries commission amounts for multiple goods for a specific recipient
@@ -370,7 +394,21 @@ struct S_GoodState {
     address owner;
     uint256 currentState;
     uint256 investState;
+    uint256 extendsState1;
+    uint256 extendsState2;
+    uint256 extendsState3;
+    uint256 extendsState4;
+    uint256 extendsState5;
+    uint256 extendsState6;
+    uint256 extendsState7;
+    uint256 extendsState8;
+    uint256 extendsState9;
     mapping(address => uint256) commission;
+    mapping(address => uint256) extendmapping1;
+    mapping(address => uint256) extendmapping2;
+    mapping(address => uint256) extendmapping3;
+    mapping(address => uint256) extendmapping4;
+    mapping(address => uint256) extendmapping5;
 }
 
 /**

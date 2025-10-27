@@ -39,7 +39,7 @@ contract BaseSetup is Test, GasSnapshot {
         tts_token_proxy=new TTSwap_Token_Proxy(address(usdt), marketcreator, 2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
         tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
         snapStart("depoly Market Manager");
-         market = new TTSwap_Market(tts_token,marketcreator);
+        market = new TTSwap_Market(tts_token,marketcreator);
         snapEnd();
         tts_token.setTokenAdmin(marketcreator,true);
         tts_token.setTokenManager(marketcreator,true);

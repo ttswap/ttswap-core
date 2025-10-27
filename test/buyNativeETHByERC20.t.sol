@@ -78,6 +78,8 @@ contract buyNativeETHByERC20 is BaseSetup {
             address(1),
             normalgoodconfig,
             defaultdata,
+            defaultdata,
+            users[1],
             defaultdata
         );
         normalgoodbtc = address(1);
@@ -119,7 +121,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             toTTSwapUINT256(113000000000, 113000000000).amount1(),
             "before  buy NativeETH  normalgood:metagoodkey currentState amount1 error"
         );
-        
+
         S_GoodTmpState memory normalgoodkeystate = market.getGoodState(
             normalgoodbtc
         );
@@ -134,14 +136,14 @@ contract buyNativeETHByERC20 is BaseSetup {
             toTTSwapUINT256(100000000, 100000000).amount1(),
             "before  buy NativeETH  normalgood:normalgoodkey currentState amount1 error"
         );
-       
 
         market.buyGood(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
-            1,
             address(0),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("buy_NativeETH_by_erc20_first");
@@ -185,8 +187,9 @@ contract buyNativeETHByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
-            1,
             address(0),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("buy_NativeETH_by_erc20_second");
@@ -250,8 +253,9 @@ contract buyNativeETHByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
-            1,
             address(100),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("buy_NativeETH_by_erc20_first_with_refer");
@@ -295,8 +299,9 @@ contract buyNativeETHByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
-            1,
             address(100),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall(
@@ -307,8 +312,9 @@ contract buyNativeETHByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
-            1,
             address(0),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("buy_NativeETH_by_erc20_second_with_exists_refer");

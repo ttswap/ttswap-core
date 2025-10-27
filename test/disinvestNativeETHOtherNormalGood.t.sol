@@ -62,7 +62,7 @@ contract disinvestNativeETHOtherNormalGood is BaseSetup {
             address(1),
             normalgoodconfig,
             defaultdata,
-            defaultdata
+            defaultdata,users[1],defaultdata
         );
         normalgoodnativeeth = address(1);
         vm.stopPrank();
@@ -75,7 +75,7 @@ contract disinvestNativeETHOtherNormalGood is BaseSetup {
         deal(address(usdt), users[2], 50000000 * 10 ** 6, false);
         usdt.approve(address(market), 800000 * 10 ** 6 + 1);
         btc.approve(address(market), 10 * 10 ** 8 + 1);
-        market.investGood{value: 1 * 10 ** 8}(normalgoodnativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata);
+        market.investGood{value: 1 * 10 ** 8}(normalgoodnativeeth, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[2],defaultdata);
         vm.stopPrank();
     }
 
@@ -141,7 +141,7 @@ contract disinvestNativeETHOtherNormalGood is BaseSetup {
        
         normalproof = S_ProofKey(users[2], normalgoodnativeeth, metagood).toId();
 
-        market.disinvestProof(normalproof, 1 * 10 ** 5, address(0));
+        market.disinvestProof(normalproof, 1 * 10 ** 5, address(0),users[2],defaultdata);
         snapLastCall("disinvest_other_nativeeth_normalgood_first");
         good_ = market.getGoodState(normalgoodnativeeth);
         assertEq(
@@ -200,10 +200,10 @@ contract disinvestNativeETHOtherNormalGood is BaseSetup {
             "before invest:proof quantity error"
         );
 
-        market.disinvestProof(normalproof, 1 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 1 * 10 ** 6, address(0),users[2],defaultdata);
         snapLastCall("disinvest_other_nativeeth_normalgood_second");
 
-        market.disinvestProof(normalproof, 1 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 1 * 10 ** 6, address(0),users[2],defaultdata);
         snapLastCall("disinvest_other_nativeeth_normalgood_three");
         vm.stopPrank();
     }

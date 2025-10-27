@@ -50,8 +50,8 @@ contract PowerWithFee is BaseSetup {
 
     function investOwnERC20ValueGood() public {
         vm.startPrank(marketcreator);
-        market.modifyGoodConfig(metagood, 5933383818<<223);//2**32+6*2**28+ 1*2**24+ 5*2**21+7*2**16+7*2**11+2*2**6+10
-        market.updateGoodConfig(metagood, 220627572776168201641469195996245156569363466678014923256774000640); //5*2**187
+        market.modifyGoodConfig(metagood, 5933383818<<223,marketcreator,defaultdata);//2**32+6*2**28+ 1*2**24+ 5*2**21+7*2**16+7*2**11+2*2**6+10
+        market.updateGoodConfig(metagood, 220627572776168201641469195996245156569363466678014923256774000640,marketcreator,defaultdata); //5*2**187
         uint256 normalproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
         S_ProofState memory _proof = market.getProofState(normalproof);
          assertEq(_proof.shares.amount0(), 50000000000, "before invest:proof value error");
@@ -62,7 +62,7 @@ contract PowerWithFee is BaseSetup {
         assertEq(_proof.invest.amount1(), 50000000000, "before invest:proof quantity error");
         console2.log('goodConfig.amount1.before',market.getGoodState(metagood).goodConfig.amount1());
         console2.log('investState.amount0.before',market.getGoodState(metagood).investState.amount0());
-        market.investGood{value: 50000000000}(metagood, address(0), 50000 * 10 ** 6, defaultdata, defaultdata);
+        market.investGood{value: 50000000000}(metagood, address(0), 50000 * 10 ** 6, defaultdata, defaultdata,marketcreator,defaultdata);
         console2.log('limitpower',market.getGoodState(metagood).goodConfig.getLimitPower());
         console2.log('power',market.getGoodState(metagood).goodConfig.getPower());
         console2.log('goodConfig.amount1',market.getGoodState(metagood).goodConfig.amount1());
@@ -121,7 +121,7 @@ contract PowerWithFee is BaseSetup {
         );
        
 
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),marketcreator,defaultdata);
         snapLastCall("disinvest_own_nativeeth_valuegood_first");
         good_ = market.getGoodState(metagood);
         assertEq(
@@ -158,10 +158,10 @@ contract PowerWithFee is BaseSetup {
         assertEq(_proof.state.amount1(), 96641110880, "after invest:proof value error");
         assertEq(_proof.invest.amount0(), 289875000000, "after invest:proof quantity error");
         assertEq(_proof.invest.amount1(), 96641110880, "after invest:proof quantity error");
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),marketcreator,defaultdata);
         snapLastCall("disinvest_own_nativeeth_valuegood_second");
 
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),marketcreator,defaultdata);
         snapLastCall("disinvest_own_nativeeth_valuegood_three");
         vm.stopPrank();
     }

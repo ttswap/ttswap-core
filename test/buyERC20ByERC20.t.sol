@@ -79,6 +79,8 @@ contract buyERC20ByERC20 is BaseSetup {
             address(btc),
             normalgoodconfig,
             defaultdata,
+            defaultdata,
+            users[1],
             defaultdata
         );
         normalgoodbtc = address(btc);
@@ -141,8 +143,9 @@ contract buyERC20ByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
-            1,
             address(0),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("buy_erc20_by_erc20_first");
@@ -186,8 +189,9 @@ contract buyERC20ByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
-            1,
             address(0),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("buy_erc20_by_erc20_second");
@@ -251,8 +255,9 @@ contract buyERC20ByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
-            1,
             address(100),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("buy_erc20_by_erc20_first_with_refer");
@@ -296,8 +301,9 @@ contract buyERC20ByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
-            1,
             address(100),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("buy_erc20_by_erc20_second_with_exists_refer_reject_add");
@@ -306,8 +312,9 @@ contract buyERC20ByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
-            1,
             address(0),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("buy_erc20_by_erc20_second_with_exists_refer");

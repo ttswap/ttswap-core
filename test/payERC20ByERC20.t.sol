@@ -80,6 +80,8 @@ contract payERC20ByERC20 is BaseSetup {
             address(btc),
             normalgoodconfig,
             defaultdata,
+            defaultdata,
+            users[1],
             defaultdata
         );
         normalgoodbtc = address(btc);
@@ -138,11 +140,12 @@ contract payERC20ByERC20 is BaseSetup {
             "before  pay erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 
-        market.buyGood(
+        market.payGood(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1 * 10 ** 6),
-            0,
+            users[1],
+            defaultdata,
             users[1],
             defaultdata
         );
@@ -183,11 +186,13 @@ contract payERC20ByERC20 is BaseSetup {
             "after  pay erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 
-        market.buyGood(
+        market.payGood(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(16300 * 10 ** 6, 1 * 10 ** 6),
-            0,
+            
+            users[1],
+            defaultdata,
             users[1],
             defaultdata
         );
@@ -248,12 +253,14 @@ contract payERC20ByERC20 is BaseSetup {
             "before  pay erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 
-        market.buyGood(
+        market.payGood(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1 * 10 ** 6),
-            0,
+            
             address(100),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("pay_erc20_by_erc20_to_other_user_first");
@@ -297,8 +304,10 @@ contract payERC20ByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(16300 * 10 ** 6, 1 * 10 ** 6),
-            0,
+            
             address(100),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("pay_erc20_by_erc20_to_other_user_second");

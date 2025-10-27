@@ -29,7 +29,7 @@ contract investNativeETHValueGood is BaseSetup {
     function initmetagood() public {
         BaseSetup.setUp();
         deal(marketcreator, 1000000 * 10 ** 6);
-        vm.startPrank(marketcreator);
+        vm.startPrank(marketcreator);   
         uint256 _goodconfig = (2 ** 255) +
             1 *
             2 ** 217 +
@@ -82,7 +82,7 @@ contract investNativeETHValueGood is BaseSetup {
             address(0),
             50000 * 10 ** 6,
             defaultdata,
-            defaultdata
+            defaultdata,marketcreator,defaultdata
         );
         snapLastCall("invest_own_nativeeth_valuegood_first");
         assertEq(
@@ -164,7 +164,7 @@ contract investNativeETHValueGood is BaseSetup {
             address(0),
             50000 * 10 ** 6,
             defaultdata,
-            defaultdata
+            defaultdata,marketcreator,defaultdata
         );
         snapLastCall("invest_own_nativeeth_valuegood_second");
         market.investGood{value: 50000000000}(
@@ -172,7 +172,7 @@ contract investNativeETHValueGood is BaseSetup {
             address(0),
             50000 * 10 ** 6,
             defaultdata,
-            defaultdata
+            defaultdata,marketcreator,defaultdata
         );
         snapLastCall("invest_own_nativeeth_valuegood_three");
         vm.stopPrank();
@@ -203,7 +203,7 @@ contract investNativeETHValueGood is BaseSetup {
             address(0),
             50000 * 10 ** 6,
             defaultdata,
-            defaultdata
+            defaultdata,users[2],defaultdata
         );
         snapLastCall("invest_other_nativeeth_valuegood_first");
 
@@ -303,7 +303,7 @@ contract investNativeETHValueGood is BaseSetup {
             address(0),
             50000 * 10 ** 6,
             defaultdata,
-            defaultdata
+            defaultdata,users[2],defaultdata
         );
         snapLastCall("invest_other_nativeeth_valuegood_second");
         market.investGood{value: 50000000000}(
@@ -311,7 +311,7 @@ contract investNativeETHValueGood is BaseSetup {
             address(0),
             50000 * 10 ** 6,
             defaultdata,
-            defaultdata
+            defaultdata,users[2],defaultdata
         );
         snapLastCall("invest_other_nativeeth_valuegood_three");
 
