@@ -24,8 +24,8 @@ contract TTSwap_Token_Proxy {
     mapping(address => mapping(address => uint256)) internal allowance;
     mapping(address => uint256) internal nonces;
     address internal implementation;
-    bool internal upgradeable;
     address internal usdt;
+    bool internal upgradeable;
     uint256 internal ttstokenconfig;
     uint256 internal stakestate;
     uint128 internal left_share = 45_000_000_000_000;

@@ -348,6 +348,7 @@ library L_Good {
         uint128 _goodshares; // The shares of goods to disinvest
         address _gater; // The address of the gater (if applicable)
         address _referral; // The address of the referrer (if applicable)
+        address _sender; // The address of the sender
     }
 
     /**
@@ -460,7 +461,8 @@ library L_Good {
             _params._gater,
             _params._referral,
             normalGoodResult1_.actualDisinvestQuantity -
-                normalGoodResult1_.actual_fee
+                normalGoodResult1_.actual_fee,
+                _params._sender
         );
         // Handle value good disinvestment if applicable
         if (_investProof.valuegood != address(0)) {
@@ -545,7 +547,8 @@ library L_Good {
                 _params._gater,
                 _params._referral,
                 valueGoodResult2_.actualDisinvestQuantity -
-                    valueGoodResult2_.actual_fee
+                    valueGoodResult2_.actual_fee,  
+                _params._sender
             );
         }
 
@@ -581,7 +584,8 @@ library L_Good {
         uint128 _profit,
         address _gater,
         address _referral,
-        uint128 _divestQuantity
+        uint128 _divestQuantity,
+        address _sender
     ) private {
         uint256 _goodconfig = _self.goodConfig;
         // Calculate platform fee and deduct it from the profit
@@ -597,7 +601,7 @@ library L_Good {
 
         if (_referral == address(0)) {
             // If no referrer, distribute fees differently
-            _self.commission[msg.sender] += (liquidFee + _divestQuantity);
+            _self.commission[_sender] += (liquidFee + _divestQuantity);
             _self.commission[_gater] += sellerFee + customerFee;
             _self.commission[address(0)] += (_profit -
                 liquidFee -
@@ -624,7 +628,7 @@ library L_Good {
                 marketfee += referFee;
             }
             _self.commission[address(0)] += marketfee;
-            _self.commission[msg.sender] += (liquidFee +
+            _self.commission[_sender] += (liquidFee +
                 customerFee +
                 _divestQuantity);
         }

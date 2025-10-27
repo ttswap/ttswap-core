@@ -7,6 +7,7 @@ import {IERC20Permit} from "../interfaces/IERC20Permit.sol";
 import {IERC20} from "../interfaces/IERC20.sol";
 import {IDAIPermit} from "../interfaces/IDAIPermit.sol";
 import {L_Transient} from "./L_Transient.sol";
+import {TTSwapError} from "./L_Error.sol";
 
 address constant NATIVE = address(1);
 address constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
@@ -65,13 +66,16 @@ library L_CurrencyLibrary {
         address token,
         address from,
         address to,
+        address executor,
         uint256 amount,
         bytes calldata detail
     ) internal {
         bool success;
         if (token.isNative()) {
+            if (executor != from) revert TTSwapError(39);
             L_Transient.decreaseValue(amount);
         } else if (detail.length == 0) {
+            if (executor != from) revert  TTSwapError(39);
             transferFromInter(token, from, to, amount);
         } else {
             S_transferData memory _simplePermit = abi.decode(
@@ -127,6 +131,7 @@ library L_CurrencyLibrary {
                     revert ERC20PermitFailed();
                 }
             } else if (_simplePermit.transfertype == 3) {
+                if (executor != from) revert  TTSwapError(39);
                 IAllowanceTransfer(_permit2).transferFrom(
                     from,
                     to,
@@ -189,11 +194,12 @@ library L_CurrencyLibrary {
     function transferFrom(
         address token,
         address from,
+        address executor,
         uint256 amount,
         bytes calldata trandata
     ) internal {
         address to = address(this);
-        transferFrom(token, from, to, uint128(amount), trandata);
+        transferFrom(token, from, to, executor, uint128(amount), trandata);
     }
 
     function transferFromInter(

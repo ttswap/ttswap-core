@@ -23,8 +23,8 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     using L_CurrencyLibrary for address;
     using L_SignatureVerification for bytes;
     address internal implementation;
-    bool internal upgradeable;
     address internal usdt;
+    bool internal upgradeable;
     uint256 public override ttstokenconfig;
     uint256 public override stakestate; // first 128 bit record lasttime,last 128 bit record poolvalue
     uint128 public override left_share = 45_000_000_000_000;

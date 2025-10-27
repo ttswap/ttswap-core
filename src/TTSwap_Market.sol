@@ -162,11 +162,20 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     ) external payable onlyMarketadmin msgValue returns (bool) {
         if (!_goodConfig.isvaluegood()) revert TTSwapError(4);
         if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
-        _erc20address.transferFrom(msg.sender, _initial.amount1(), data);
+        _erc20address.transferFrom(
+            msg.sender,
+            msg.sender,
+            _initial.amount1(),
+            data
+        );
         goods[_erc20address].init(_initial, _goodConfig);
         /// update good to value good & initialize good config
-        goods[_erc20address].modifyGoodConfig(0x30d4204000000000000000000000000000000000000000000000000000000000); //6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
-        goods[_erc20address].modifyGoodCoreConfig(0x8000000000000000000000000000000000000000000000000000000000000000);//2**255
+        goods[_erc20address].modifyGoodConfig(
+            0x30d4204000000000000000000000000000000000000000000000000000000000
+        ); //6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
+        goods[_erc20address].modifyGoodCoreConfig(
+            0x8000000000000000000000000000000000000000000000000000000000000000
+        ); //2**255
         uint256 proofid = S_ProofKey(msg.sender, _erc20address, address(0))
             .toId();
         proofs[proofid].updateInvest(
@@ -209,16 +218,29 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address _erc20address,
         uint256 _goodConfig,
         bytes calldata _normaldata,
-        bytes calldata _valuedata
+        bytes calldata _valuedata,
+        address _trader,
+        bytes calldata signature
     ) external payable override noReentrant msgValue returns (bool) {
+        if (_trader != msg.sender) revert TTSwapError(39);
         if (_initial.amount0() < 500000 || _initial.amount0() > 2 ** 109)
             revert TTSwapError(36);
         if (!goods[_valuegood].goodConfig.isvaluegood()) {
             revert TTSwapError(6);
         }
         if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
-        _erc20address.transferFrom(msg.sender, _initial.amount0(), _normaldata);
-        _valuegood.transferFrom(msg.sender, _initial.amount1(), _valuedata);
+        _erc20address.transferFrom(
+            msg.sender,
+            msg.sender,
+            _initial.amount0(),
+            _normaldata
+        );
+        _valuegood.transferFrom(
+            msg.sender,
+            msg.sender,
+            _initial.amount1(),
+            _valuedata
+        );
         L_Good.S_GoodInvestReturn memory investResult;
         (investResult.goodShares, investResult.goodValues) = goods[_valuegood]
             .investState
@@ -300,232 +322,180 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         uint256 _swapQuantity,
         uint128 _side,
         address _recipent,
-        bytes calldata data
+        bytes calldata data,
+        address _trader,
+        bytes calldata signature
     )
         external
         payable
         noReentrant
-        msgValue
+        msgValue override
         returns (uint256 good1change, uint256 good2change)
-    {
-        if (_side > 1) revert TTSwapError(8);
-        if (_goodid1 == _goodid2) revert TTSwapError(9);
+    {   
+        if (_trader != msg.sender) revert TTSwapError(39);
         if (goods[_goodid1].goodConfig.isFreeze()) revert TTSwapError(10);
         if (goods[_goodid2].goodConfig.isFreeze()) revert TTSwapError(11);
         if (goods[_goodid1].currentState == 0) revert TTSwapError(12);
         if (goods[_goodid2].currentState == 0) revert TTSwapError(13);
-        if (_side == 1) {
-            if (_recipent != address(0) && _recipent != msg.sender) {
-                TTS_CONTRACT.setReferral(msg.sender, _recipent);
-            }
-            if (
-                goods[_goodid1].currentState.amount1() +
-                    _swapQuantity.amount0() >
-                goods[_goodid1].currentState.amount1() *
-                    2 -
-                    goods[_goodid1].goodConfig.amount1()
-            ) revert TTSwapError(33);
-            L_Good.swapCache memory swapcache = L_Good.swapCache({
-                remainQuantity: _swapQuantity.amount0(),
-                outputQuantity: 0,
-                feeQuantity: 0,
-                swapvalue: 0,
-                good1value: goods[_goodid1].investState.amount1(),
-                good2value: goods[_goodid2].investState.amount1(),
-                good1currentState: goods[_goodid1].currentState,
-                good1config: goods[_goodid1].goodConfig,
-                good2currentState: goods[_goodid2].currentState,
-                good2config: goods[_goodid2].goodConfig
-            });
 
-            L_Good.swapCompute1(swapcache);
-
-            if (swapcache.swapvalue < 1_000_000) revert TTSwapError(14);
-            if (
-                swapcache.outputQuantity < _swapQuantity.amount1() &&
-                _swapQuantity.amount1() > 0
-            ) revert TTSwapError(15);
-            if (
-                swapcache.good2currentState.amount1() <
-                (swapcache.good2config.amount1() * 11) / 10
-            ) revert TTSwapError(16);
-
-            if (
-                swapcache.good2currentState.amount1() <
-                swapcache.good2currentState.amount0() / 10
-            ) revert TTSwapError(16);
-
-            swapcache.good1currentState = add(
-                swapcache.good1currentState,
-                toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity.amount0())
-            );
-            good1change = toTTSwapUINT256(
-                swapcache.feeQuantity,
-                _swapQuantity.amount0() - swapcache.feeQuantity
-            );
-            // compute Token2 fee quantity
-            _side = swapcache.good2config.getBuyFee(swapcache.outputQuantity);
-            // add fee quantity to token2 pool
-            swapcache.good2currentState = add(
-                swapcache.good2currentState,
-                toTTSwapUINT256(_side, _side)
-            );
-            good2change = toTTSwapUINT256(_side, swapcache.outputQuantity);
-            goods[_goodid1].swapCommit(swapcache.good1currentState);
-            goods[_goodid2].swapCommit(swapcache.good2currentState);
-            _goodid1.transferFrom(msg.sender, _swapQuantity.amount0(), data);
-            _goodid2.safeTransfer(msg.sender, good2change.amount1() - _side);
-            emit e_buyGood(
-                _goodid1,
-                _goodid2,
-                swapcache.swapvalue,
-                good1change,
-                good2change
-            );
-        } else {
-            if (_recipent == address(0)) revert TTSwapError(32);
-            L_Good.swapCache memory swapcache = L_Good.swapCache({
-                remainQuantity: _swapQuantity.amount1(),
-                outputQuantity: 0,
-                feeQuantity: 0,
-                swapvalue: 0,
-                good1value: goods[_goodid1].investState.amount1(),
-                good2value: goods[_goodid2].investState.amount1(),
-                good1currentState: goods[_goodid1].currentState,
-                good1config: goods[_goodid1].goodConfig,
-                good2currentState: goods[_goodid2].currentState,
-                good2config: goods[_goodid2].goodConfig
-            });
-            L_Good.swapCompute2(swapcache);
-            _side = swapcache.good1config.getSellFee(swapcache.outputQuantity);
-            good1change = toTTSwapUINT256(_side, swapcache.outputQuantity);
-            if (swapcache.swapvalue < 1_000_000) revert TTSwapError(14);
-            if (
-                good1change.amount1() > _swapQuantity.amount0() &&
-                _swapQuantity.amount0() > 0
-            ) revert TTSwapError(15);
-            if (
-                swapcache.good2currentState.amount1() <
-                (swapcache.good2config.amount1() * 11) / 10 
-            ) revert TTSwapError(16);
-
-            if (
-                swapcache.good2currentState.amount1() <
-                swapcache.good2currentState.amount0() / 10
-            ) revert TTSwapError(16);
-            if (
-                goods[_goodid1].currentState.amount1() +
-                    _swapQuantity.amount0() >
-                goods[_goodid1].currentState.amount0() *
-                    2 -
-                    goods[_goodid1].goodConfig.amount1()
-            ) revert TTSwapError(33);
-            swapcache.good1currentState = add(
-                swapcache.good1currentState,
-                toTTSwapUINT256(_side, _side)
-            );
-            good2change = toTTSwapUINT256(
-                swapcache.feeQuantity,
-                _swapQuantity.amount1() - swapcache.feeQuantity
-            );
-            _goodid1.transferFrom(
-                msg.sender,
-                good1change.amount1() + _side,
-                data
-            );
-            goods[_goodid1].swapCommit(swapcache.good1currentState);
-            goods[_goodid2].swapCommit(swapcache.good2currentState);
-            _goodid2.safeTransfer(_recipent, _swapQuantity.amount1());
-            emit e_buyGood(
-                _goodid1,
-                _goodid2,
-                uint256(swapcache.swapvalue) * 2 ** 128,
-                good1change,
-                good2change
-            );
+        if (_goodid1 == _goodid2) revert TTSwapError(9);
+        if (_trader != msg.sender) revert TTSwapError(39);
+        if (_recipent != address(0) && _recipent != msg.sender) {
+            TTS_CONTRACT.setReferral(msg.sender, _recipent);
         }
+        if (
+            goods[_goodid1].currentState.amount1() + _swapQuantity.amount0() >
+            goods[_goodid1].currentState.amount1() *
+                2 -
+                goods[_goodid1].goodConfig.amount1()
+        ) revert TTSwapError(33);
+        L_Good.swapCache memory swapcache = L_Good.swapCache({
+            remainQuantity: _swapQuantity.amount0(),
+            outputQuantity: 0,
+            feeQuantity: 0,
+            swapvalue: 0,
+            good1value: goods[_goodid1].investState.amount1(),
+            good2value: goods[_goodid2].investState.amount1(),
+            good1currentState: goods[_goodid1].currentState,
+            good1config: goods[_goodid1].goodConfig,
+            good2currentState: goods[_goodid2].currentState,
+            good2config: goods[_goodid2].goodConfig
+        });
+
+        L_Good.swapCompute1(swapcache);
+
+        if (swapcache.swapvalue < 1_000_000) revert TTSwapError(14);
+        if (
+            swapcache.outputQuantity < _swapQuantity.amount1() &&
+            _swapQuantity.amount1() > 0
+        ) revert TTSwapError(15);
+        if (
+            swapcache.good2currentState.amount1() <
+            (swapcache.good2config.amount1() * 11) / 10
+        ) revert TTSwapError(16);
+
+        if (
+            swapcache.good2currentState.amount1() <
+            swapcache.good2currentState.amount0() / 10
+        ) revert TTSwapError(16);
+
+        swapcache.good1currentState = add(
+            swapcache.good1currentState,
+            toTTSwapUINT256(swapcache.feeQuantity, _swapQuantity.amount0())
+        );
+        good1change = toTTSwapUINT256(
+            swapcache.feeQuantity,
+            _swapQuantity.amount0() - swapcache.feeQuantity
+        );
+        // compute Token2 fee quantity
+        _side = swapcache.good2config.getBuyFee(swapcache.outputQuantity);
+        // add fee quantity to token2 pool
+        swapcache.good2currentState = add(
+            swapcache.good2currentState,
+            toTTSwapUINT256(_side, _side)
+        );
+        good2change = toTTSwapUINT256(_side, swapcache.outputQuantity);
+        goods[_goodid1].swapCommit(swapcache.good1currentState);
+        goods[_goodid2].swapCommit(swapcache.good2currentState);
+        _goodid1.transferFrom(
+            msg.sender,
+            msg.sender,
+            _swapQuantity.amount0(),
+            data
+        );
+        _goodid2.safeTransfer(msg.sender, good2change.amount1() - _side);
+        emit e_buyGood(
+            _goodid1,
+            _goodid2,
+            swapcache.swapvalue,
+            good1change,
+            good2change
+        );
     }
 
-    /**
-     * @dev Simulates a buy order between two goods to check expected amounts
-     * @param _goodid1 The address of the input good
-     * @param _goodid2 The address of the output good
-     * @param _swapQuantity The amount of _goodid1 to swap
-     *        - amount0: The quantity of the input good
-     *        - amount1: The limit quantity of the output good
-     * @param _side 1:for buy 0:for pay
-     * @return good1change The expected amount of _goodid1 to be used:
-     *         - amount0: Expected trading fees
-     *         - amount1: Expected swap amount
-     * @return good2change The expected amount of _goodid2 to be received:
-     *         - amount0: Expected trading fees
-     *         - amount1: Expected received amount
-     * @notice This function:
-     * - Simulates the buyGood operation without executing it
-     * - Uses the same AMM formulas as buyGood
-     * - Validates input parameters and market state
-     * - Returns expected amounts including fees
-     * - Useful for frontend price quotes and transaction previews
-     * @custom:security View function, does not modify state
-     * @custom:security Reverts if:
-     * - Either good is not initialized
-     * - Swap quantity is zero
-     * - Same good is used for both input and output
-     * - Trade times exceeds 200
-     * - Insufficient liquidity for the swap
-     */
-    /// @inheritdoc I_TTSwap_Market
-    function buyGoodCheck(
+    function payGood(
         address _goodid1,
         address _goodid2,
         uint256 _swapQuantity,
-        bool _side
-    ) external view returns (uint256 good1change, uint256 good2change) {
-        if (_side) {
-            L_Good.swapCache memory swapcache = L_Good.swapCache({
-                remainQuantity: _swapQuantity.amount0(),
-                outputQuantity: 0,
-                feeQuantity: 0,
-                swapvalue: 0,
-                good1value: goods[_goodid1].investState.amount1(),
-                good2value: goods[_goodid2].investState.amount1(),
-                good1currentState: goods[_goodid1].currentState,
-                good1config: goods[_goodid1].goodConfig,
-                good2currentState: goods[_goodid2].currentState,
-                good2config: goods[_goodid2].goodConfig
-            });
-            L_Good.swapCompute1(swapcache);
-            good1change = toTTSwapUINT256(
-                swapcache.feeQuantity,
-                _swapQuantity.amount0() - swapcache.feeQuantity
-            );
-            good2change = toTTSwapUINT256(
-                swapcache.good2config.getBuyFee(swapcache.outputQuantity),
-                swapcache.outputQuantity
-            );
-        } else {
-            L_Good.swapCache memory swapcache = L_Good.swapCache({
-                remainQuantity: _swapQuantity.amount1(),
-                outputQuantity: 0,
-                feeQuantity: 0,
-                swapvalue: 0,
-                good1value: goods[_goodid1].investState.amount1(),
-                good2value: goods[_goodid2].investState.amount1(),
-                good1currentState: goods[_goodid1].currentState,
-                good1config: goods[_goodid1].goodConfig,
-                good2currentState: goods[_goodid2].currentState,
-                good2config: goods[_goodid2].goodConfig
-            });
-            L_Good.swapCompute2(swapcache);
-            good1change = toTTSwapUINT256(
-                goods[_goodid1].goodConfig.getSellFee(swapcache.outputQuantity),
-                swapcache.outputQuantity
-            );
-            good2change = toTTSwapUINT256(
-                swapcache.feeQuantity,
-                _swapQuantity.amount1() - swapcache.feeQuantity
-            );
-        }
+        uint128 _side,
+        address _recipent,
+        bytes calldata data,
+        address _trader,
+        bytes calldata signature
+    )
+        external
+        payable
+        noReentrant
+        msgValue override
+        returns (uint256 good1change, uint256 good2change)
+    {
+        if (_side > 1) revert TTSwapError(8);
+
+        if (goods[_goodid1].goodConfig.isFreeze()) revert TTSwapError(10);
+        if (goods[_goodid2].goodConfig.isFreeze()) revert TTSwapError(11);
+        if (goods[_goodid1].currentState == 0) revert TTSwapError(12);
+        if (goods[_goodid2].currentState == 0) revert TTSwapError(13);
+
+        if (_recipent == address(0)) revert TTSwapError(32);
+        L_Good.swapCache memory swapcache = L_Good.swapCache({
+            remainQuantity: _swapQuantity.amount1(),
+            outputQuantity: 0,
+            feeQuantity: 0,
+            swapvalue: 0,
+            good1value: goods[_goodid1].investState.amount1(),
+            good2value: goods[_goodid2].investState.amount1(),
+            good1currentState: goods[_goodid1].currentState,
+            good1config: goods[_goodid1].goodConfig,
+            good2currentState: goods[_goodid2].currentState,
+            good2config: goods[_goodid2].goodConfig
+        });
+        L_Good.swapCompute2(swapcache);
+        _side = swapcache.good1config.getSellFee(swapcache.outputQuantity);
+        good1change = toTTSwapUINT256(_side, swapcache.outputQuantity);
+        if (swapcache.swapvalue < 1_000_000) revert TTSwapError(14);
+        if (
+            good1change.amount1() > _swapQuantity.amount0() &&
+            _swapQuantity.amount0() > 0
+        ) revert TTSwapError(15);
+        if (
+            swapcache.good2currentState.amount1() <
+            (swapcache.good2config.amount1() * 11) / 10
+        ) revert TTSwapError(16);
+
+        if (
+            swapcache.good2currentState.amount1() <
+            swapcache.good2currentState.amount0() / 10
+        ) revert TTSwapError(16);
+        if (
+            goods[_goodid1].currentState.amount1() + _swapQuantity.amount0() >
+            goods[_goodid1].currentState.amount0() *
+                2 -
+                goods[_goodid1].goodConfig.amount1()
+        ) revert TTSwapError(33);
+        swapcache.good1currentState = add(
+            swapcache.good1currentState,
+            toTTSwapUINT256(_side, _side)
+        );
+        good2change = toTTSwapUINT256(
+            swapcache.feeQuantity,
+            _swapQuantity.amount1() - swapcache.feeQuantity
+        );
+        _goodid1.transferFrom(
+            msg.sender,
+            _trader,
+            good1change.amount1() + _side,
+            data
+        );
+        goods[_goodid1].swapCommit(swapcache.good1currentState);
+        goods[_goodid2].swapCommit(swapcache.good2currentState);
+        _goodid2.safeTransfer(_recipent, _swapQuantity.amount1());
+        emit e_buyGood(
+            _goodid1,
+            _goodid2,
+            uint256(swapcache.swapvalue) * 2 ** 128,
+            good1change,
+            good2change
+        );
     }
 
     /**
@@ -549,8 +519,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address _valuegood,
         uint128 _quantity,
         bytes calldata data1,
-        bytes calldata data2
+        bytes calldata data2,
+        address _trader,
+        bytes calldata signature
     ) external payable override noReentrant msgValue returns (bool) {
+        if (_trader != msg.sender) revert TTSwapError(39);
         L_Good.S_GoodInvestReturn memory normalInvest_;
         L_Good.S_GoodInvestReturn memory valueInvest_;
         if (_togood == _valuegood) revert TTSwapError(9);
@@ -569,7 +542,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 ? enpower
                 : goods[_valuegood].goodConfig.getPower();
         }
-        _togood.transferFrom(msg.sender, _quantity, data1);
+        _togood.transferFrom(msg.sender, msg.sender, _quantity, data1);
         (normalInvest_.goodShares, normalInvest_.goodValues) = goods[_togood]
             .investState
             .amount01();
@@ -603,6 +576,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 enpower
             );
             _valuegood.transferFrom(
+                msg.sender,
                 msg.sender,
                 valueInvest_.investQuantity /
                     enpower +
@@ -675,8 +649,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     function disinvestProof(
         uint256 _proofid,
         uint128 _goodshares,
-        address _gate
+        address _gate,
+        address _trader,
+        bytes calldata signature
     ) external override noReentrant returns (uint128, uint128) {
+        if (_trader != msg.sender) revert TTSwapError(39);
         if (
             S_ProofKey(
                 msg.sender,
@@ -704,7 +681,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         ].disinvestGood(
                 goods[valuegood],
                 proofs[_proofid],
-                L_Good.S_GoodDisinvestParam(_goodshares, _gate, referal)
+                L_Good.S_GoodDisinvestParam(_goodshares, _gate, referal,msg.sender)
             );
 
         uint256 tranferamount = goods[normalgood].commission[msg.sender];
@@ -862,8 +839,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @inheritdoc I_TTSwap_Market
     function updateGoodConfig(
         address _goodid,
-        uint256 _goodConfig
+        uint256 _goodConfig,
+        address _trader,
+        bytes calldata signature
     ) external override returns (bool) {
+        if (_trader != msg.sender) revert TTSwapError(39);
         if (msg.sender != goods[_goodid].owner) revert TTSwapError(20);
         goods[_goodid].updateGoodConfig(_goodConfig);
         emit e_updateGoodConfig(_goodid, goods[_goodid].goodConfig);
@@ -876,9 +856,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @inheritdoc I_TTSwap_Market
     function modifyGoodConfig(
         address _goodid,
-        uint256 _goodConfig
+        uint256 _goodConfig,
+        address _trader,
+        bytes calldata signature
     ) external override onlyMarketor returns (bool) {
-        if(!_goodConfig.checkGoodConfig()) revert TTSwapError(24);
+        if (_trader != msg.sender) revert TTSwapError(39);
+        if (!_goodConfig.checkGoodConfig()) revert TTSwapError(24);
         goods[_goodid].modifyGoodConfig(_goodConfig);
         emit e_modifyGoodConfig(_goodid, goods[_goodid].goodConfig);
         return true;
@@ -890,15 +873,22 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @inheritdoc I_TTSwap_Market
     function modifyGoodCoreConfig(
         address _goodid,
-        uint256 _goodConfig
+        uint256 _goodConfig,
+        address _trader,
+        bytes calldata signature
     ) external override onlyMarketadmin returns (bool) {
+        if (_trader != msg.sender) revert TTSwapError(39);
         goods[_goodid].modifyGoodCoreConfig(_goodConfig);
         emit e_modifyGoodConfig(_goodid, goods[_goodid].goodConfig);
         return true;
     }
 
-    function lockGood(address _goodid) external override  {
-        require(TTS_CONTRACT.userConfig(msg.sender).isMarketManager()||goods[_goodid].owner==msg.sender);
+    function lockGood(address _goodid,address _trader,bytes calldata signature) external override {
+        if (_trader != msg.sender) revert TTSwapError(39);
+        if (
+            TTS_CONTRACT.userConfig(msg.sender).isMarketManager() ||
+                goods[_goodid].owner == msg.sender
+        ) revert TTSwapError(20);
         goods[_goodid].lockGood();
         emit e_updateGoodConfig(_goodid, goods[_goodid].goodConfig);
     }
@@ -909,8 +899,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @inheritdoc I_TTSwap_Market
     function changeGoodOwner(
         address _goodid,
-        address _to
+        address _to,address _trader,bytes calldata signature
     ) external override onlyMarketor {
+        if (_trader != msg.sender) revert TTSwapError(39);
         goods[_goodid].owner = _to;
         emit e_changegoodowner(_goodid, _to);
     }
@@ -919,8 +910,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @param _goodid Array of good IDs
     /// @inheritdoc I_TTSwap_Market
     function collectCommission(
-        address[] calldata _goodid
+        address[] calldata _goodid,
+        address _trader,bytes calldata signature
     ) external override noReentrant {
+        if (_trader != msg.sender) revert TTSwapError(39);
         address recipent = TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin()
             ? address(0)
             : msg.sender;
@@ -980,12 +973,15 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     function goodWelfare(
         address goodid,
         uint128 welfare,
-        bytes calldata data
+        bytes calldata data,
+        address _trader,
+        bytes calldata signature
     ) external payable override noReentrant msgValue {
+        if (_trader != msg.sender) revert TTSwapError(39);
         if (goods[goodid].currentState.amount0() + welfare > 2 ** 109) {
             revert TTSwapError(18);
         }
-        goodid.transferFrom(msg.sender, welfare, data);
+        goodid.transferFrom(msg.sender,msg.sender, welfare, data);
         goods[goodid].currentState = add(
             goods[goodid].currentState,
             toTTSwapUINT256(uint128(welfare), uint128(welfare))
