@@ -147,7 +147,7 @@ contract payNativeETHByERC20 is BaseSetup {
             users[1],
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("pay_NativeETH_by_erc20_to_self_first");
         assertEq(
@@ -194,7 +194,7 @@ contract payNativeETHByERC20 is BaseSetup {
             users[1],
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("pay_NativeETH_by_erc20_to_self_second");
 
@@ -260,7 +260,7 @@ contract payNativeETHByERC20 is BaseSetup {
             toTTSwapUINT256(6300 * 10 ** 6, 1 * 10 ** 6),
             
             address(100),
-            defaultdata,users[1],defaultdata
+            defaultdata,users[1],defaultdata,0
         );
         snapLastCall("pay_NativeETH_by_erc20_to_other_user_first");
         assertEq(
@@ -304,7 +304,7 @@ contract payNativeETHByERC20 is BaseSetup {
             normalgoodbtc,
             toTTSwapUINT256(16300 * 10 ** 6, 1 * 10 ** 6),
             address(100),
-            defaultdata,users[1],defaultdata
+            defaultdata,users[1],defaultdata,0
         );
         snapLastCall("pay_NativeETH_by_erc20_to_other_user_second");
 

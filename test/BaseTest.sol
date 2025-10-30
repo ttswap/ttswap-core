@@ -6,7 +6,9 @@ import "../src/TTSwap_Market.sol";
 import "../src/TTSwap_Token.sol";
 import "../src/TTSwap_Token_Proxy.sol";
 import "../src/interfaces/I_TTSwap_Market.sol";
-import "../src/interfaces/I_TTSwap_Token.sol";
+import "../src/interfaces/I_TTSwap_Token.sol";   
+ import {TTSwap_Market} from "../src/TTSwap_Market.sol";
+    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 
 contract MockERC20 {
     mapping(address => uint256) public balanceOf;
@@ -48,6 +50,8 @@ contract BaseTest is Test {
     MockERC20 usdt;
     MockERC20 tokenA;
     MockERC20 tokenB;
+
+    TTSwap_Market_Proxy market_proxy;
     
     address constant ADMIN = address(0x1);
     address constant USER1 = address(0x2);
@@ -66,6 +70,7 @@ contract BaseTest is Test {
         // Deploy TTS Token implementation
         implementation = new TTSwap_Token();
         
+        
         // Deploy proxy with initial DAO admin
         tokenProxy = new TTSwap_Token_Proxy(
             address(usdt),
@@ -80,7 +85,9 @@ contract BaseTest is Test {
         ttsToken = I_TTSwap_Token(address(tokenProxy));
         
         // Deploy market
-        market = new TTSwap_Market(ttsToken, address(0));
+        market = new TTSwap_Market(ttsToken);
+         market_proxy = new TTSwap_Market_Proxy(ttsToken,address(market));
+        market = TTSwap_Market(payable(address(market_proxy)));
         
         // Setup initial configuration as ADMIN
         vm.startPrank(ADMIN);
@@ -125,4 +132,5 @@ contract BaseTest is Test {
     function _boundFee(uint256 fee) internal pure returns (uint256) {
         return bound(fee, 0, 1000); // 0-10%
     }
+    
 }

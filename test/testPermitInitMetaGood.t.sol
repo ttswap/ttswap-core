@@ -10,6 +10,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
 import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
 import {TTSwap_Market} from "../src/TTSwap_Market.sol";
+    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
 import {L_Good} from "../src/libraries/L_Good.sol";
 import {L_TTSwapUINT256Library, toTTSwapUINT256} from "../src/libraries/L_TTSwapUINT256.sol";
@@ -46,6 +47,7 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
     address marketcreator;
     TTSwap_Market market;
     TTSwap_Token tts_token;
+    TTSwap_Market_Proxy market_proxy;
     bytes internal constant defaultdata = bytes("");
 
     event debuggdata(bytes);
@@ -73,7 +75,9 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
         TTSwap_Token_Proxy tts_token_proxy=new TTSwap_Token_Proxy(address(usdt), marketcreator,  2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
         tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
 
-        market = new TTSwap_Market(tts_token,marketcreator);
+        market = new TTSwap_Market(tts_token);
+        market_proxy = new TTSwap_Market_Proxy(tts_token,address(market));
+        market = TTSwap_Market(payable(address(market_proxy)));
 
         tts_token.setTokenAdmin(marketcreator,true);
         tts_token.setTokenManager(marketcreator,true);

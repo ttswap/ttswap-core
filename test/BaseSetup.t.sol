@@ -7,7 +7,9 @@ import {MyToken} from "../src/test/MyToken.sol";
 import {L_CurrencyLibrary} from "../src/libraries/L_Currency.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
 import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
-import {TTSwap_Market} from "../src/TTSwap_Market.sol";
+    import {TTSwap_Market} from "../src/TTSwap_Market.sol";
+    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
+
 
 contract BaseSetup is Test, GasSnapshot {
     address payable[8] internal users;
@@ -16,6 +18,7 @@ contract BaseSetup is Test, GasSnapshot {
     MyToken eth;
     address marketcreator;
     TTSwap_Market market;
+    TTSwap_Market_Proxy market_proxy;
     TTSwap_Token tts_token;
     TTSwap_Token_Proxy tts_token_proxy;
     bytes internal constant defaultdata = bytes("");
@@ -39,7 +42,9 @@ contract BaseSetup is Test, GasSnapshot {
         tts_token_proxy=new TTSwap_Token_Proxy(address(usdt), marketcreator, 2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
         tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
         snapStart("depoly Market Manager");
-        market = new TTSwap_Market(tts_token,marketcreator);
+        market = new TTSwap_Market(tts_token);
+        market_proxy = new TTSwap_Market_Proxy(tts_token,address(market));
+        market = TTSwap_Market(payable(address(market_proxy)));
         snapEnd();
         tts_token.setTokenAdmin(marketcreator,true);
         tts_token.setTokenManager(marketcreator,true);
@@ -49,6 +54,10 @@ contract BaseSetup is Test, GasSnapshot {
         tts_token.setStakeAdmin(marketcreator,true);
         tts_token.setStakeManager(marketcreator,true);
         vm.stopPrank();
+    }
+
+    function test_market_proxy() public {
+        assertEq(address(market), address(market_proxy));
     }
     
 }

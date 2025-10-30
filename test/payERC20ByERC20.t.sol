@@ -147,7 +147,7 @@ contract payERC20ByERC20 is BaseSetup {
             users[1],
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("pay_erc20_by_erc20_to_self_first");
         assertEq(
@@ -194,7 +194,7 @@ contract payERC20ByERC20 is BaseSetup {
             users[1],
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("pay_erc20_by_erc20_to_self_second");
 
@@ -261,7 +261,7 @@ contract payERC20ByERC20 is BaseSetup {
             address(100),
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("pay_erc20_by_erc20_to_other_user_first");
         assertEq(

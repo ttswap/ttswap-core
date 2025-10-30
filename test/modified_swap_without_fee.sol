@@ -6,7 +6,8 @@ import {Test, console2, Vm} from "forge-std/src/Test.sol";
 import {MyToken} from "../src/test/MyToken.sol";
 import "../src/TTSwap_Market.sol";
 import "../src/TTSwap_Token.sol";
-import "../src/TTSwap_Token_Proxy.sol";
+import "../src/TTSwap_Token_Proxy.sol";    
+    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
 import {S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
 import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
@@ -36,6 +37,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
     TTSwap_Market market;
     TTSwap_Token tts_token;
     TTSwap_Token_Proxy tts_token_proxy;
+    TTSwap_Market_Proxy market_proxy;
     bytes internal constant defaultdata = bytes("");
 
     function setUp() public {
@@ -62,7 +64,9 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             address(tts_token_logic)
         );
         tts_token = TTSwap_Token(payable(address(tts_token_proxy)));
-         market = new TTSwap_Market(tts_token,marketcreator);
+        market = new TTSwap_Market(tts_token);
+        market_proxy = new TTSwap_Market_Proxy(tts_token,address(market));
+        market = TTSwap_Market(payable(address(market_proxy)));
        
         tts_token.setTokenAdmin(marketcreator, true);
         tts_token.setTokenManager(marketcreator, true);
@@ -376,7 +380,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             
             marketcreator,
             "",
-            marketcreator,""
+            marketcreator,"",0
         );
         snapLastCall("testpaywithoutfee1");
         uint256 usdcafter = usdc.balanceOf(address(marketcreator));
@@ -390,7 +394,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             toTTSwapUINT256(10000 * 10 ** 6, 1020408163),
             marketcreator,
             "",
-            marketcreator,""
+            marketcreator,"",0
         );
         snapLastCall("testpaywithoutfee2");
         usdcafter = usdc.balanceOf(address(marketcreator));
