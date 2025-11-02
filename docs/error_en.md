@@ -35,7 +35,7 @@ TTSwapError(uint256) 0xd1b51911
 34:Execute Error, please freezen the token before
 36:Execute Error, the initial quantity is too big or to small
 38:Execute Error, the invest value of the good is to small
-
+39:Execute Error ,the excuter and the msgsender is not same
 61:Execute Error, not be mainnet
 62:Execute Error, not a DAO administrator
 63:Execute Error, not a token super administrator

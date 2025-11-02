@@ -335,7 +335,30 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         msgValue
         returns (uint256 good1change, uint256 good2change)
     {
-        if (_trader != msg.sender) revert TTSwapError(39);
+       
+        if (msg.sender != _trader)
+            signature.verify(
+                keccak256(
+                    abi.encodePacked(
+                        "\x19\x01",
+                        DOMAIN_SEPARATOR(),
+                        keccak256(
+                            abi.encode(
+                                keccak256(
+                                    "buyGood(address trader,address referal,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 nonce)"
+                                ),
+                                _trader,
+                                _recipent,
+                                _goodid1,
+                                _goodid2,
+                                _swapQuantity,
+                                nonces[_trader]++
+                            )
+                        )
+                    )
+                ),
+                _trader
+            );
         if (goods[_goodid1].goodConfig.isFreeze()) revert TTSwapError(10);
         if (goods[_goodid2].goodConfig.isFreeze()) revert TTSwapError(11);
         if (goods[_goodid1].currentState == 0) revert TTSwapError(12);
@@ -450,7 +473,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         keccak256(
                             abi.encode(
                                 keccak256(
-                                    "payGood(address owner,address spender,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 data_hash,uint256 nonce)"
+                                    "payGood(address trader,address recipent,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 data_hash,uint256 nonce)"
                                 ),
                                 _trader,
                                 _recipent,
@@ -513,8 +536,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 _swapQuantity.amount1() - swapcache.feeQuantity
             );
             _goodid1.transferFrom(
-                msg.sender,
                 _trader,
+                msg.sender,
                 good1change.amount1() + feeQuanity,
                 data
             );
@@ -549,8 +572,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             );
         } else {
             _goodid1.transferFrom(
-                msg.sender,
                 _trader,
+                msg.sender,
                 _swapQuantity.amount0(),
                 data
             );

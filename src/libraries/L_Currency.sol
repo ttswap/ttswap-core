@@ -10,8 +10,12 @@ import {L_Transient} from "./L_Transient.sol";
 import {TTSwapError} from "./L_Error.sol";
 
 address constant NATIVE = address(1);
-address constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-address constant _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+// mainnet
+// address constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+// address constant _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+// testnet  
+address constant dai = 0xCaFBbAd55eb09efe7bec8408Cff9932Be7D9A7fA;
+address constant _permit2 = 0xa50eb0d081E986c280efF32dae089939Ea07bd22;
 
 /// @title L_CurrencyLibrary
 /// @dev This library allows for transferring and holding native tokens and ERC20 tokens
