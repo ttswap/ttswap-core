@@ -364,8 +364,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (goods[_goodid1].currentState == 0) revert TTSwapError(12);
         if (goods[_goodid2].currentState == 0) revert TTSwapError(13);
         if (_goodid1 == _goodid2) revert TTSwapError(9);
-        if (_recipent != address(0) && _recipent != msg.sender) {
-            TTS_CONTRACT.setReferral(msg.sender, _recipent);
+        if (_recipent != address(0) && _recipent != _trader) {
+            TTS_CONTRACT.setReferral(_trader, _recipent);
         }
         if (
             goods[_goodid1].currentState.amount1() + _swapQuantity.amount0() >
@@ -424,12 +424,28 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         goods[_goodid1].swapCommit(swapcache.good1currentState);
         goods[_goodid2].swapCommit(swapcache.good2currentState);
         _goodid1.transferFrom(
-            msg.sender,
+            _trader,
             msg.sender,
             _swapQuantity.amount0(),
             data
         );
-        _goodid2.safeTransfer(msg.sender, good2change.amount1() - feeQuanity);
+        if (msg.sender == _trader) {
+                _goodid2.safeTransfer(_trader, good2change.amount1() - feeQuanity);
+            }else{
+                swapcache.good1currentState = toTTSwapUINT256(
+                    swapcache.good2currentState.amount1(),
+                    swapcache.good2value
+                );
+                feeQuanity = swapcache.good1currentState.getamount0fromamount1(
+                    excuteFee
+                );
+                goods[_goodid2].commission[msg.sender] += feeQuanity;
+                swapcache.good1currentState =
+                    _swapQuantity.amount1() -
+                    feeQuanity;
+                _goodid2.safeTransfer(_recipent, swapcache.good1currentState);
+            }
+        
         emit e_buyGood(
             _goodid1,
             _goodid2,
