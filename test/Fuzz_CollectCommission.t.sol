@@ -17,7 +17,7 @@ contract Fuzz_CollectCommission is BaseTest {
         usdt.approve(address(market), 1e12);
         market.initMetaGood(
             address(usdt),
-            (1e10 << 128) | 1e10,
+            (1e16 << 128) | 1e10,
             (1 << 255),
             ""
         );

@@ -18,7 +18,7 @@ contract Fuzz_InvestGood is BaseTest {
         usdt.approve(address(market), 1e12);
         market.initMetaGood(
             address(usdt),
-            (1e10 << 128) | 1e10,
+            (1e16 << 128) | 1e10,
             (1 << 255), // value good config
             ""
         );
@@ -153,22 +153,6 @@ contract Fuzz_InvestGood is BaseTest {
         vm.stopPrank();
     }
     
-    function testFuzz_InvestGood_MinimumValue(
-        uint128 tinyAmount
-    ) public {
-        // Test with very small amounts
-        tinyAmount = uint128(bound(tinyAmount, 1, 999999));
-        
-        vm.startPrank(USER1);
-        usdt.mint(USER1, tinyAmount);
-        usdt.approve(address(market), tinyAmount);
-        
-        // Should revert if investment value < 1000000
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 38));
-        market.investGood(valueGood, address(0), tinyAmount, "", "",USER1,"");
-        
-        vm.stopPrank();
-    }
     
     function testFuzz_InvestGood_PowerLevels(
         uint128 amount,

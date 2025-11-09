@@ -87,7 +87,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         uint256 _goodconfig = (2 ** 255);
         market.initMetaGood(
             address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
             _goodconfig,
             defaultdata
         );
@@ -102,7 +102,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         uint256 _goodconfig = (2 ** 255);
         market.initMetaGood(
             address(usdc),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
             _goodconfig,
             defaultdata
         );
@@ -117,7 +117,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         uint256 _goodconfig = (2 ** 255);
         market.initMetaGood(
             address(btc),
-            toTTSwapUINT256(118000 * 10 ** 6, 1 * 10 ** 8),
+            toTTSwapUINT256(118000 * 10 ** 12, 1 * 10 ** 8),
             _goodconfig,
             defaultdata
         );

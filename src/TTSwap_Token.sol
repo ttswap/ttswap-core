@@ -27,7 +27,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     bool internal upgradeable;
     uint256 public override ttstokenconfig;
     uint256 public override stakestate; // first 128 bit record lasttime,last 128 bit record poolvalue
-    uint128 public override left_share = 45_000_000_000_000;
+    uint128 public override left_share = 45_000_000_000_000_000_000;
     /// @inheritdoc I_TTSwap_Token
     uint128 public override publicsell;
     // uint256 1:add referral priv 2: market priv
@@ -352,13 +352,13 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         usdt.transferFrom(msg.sender, address(this), usdtamount, data);
         uint256 ttsamount;
         if (publicsell <= 87_500_000_000) {
-            ttsamount = (usdtamount * 24);
+            ttsamount = (usdtamount * 24_000_000);
             _mint(msg.sender, ttsamount);
         } else if (publicsell <= 162_500_000_000) {
-            ttsamount = usdtamount * 20;
+            ttsamount = usdtamount * 20_000_000;
             _mint(msg.sender, ttsamount);
         } else if (publicsell <= 250_000_000_000) {
-            ttsamount = (usdtamount * 16);
+            ttsamount = (usdtamount * 16_000_000);
             _mint(msg.sender, ttsamount);
         }
         emit e_publicsell(usdtamount, ttsamount);
@@ -459,7 +459,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     function _stakeFee() internal {
         if (stakestate.amount0() + 86400 < block.timestamp) {
             stakestate = add(stakestate, toTTSwapUINT256(86400, 0));
-            uint128 leftamount = uint128(200_000_000_000_000 - totalSupply);
+            uint128 leftamount = uint128(200_000_000_000_000_000_000 - totalSupply);
             uint128 mintamount = leftamount < 1000000
                 ? 1000000
                 : leftamount / 18250; //leftamount /50 /365

@@ -44,7 +44,7 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
         deal(address(usdt), marketcreator, 1000000 * 10 ** 6, false);
         usdt.approve(address(market), 50000 * 10 ** 6 + 1);
         uint256 _goodconfig = (2 ** 255) + 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197;
-        market.initMetaGood(address(usdt), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), _goodconfig, defaultdata);
+        market.initMetaGood(address(usdt), toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6), _goodconfig, defaultdata);
         metagood = address(usdt);
         vm.stopPrank();
     }
@@ -93,8 +93,8 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
             125981098396,
             "before invest:proof value shares error"
         );
-        assertEq(_proof1.state.amount0(), 125981100630, "before invest:proof value error");
-        assertEq(_proof1.state.amount1(), 125981100630, "before invest:proof value error");
+        assertEq(_proof1.state.amount0(), 125981100630000000, "before invest:proof value error");
+        assertEq(_proof1.state.amount1(), 125981100630000000, "before invest:proof value error");
         assertEq(
             _proof1.invest.amount1(),
             199990000,
@@ -134,7 +134,7 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
         );
         assertEq(
             good_.investState.amount1(),
-            125981100630,
+            125981100630000000,
             "before disinvest erc20 good:normalgoodbtc investState amount1 error"
         );
     
@@ -159,7 +159,7 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
             "after disinvest erc20 good:normalgoodbtc investState amount0 error"
         );
         assertEq(
-            good_.investState.amount1(), 62987400630, "after disinvest erc20 good:normalgoodbtc investState amount1 error"
+            good_.investState.amount1(), 62987400630000000, "after disinvest erc20 good:normalgoodbtc investState amount1 error"
         );
         
 
@@ -174,8 +174,8 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
             62987399514,
             "before invest:proof value shares error"
         );
-        assertEq(_proof1.state.amount0(), 62987400630, "before invest:proof value error");
-        assertEq(_proof1.state.amount1(), 62987400630, "before invest:proof value error");
+        assertEq(_proof1.state.amount0(), 62987400630000000, "before invest:proof value error");
+        assertEq(_proof1.state.amount1(), 62987400630000000, "before invest:proof value error");
         assertEq(
             _proof1.invest.amount1(),
             99990000,

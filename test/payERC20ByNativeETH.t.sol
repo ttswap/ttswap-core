@@ -46,7 +46,7 @@ contract payERC20ByNativeETH is BaseSetup {
             2 ** 197;
         market.initMetaGood{value: 50000 * 10 ** 6}(
             address(1),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
             _goodconfig,
             defaultdata
         );

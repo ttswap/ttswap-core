@@ -75,7 +75,7 @@ contract testTTSwapToken is Test, GasSnapshot {
         tts_token.stake(users[2], 100000);
         vm.stopPrank();
         assertEq(tts_token.stakestate() % 2 ** 128, 100000, "pool value error");
-        assertEq(tts_token.poolstate() / 2 ** 128, 10958904109, "pool asset error1");
+        assertEq(tts_token.poolstate() / 2 ** 128, 10958904109589041, "pool asset error1");
         assertEq(tts_token.poolstate() % 2 ** 128, 0, "pool construct error");
         assertEq(tts_token.balanceOf(users[2]), 0, "tts balance error");
         console2.log("pool value", tts_token.stakestate() % 2 ** 128);
@@ -91,9 +91,9 @@ contract testTTSwapToken is Test, GasSnapshot {
         console2.log("pool asset", tts_token.poolstate() / 2 ** 128);
         console2.log("pool construct", tts_token.poolstate() % 2 ** 128);
         assertEq(tts_token.stakestate() % 2 ** 128, 99000, "pool value error");
-        assertEq(tts_token.poolstate() / 2 ** 128, 10849315068, "pool asset erro2r");
+        assertEq(tts_token.poolstate() / 2 ** 128, 10849315068493151, "pool asset erro2r");
         assertEq(tts_token.poolstate() % 2 ** 128, 0, "pool construct error");
-        assertEq(tts_token.balanceOf(users[2]), 109589041, "tts balance error");
+        assertEq(tts_token.balanceOf(users[2]), 109589041095890, "tts balance error");
     }
 
     function testSetRatio() public {

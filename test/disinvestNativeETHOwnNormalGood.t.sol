@@ -45,7 +45,7 @@ contract disinvestNativeETHOwnNormalGood is BaseSetup {
             2 ** 197;
         market.initMetaGood(
             address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
             _goodconfig,
             defaultdata
         );
@@ -123,8 +123,8 @@ contract disinvestNativeETHOwnNormalGood is BaseSetup {
             125981098396,
             "before invest:proof value shares error"
         );
-        assertEq(_proof1.state.amount0(), 125981100630, "before invest:proof value error");
-        assertEq(_proof1.state.amount1(), 125981100630, "before invest:proof value error");
+        assertEq(_proof1.state.amount0(), 125981100630000000, "before invest:proof value error");
+        assertEq(_proof1.state.amount1(), 125981100630000000, "before invest:proof value error");
         assertEq(
             _proof1.invest.amount1(),
             199990000,
@@ -165,7 +165,7 @@ contract disinvestNativeETHOwnNormalGood is BaseSetup {
         );
         assertEq(
             good_.investState.amount1(),
-            125981100630,
+            125981100630000000,
             "before disinvest nativeeth good:normalgoodnativeeth investState amount1 error"
         );
         
@@ -192,7 +192,7 @@ contract disinvestNativeETHOwnNormalGood is BaseSetup {
         );
         assertEq(
             good_.investState.amount1(),
-            62987400630,
+            62987400630000000,
             "after disinvest nativeeth good:normalgoodnativeeth investState amount1 error"
         );
         
@@ -208,8 +208,8 @@ contract disinvestNativeETHOwnNormalGood is BaseSetup {
             62987399514,
             "before invest:proof value shares error"
         );
-        assertEq(_proof1.state.amount0(), 62987400630, "before invest:proof value error");
-        assertEq(_proof1.state.amount1(), 62987400630, "before invest:proof value error");
+        assertEq(_proof1.state.amount0(), 62987400630000000, "before invest:proof value error");
+        assertEq(_proof1.state.amount1(), 62987400630000000, "before invest:proof value error");
         assertEq(
             _proof1.invest.amount1(),
             99990000,
