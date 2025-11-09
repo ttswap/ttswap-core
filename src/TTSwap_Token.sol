@@ -326,7 +326,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
             !I_TTSwap_Market(marketcontract).ishigher(
                 address(this),
                 usdt,
-                2 ** shares[msg.sender].metric * 2 ** 128 + 20
+                2 ** shares[msg.sender].metric * 2 ** 128 + 20_000_000
             )
         ) revert TTSwapError(68);
         if (shares[msg.sender].leftamount == 0) revert TTSwapError(69);
