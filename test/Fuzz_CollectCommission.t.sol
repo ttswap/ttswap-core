@@ -17,7 +17,7 @@ contract Fuzz_CollectCommission is BaseTest {
         usdt.approve(address(market), 1e12);
         market.initMetaGood(
             address(usdt),
-            (1e10 << 128) | 1e10,
+            (1e16 << 128) | 1e10,
             (1 << 255),
             ""
         );
@@ -32,6 +32,8 @@ contract Fuzz_CollectCommission is BaseTest {
             address(tokenA),
             0,
             "",
+            "",
+            ADMIN,
             ""
         );
         goods.push(address(tokenA));
@@ -53,8 +55,10 @@ contract Fuzz_CollectCommission is BaseTest {
             address(tokenA),
             address(usdt),
             (1e9 << 128),
-            1,
+            
             address(0),
+            "",
+            USER1,
             ""
         );
         
@@ -79,7 +83,7 @@ contract Fuzz_CollectCommission is BaseTest {
             uint256 balanceBefore = MockERC20(singleGood[0]).balanceOf(msg.sender);
             
             // Collect commission
-            market.collectCommission(singleGood);
+            market.collectCommission(singleGood,msg.sender,"");
             
             uint256 balanceAfter = MockERC20(singleGood[0]).balanceOf(msg.sender);
             
@@ -102,6 +106,7 @@ contract Fuzz_CollectCommission is BaseTest {
     function testFuzz_CollectCommission_MultipleGoods(
         uint8 numGoods
     ) public {
+        vm.startPrank(USER1);
         numGoods = uint8(bound(numGoods, 1, goods.length));
         
         address[] memory selectedGoods = new address[](numGoods);
@@ -112,20 +117,20 @@ contract Fuzz_CollectCommission is BaseTest {
         // Get commission amounts
         uint256[] memory commissionBefore = market.queryCommission(
             selectedGoods,
-            msg.sender
+            USER1
         );
         
         uint256[] memory balancesBefore = new uint256[](numGoods);
         for (uint i = 0; i < numGoods; i++) {
-            balancesBefore[i] = MockERC20(selectedGoods[i]).balanceOf(msg.sender);
+            balancesBefore[i] = MockERC20(selectedGoods[i]).balanceOf(USER1);
         }
         
         // Collect all
-        market.collectCommission(selectedGoods);
+        market.collectCommission(selectedGoods,USER1,"");
         
         // Verify each collection
         for (uint i = 0; i < numGoods; i++) {
-            uint256 balanceAfter = MockERC20(selectedGoods[i]).balanceOf(msg.sender);
+            uint256 balanceAfter = MockERC20(selectedGoods[i]).balanceOf(USER1);
             if (commissionBefore[i] > 2) {
                 assertEq(
                     balanceAfter - balancesBefore[i],
@@ -134,9 +139,11 @@ contract Fuzz_CollectCommission is BaseTest {
                 );
             }
         }
+        vm.stopPrank();
     }
     
     function testFuzz_CollectCommission_MaxGoods() public {
+        vm.startPrank(USER1);
         // Test with maximum allowed (100 goods)
         address[] memory manyGoods = new address[](100);
         for (uint i = 0; i < 100; i++) {
@@ -144,13 +151,14 @@ contract Fuzz_CollectCommission is BaseTest {
         }
         
         // Should succeed
-        market.collectCommission(manyGoods);
+        market.collectCommission(manyGoods,USER1,"");
         
         // Test with more than 100
         address[] memory tooManyGoods = new address[](101);
         
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 21));
-        market.collectCommission(tooManyGoods);
+        market.collectCommission(tooManyGoods,USER1,"");
+        vm.stopPrank();
     }
     
     function testFuzz_CollectCommission_AdminCollection() public {
@@ -163,7 +171,7 @@ contract Fuzz_CollectCommission is BaseTest {
         if (commission[0] > 2) {
             uint256 balanceBefore = MockERC20(goods[0]).balanceOf(ADMIN);
             
-            market.collectCommission(goods);
+            market.collectCommission(goods,msg.sender,"");
             
             uint256 balanceAfter = MockERC20(goods[0]).balanceOf(ADMIN);
             
@@ -188,7 +196,7 @@ contract Fuzz_CollectCommission is BaseTest {
         uint256 balanceBefore = MockERC20(goods[0]).balanceOf(randomUser);
         
         // Collect should work but receive nothing
-        market.collectCommission(goods);
+        market.collectCommission(goods,randomUser,"");
         
         uint256 balanceAfter = MockERC20(goods[0]).balanceOf(randomUser);
         assertEq(balanceAfter, balanceBefore, "Should receive nothing");

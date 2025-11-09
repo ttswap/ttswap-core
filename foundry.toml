@@ -1,4 +1,5 @@
 [profile.default]
+silent = true
 src = "src"
 out = "out"
 libs = ["lib", "dependencies"]
@@ -8,6 +9,8 @@ via-ir = true
 optimizer_runs = 100
 solc = "0.8.29"
 evm_version = "cancun"
+no_style = true
+deny_warnings = false
 fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
@@ -17,3 +20,8 @@ mantal_sepolia = "${MANTLE_SEPOLIA_RPC}"
 
 [dependencies]
 forge-std = "1.10.0"
+
+[fmt]
+no_style = true
+
+

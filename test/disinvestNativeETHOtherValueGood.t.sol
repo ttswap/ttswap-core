@@ -51,7 +51,7 @@ contract disinvestNativeETHOwnValueGood is BaseSetup {
     function investOtherERC20ValueGood() public {
         vm.startPrank(users[2]);
         deal(users[2], 1000000 * 10 ** 6);
-        market.investGood{value: 50000000000}(metagood, address(0), 50000 * 10 ** 6, defaultdata, defaultdata);
+        market.investGood{value: 50000000000}(metagood, address(0), 50000 * 10 ** 6, defaultdata, defaultdata,users[2],defaultdata);
         vm.stopPrank();
     }
 
@@ -59,7 +59,7 @@ contract disinvestNativeETHOwnValueGood is BaseSetup {
         vm.startPrank(users[2]);
         uint256 normalproof;
         normalproof = S_ProofKey(users[2], metagood, address(0)).toId();
-         S_ProofState memory _proof1 = market.getProofState(normalproof);
+        S_ProofState memory _proof1 = market.getProofState(normalproof);
 
         assertEq(
             _proof1.shares.amount0(),
@@ -110,7 +110,7 @@ contract disinvestNativeETHOwnValueGood is BaseSetup {
         );
    
 
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),users[2],defaultdata);
         snapLastCall("disinvest_other_nativeth_valuegood_first");
         good_ = market.getGoodState(metagood);
         assertEq(
@@ -160,10 +160,10 @@ contract disinvestNativeETHOwnValueGood is BaseSetup {
             0,
             "before invest:proof quantity error"
         );
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),users[2],defaultdata);
         snapLastCall("disinvest_other_nativeth_valuegood_second");
 
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),users[2],defaultdata);
         snapLastCall("disinvest_other_nativeth_valuegood_three");
         vm.stopPrank();
     }

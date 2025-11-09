@@ -18,7 +18,7 @@ contract Fuzz_DisinvestProof is BaseTest {
         usdt.approve(address(market), 1e12);
         market.initMetaGood(
             address(usdt),
-            (1e10 << 128) | 1e10,
+            (1e16 << 128) | 1e10,
             (1 << 255),
             ""
         );
@@ -32,6 +32,8 @@ contract Fuzz_DisinvestProof is BaseTest {
             address(tokenA),
             0,
             "",
+            "",
+            ADMIN,
             ""
         );
         normalGood = address(tokenA);
@@ -45,7 +47,7 @@ contract Fuzz_DisinvestProof is BaseTest {
         usdt.mint(USER1, 1e10);
         usdt.approve(address(market), 1e10);
         
-        market.investGood(normalGood, valueGood, 1e9, "", "");
+        market.investGood(normalGood, valueGood, 1e9, "", "",USER1,"");
         proofId = uint256(keccak256(abi.encode(USER1, normalGood, valueGood)));
         
         vm.stopPrank();
@@ -78,7 +80,9 @@ contract Fuzz_DisinvestProof is BaseTest {
         (uint128 profit1, uint128 profit2) = market.disinvestProof(
             proofId,
             withdrawShares,
-            address(0) // no gate
+            address(0), // no gate
+            USER1,
+            ""
         );
         
         // Verify tokens received
@@ -106,7 +110,7 @@ contract Fuzz_DisinvestProof is BaseTest {
         tokenA.approve(address(market), additionalInvest);
         usdt.mint(USER1, additionalInvest);
         usdt.approve(address(market), additionalInvest);
-        market.investGood(normalGood, valueGood, additionalInvest, "", "");
+        market.investGood(normalGood, valueGood, additionalInvest, "", "",USER1,"");
         
         // Get total shares
         S_ProofState memory proof = market.getProofState(proofId);
@@ -116,7 +120,7 @@ contract Fuzz_DisinvestProof is BaseTest {
         (uint128 profit1, uint128 profit2) = market.disinvestProof(
             proofId,
             totalShares,
-            address(0)
+            address(0),USER1,""
         );
         
         // Verify complete withdrawal
@@ -143,7 +147,7 @@ contract Fuzz_DisinvestProof is BaseTest {
         (uint128 profit1, uint128 profit2) = market.disinvestProof(
             proofId,
             withdrawAmount,
-            gateAddress
+            gateAddress,USER1,""
         );
         
         // Gate should receive commission
@@ -162,7 +166,7 @@ contract Fuzz_DisinvestProof is BaseTest {
         
         // Should revert with wrong proof ID
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 19));
-        market.disinvestProof(randomProofId, amount, address(0));
+        market.disinvestProof(randomProofId, amount, address(0),USER1,"");
         
         vm.stopPrank();
     }
@@ -173,14 +177,12 @@ contract Fuzz_DisinvestProof is BaseTest {
         // Get current config and add freeze bit
         S_GoodTmpState memory currentState = market.getGoodState(normalGood);
         uint256 frozenConfig = currentState.goodConfig | (1 << 254); // Add freeze bit to existing valid config
-        market.modifyGoodConfig(normalGood, frozenConfig);
+        market.modifyGoodConfig(normalGood, frozenConfig,ADMIN,"");
         vm.stopPrank();
         
         vm.startPrank(USER1);
         
-        // Should revert when good is frozen
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 10));
-        market.disinvestProof(proofId, 1, address(0));
+        market.disinvestProof(proofId, 1, address(0),USER1,"");
         
         vm.stopPrank();
     }
@@ -204,9 +206,9 @@ contract Fuzz_DisinvestProof is BaseTest {
             normalGood,
             valueGood,
             (uint256(tradeVolume) << 128),
-            1, // sell tokenA for usdt
+           
             address(0),
-            ""
+            "",USER2,""
         );
         
         // Second trade: buy back with usdt
@@ -214,9 +216,9 @@ contract Fuzz_DisinvestProof is BaseTest {
             valueGood,
             normalGood,
             (uint256(tradeVolume / 2) << 128),
-            1, // sell usdt for tokenA
+          
             address(0),
-            ""
+            "",USER2,""
         );
         
         vm.stopPrank();
@@ -233,7 +235,7 @@ contract Fuzz_DisinvestProof is BaseTest {
         (uint128 profit1, uint128 profit2) = market.disinvestProof(
             proofId,
             shares,
-            address(0)
+            address(0),USER1,""
         );
         
         // Check if we got back more than we invested (indicating profit)

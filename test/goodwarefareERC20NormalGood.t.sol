@@ -43,7 +43,7 @@ contract goodwarefareERC20NormalGood is BaseSetup {
         deal(address(usdt), marketcreator, 1000000 * 10 ** 6, false);
         usdt.approve(address(market), 50000 * 10 ** 6 + 1);
         uint256 _goodconfig = (2 ** 255) + 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197;
-        market.initMetaGood(address(usdt), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), _goodconfig, defaultdata);
+        market.initMetaGood(address(usdt), toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6), _goodconfig, defaultdata);
         metagood = address(usdt);
         vm.stopPrank();
     }
@@ -62,7 +62,7 @@ contract goodwarefareERC20NormalGood is BaseSetup {
             address(btc),
             normalgoodconfig,
             defaultdata,
-            defaultdata
+            defaultdata,users[1],defaultdata
         );
         normalgoodbtc = address(btc);
         vm.stopPrank();
@@ -89,11 +89,11 @@ contract goodwarefareERC20NormalGood is BaseSetup {
             "before collect erc20 good:normalgoodbtc investState amount0 error"
         );
         assertEq(
-            good_.investState.amount1(), 62993700000, "before collect erc20 good:normalgoodbtc investState amount1 error"
+            good_.investState.amount1(), 62993700000000000, "before collect erc20 good:normalgoodbtc investState amount1 error"
         );
         
        
-        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata);
+        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata,users[1],defaultdata);
         snapLastCall("goodwarefare_own_erc20_normalgood_first");
         good_ = market.getGoodState(normalgoodbtc);
         assertEq(
@@ -108,14 +108,14 @@ contract goodwarefareERC20NormalGood is BaseSetup {
             good_.investState.amount0(), 100000000, "after collect erc20 good:normalgoodbtc investState amount0 error"
         );
         assertEq(
-            good_.investState.amount1(), 62993700000, "after collect erc20 good:normalgoodbtc investState amount1 error"
+            good_.investState.amount1(), 62993700000000000, "after collect erc20 good:normalgoodbtc investState amount1 error"
         );
         
 
-        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata);
+        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata,users[1],defaultdata);
         snapLastCall("goodwarefare_own_erc20_normalgood_second");
 
-        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata);
+        market.goodWelfare(normalgoodbtc, 10 ** 8, defaultdata,users[1],defaultdata);
         snapLastCall("goodwarefare_own_erc20_normalgood_three");
         vm.stopPrank();
     }

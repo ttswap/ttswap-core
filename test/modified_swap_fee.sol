@@ -6,7 +6,8 @@ import {Test, console2,Vm} from "forge-std/src/Test.sol";
 import {MyToken} from "../src/test/MyToken.sol";
 import "../src/TTSwap_Market.sol";
 import "../src/TTSwap_Token.sol";
-import "../src/TTSwap_Token_Proxy.sol";
+import "../src/TTSwap_Token_Proxy.sol";    
+    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
 import { S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
 import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
@@ -30,6 +31,8 @@ import {
     lowerprice,
     toUint128
 } from "../src/libraries/L_TTSwapUINT256.sol";
+    import {TTSwap_Market} from "../src/TTSwap_Market.sol";
+    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 
 contract modified_swap_fee is Test, GasSnapshot  {
    
@@ -51,6 +54,7 @@ contract modified_swap_fee is Test, GasSnapshot  {
     TTSwap_Market market;
     TTSwap_Token tts_token;
     TTSwap_Token_Proxy tts_token_proxy;
+    TTSwap_Market_Proxy market_proxy;
     bytes internal constant defaultdata = bytes("");
 
 
@@ -72,7 +76,9 @@ contract modified_swap_fee is Test, GasSnapshot  {
         tts_token_proxy=new TTSwap_Token_Proxy(address(usdt), marketcreator, 2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
         tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
       
-         market = new TTSwap_Market(tts_token,marketcreator);
+        market = new TTSwap_Market(tts_token);
+        market_proxy = new TTSwap_Market_Proxy(tts_token,address(market));
+        market = TTSwap_Market(payable(address(market_proxy)));
    
        
         tts_token.setTokenAdmin(marketcreator,true);
@@ -92,8 +98,8 @@ contract modified_swap_fee is Test, GasSnapshot  {
         deal(address(usdt), marketcreator, 1000000 * 10 ** 6, false);
         usdt.approve(address(market), 50000 * 10 ** 6 + 1);
         uint256 _goodconfig = 79981855511419117862080610396176705167534703414230757504122640005123796893696 ;//((2 ** 255) + 8 * 2 ** 217 + 8 * 2 ** 211 + 8 * 2 ** 204 + 8 * 2 ** 197)+1*2**187+20*2**177+(6*2**22+ 1*2**18+ 5*2**15+8*2**10+8*2**5+2)*2**229
-        market.initMetaGood(address(usdt), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), _goodconfig, defaultdata);
-        market.updateGoodConfig(address(usdt),1711532034821754361669711358985320822200886012907366493603267346432);//8 * 2 ** 217 + 8 * 2 ** 211 + 8 * 2 ** 204 + 8 * 2 ** 197+1*2**187+20*2**177
+        market.initMetaGood(address(usdt), toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6), _goodconfig, defaultdata);
+        market.updateGoodConfig(address(usdt),1711532034821754361669711358985320822200886012907366493603267346432,marketcreator,defaultdata);//8 * 2 ** 217 + 8 * 2 ** 211 + 8 * 2 ** 204 + 8 * 2 ** 197+1*2**187+20*2**177
         metagood = address(usdt);
         vm.stopPrank();
     }
@@ -103,8 +109,8 @@ contract modified_swap_fee is Test, GasSnapshot  {
         deal(address(usdc), marketcreator, 1000000 * 10 ** 6, false);
         usdc.approve(address(market), 50000 * 10 ** 6 + 1);
         uint256 _goodconfig = 79981855511419117862080610396176705167534703414230757504122640005123796893696 ;//((2 ** 255) + 8 * 2 ** 217 + 8 * 2 ** 211 + 8 * 2 ** 204 + 8 * 2 ** 197)+1*2**187+20*2**177+(6*2**22+ 1*2**18+ 5*2**15+8*2**10+8*2**5+2)*2**229
-       market.initMetaGood(address(usdc), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), _goodconfig, defaultdata);
-        market.updateGoodConfig(address(usdc),1711532034821754361669711358985320822200886012907366493603267346432);//8 * 2 ** 217 + 8 * 2 ** 211 + 8 * 2 ** 204 + 8 * 2 ** 197+1*2**187+20*2**177
+       market.initMetaGood(address(usdc), toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6), _goodconfig, defaultdata);
+        market.updateGoodConfig(address(usdc),1711532034821754361669711358985320822200886012907366493603267346432,marketcreator,defaultdata);//8 * 2 ** 217 + 8 * 2 ** 211 + 8 * 2 ** 204 + 8 * 2 ** 197+1*2**187+20*2**177
          normalgoodusdc = address(usdc);
         vm.stopPrank();
     }
@@ -115,8 +121,8 @@ contract modified_swap_fee is Test, GasSnapshot  {
         deal(address(btc), marketcreator, 1000000 * 10 ** 8, false);
         btc.approve(address(market), 100 * 10 ** 8 + 1);
         uint256 _goodconfig = 79981855511419117862080610396176705167534703414230757504122640005123796893696 ;//((2 ** 255) + 8 * 2 ** 217 + 8 * 2 ** 211 + 8 * 2 ** 204 + 8 * 2 ** 197)+1*2**187+20*2**177+(6*2**22+ 1*2**18+ 5*2**15+8*2**10+8*2**5+2)*2**229
-       market.initMetaGood(address(btc), toTTSwapUINT256(118000 * 10 ** 6, 1 * 10 ** 8), _goodconfig, defaultdata);
-        market.updateGoodConfig(address(btc),1711532034821754361669711358985320822200886012907366493603267346432);//8 * 2 ** 217 + 8 * 2 ** 211 + 8 * 2 ** 204 + 8 * 2 ** 197+1*2**187+20*2**177
+       market.initMetaGood(address(btc), toTTSwapUINT256(118000 * 10 ** 12, 1 * 10 ** 8), _goodconfig, defaultdata);
+        market.updateGoodConfig(address(btc),1711532034821754361669711358985320822200886012907366493603267346432,marketcreator,defaultdata);//8 * 2 ** 217 + 8 * 2 ** 211 + 8 * 2 ** 204 + 8 * 2 ** 197+1*2**187+20*2**177
          normalgoodbtc = address(btc);
         vm.stopPrank();
     }
@@ -129,7 +135,7 @@ contract modified_swap_fee is Test, GasSnapshot  {
         usdt.approve(address(market), 50000 * 10 ** 6 + 1);
         S_GoodTmpState memory beforeusdc=market.getGoodState(address(usdc));
         S_GoodTmpState memory beforeusdt=market.getGoodState(address(usdt));
-        market.buyGood(address(usdc),address(usdt),toTTSwapUINT256(500*10**6,0),1,address(0),"");
+        market.buyGood(address(usdc),address(usdt),toTTSwapUINT256(500*10**6,0),address(0),"",marketcreator,defaultdata);
         snapLastCall("testswapwithfee1");
         uint256 usdcafter=usdc.balanceOf(address(market));
         uint256 usdtafter=usdt.balanceOf(address(market));
@@ -156,7 +162,7 @@ contract modified_swap_fee is Test, GasSnapshot  {
         console2.log("usdcafter:",usdcafter);
         console2.log("usdtafter:",usdtafter);
         console2.log("********************************************");
-        market.buyGood(address(usdt),address(usdc),toTTSwapUINT256(494261657,0),1,address(0),"");
+        market.buyGood(address(usdt),address(usdc),toTTSwapUINT256(494261657,0),address(0),"",marketcreator,defaultdata);
         snapLastCall("testswapwithfee2");
         usdcafter=usdc.balanceOf(address(market));
         usdtafter=usdt.balanceOf(address(market));
@@ -188,7 +194,7 @@ contract modified_swap_fee is Test, GasSnapshot  {
         uint256 usdtbefore=usdt.balanceOf(address(market));
         usdc.approve(address(market), 50000 * 10 ** 6 + 1);
         usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-        market.buyGood(address(usdc),address(usdt),toTTSwapUINT256(1000*10**6,500*10**6),0,marketcreator,"");
+        market.payGood(address(usdc),address(usdt),toTTSwapUINT256(1000*10**6,500*10**6),marketcreator,"",marketcreator,defaultdata,0);
         snapLastCall("testpaywithfee1");
         uint256 usdcafter=usdc.balanceOf(address(market));
         uint256 usdtafter=usdt.balanceOf(address(market));
@@ -196,7 +202,7 @@ contract modified_swap_fee is Test, GasSnapshot  {
         console2.log("usdtbefore:",usdtbefore);
         console2.log("usdcafter:",usdcafter);
         console2.log("usdtafter:",usdtafter);
-        market.buyGood(address(usdt),address(usdc),toTTSwapUINT256(1000*10**6,505862995),0,marketcreator,"");
+        market.payGood(address(usdt),address(usdc),toTTSwapUINT256(1000*10**6,505862995),marketcreator,"",marketcreator,defaultdata,0);
         snapLastCall("testpaywithfee2");
         usdcafter=usdc.balanceOf(address(market));
         usdtafter=usdt.balanceOf(address(market));

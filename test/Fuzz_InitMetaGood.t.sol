@@ -11,7 +11,7 @@ contract Fuzz_InitMetaGood is BaseTest {
         uint256 goodConfig
     ) public {
         // Bound inputs
-        initialValue = uint128(bound(initialValue, 1e6, 1e15));
+        initialValue = uint128(bound(initialValue, 1e16, 1e20));
         initialQuantity = uint128(bound(initialQuantity, 1e6, 1e15));
         
         // Create valid value good config

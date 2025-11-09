@@ -24,7 +24,7 @@ contract investValueGoodWithPowerWithoutFee is BaseSetup {
 
     function setUp() public override {
         BaseSetup.setUp();
-        initmetagood();
+        initmetagood(); 
     }
 
     function initmetagood() public {
@@ -51,10 +51,10 @@ contract investValueGoodWithPowerWithoutFee is BaseSetup {
 
     function testInvestERC20ValueGoodWithPowerWithoutFee() public {
         vm.startPrank(marketcreator);
-        market.modifyGoodConfig(metagood, 5933383818 << 223); //2**32+6*2**28+ 1*2**24+ 5*2**21+7*2**16+7*2**11+2*2**6+10
+        market.modifyGoodConfig(metagood, 5933383818 << 223,marketcreator,defaultdata); //2**32+6*2**28+ 1*2**24+ 5*2**21+7*2**16+7*2**11+2*2**6+10
         market.updateGoodConfig(
             metagood,
-            980797146154168869349342097376197877515993038197505392640
+            980797146154168869349342097376197877515993038197505392640,marketcreator,defaultdata
         ); //5*2**187
         uint256 normalproof = S_ProofKey(marketcreator, metagood, address(0))
             .toId();
@@ -125,6 +125,8 @@ contract investValueGoodWithPowerWithoutFee is BaseSetup {
             address(0),
             50000 * 10 ** 6,
             defaultdata,
+            defaultdata,
+            marketcreator,
             defaultdata
         );
         snapLastCall("invest_own_erc20_valuegood_with_power_without_fee_first");
@@ -197,8 +199,8 @@ contract investValueGoodWithPowerWithoutFee is BaseSetup {
         vm.startPrank(marketcreator);
         uint256 _goodconfig = 79981855578818984530741847599767577980563253776224576862486865638440826830848; //((2 ** 255) + 8 * 2 ** 217 + 8 * 2 ** 211 + 8 * 2 ** 204 + 8 * 2 ** 197)+5*2**187+20*2**177+(6*2**22+ 1*2**18+ 5*2**15+8*2**10+8*2**5+2)*2**229+5*2**223;
 
-        market.modifyGoodConfig(metagood, _goodconfig); //2**32+6*2**28+ 1*2**24+ 5*2**21+7*2**16+7*2**11+2*2**6+10
-        market.updateGoodConfig(metagood, _goodconfig); //5*2**187
+        market.modifyGoodConfig(metagood, _goodconfig,marketcreator,defaultdata); //2**32+6*2**28+ 1*2**24+ 5*2**21+7*2**16+7*2**11+2*2**6+10
+        market.updateGoodConfig(metagood, _goodconfig,marketcreator,defaultdata); //5*2**187
         uint256 normalproof = S_ProofKey(marketcreator, metagood, address(0))
             .toId();
         S_ProofState memory _proof = market.getProofState(normalproof);
@@ -268,6 +270,8 @@ contract investValueGoodWithPowerWithoutFee is BaseSetup {
             address(0),
             50000 * 10 ** 6,
             defaultdata,
+            defaultdata,
+            marketcreator,
             defaultdata
         );
         snapLastCall("invest_own_erc20_valuegood_with_power_with_fee_first");
@@ -279,7 +283,7 @@ contract investValueGoodWithPowerWithoutFee is BaseSetup {
         );
         assertEq(
             good_.goodConfig.amount1(),
-            199200000000,
+            199200000000,   
             "after invest metagood:metagood goodConfig amount1 error"
         );
         assertEq(

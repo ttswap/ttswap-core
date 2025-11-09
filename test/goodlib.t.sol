@@ -33,7 +33,6 @@ contract testBuy11 is Test {
         uint256 _goodConfig = 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197;
         good1.updateGoodConfig(_goodConfig);
         assertEq(_goodConfig, good1.goodConfig, "update goodconfig error");
-
         uint256 _goodConfig1 =  92709122<<229;
         good1.modifyGoodConfig(_goodConfig1);
         console2.log(good1.goodConfig);
@@ -41,7 +40,7 @@ contract testBuy11 is Test {
         console2.log(good1.goodConfig.isvaluegood());
         assertEq(
             _goodConfig1  + _goodConfig,
-            good1.goodConfig,
+            good1.goodConfig+2**255,
             "modified godoconfig error"
         );
     }

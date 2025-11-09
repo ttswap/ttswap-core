@@ -6,7 +6,8 @@ import {Test, console2, Vm} from "forge-std/src/Test.sol";
 import {MyToken} from "../src/test/MyToken.sol";
 import "../src/TTSwap_Market.sol";
 import "../src/TTSwap_Token.sol";
-import "../src/TTSwap_Token_Proxy.sol";
+import "../src/TTSwap_Token_Proxy.sol";    
+    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
 import {S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
 import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
@@ -36,6 +37,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
     TTSwap_Market market;
     TTSwap_Token tts_token;
     TTSwap_Token_Proxy tts_token_proxy;
+    TTSwap_Market_Proxy market_proxy;
     bytes internal constant defaultdata = bytes("");
 
     function setUp() public {
@@ -62,7 +64,9 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             address(tts_token_logic)
         );
         tts_token = TTSwap_Token(payable(address(tts_token_proxy)));
-         market = new TTSwap_Market(tts_token,marketcreator);
+        market = new TTSwap_Market(tts_token);
+        market_proxy = new TTSwap_Market_Proxy(tts_token,address(market));
+        market = TTSwap_Market(payable(address(market_proxy)));
        
         tts_token.setTokenAdmin(marketcreator, true);
         tts_token.setTokenManager(marketcreator, true);
@@ -83,7 +87,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         uint256 _goodconfig = (2 ** 255);
         market.initMetaGood(
             address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
             _goodconfig,
             defaultdata
         );
@@ -98,7 +102,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         uint256 _goodconfig = (2 ** 255);
         market.initMetaGood(
             address(usdc),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
             _goodconfig,
             defaultdata
         );
@@ -113,7 +117,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         uint256 _goodconfig = (2 ** 255);
         market.initMetaGood(
             address(btc),
-            toTTSwapUINT256(118000 * 10 ** 6, 1 * 10 ** 8),
+            toTTSwapUINT256(118000 * 10 ** 12, 1 * 10 ** 8),
             _goodconfig,
             defaultdata
         );
@@ -133,9 +137,10 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             address(usdc),
             address(usdt),
             toTTSwapUINT256(10000 * 10 ** 6, 1000 * 10 ** 6),
-            1,
+            
             address(0),
-            ""
+            "",
+            marketcreator,""
         );
         snapLastCall("testswapwithoutfee1");
         uint256 usdcafter = usdc.balanceOf(address(marketcreator));
@@ -148,9 +153,10 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             address(usdt),
             address(usdc),
             toTTSwapUINT256(8333333332, 6000000000),
-            1,
+            
             msg.sender,
-            ""
+            "",
+            marketcreator,""
         );
 
         snapLastCall("testswapwithoutfee1");
@@ -241,9 +247,10 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             address(usdc),
             address(usdt),
             toTTSwapUINT256(10000 * 10 ** 6, 1000 * 10 ** 6),
-            1,
+            
             address(0),
-            ""
+            "",
+            marketcreator,""
         );
         snapLastCall("testswapwithoutfee1");
         uint256 usdcafter = usdc.balanceOf(address(address(market)));
@@ -258,9 +265,10 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             address(usdt),
             address(btc),
             toTTSwapUINT256(8333333332, 0),
-            1,
+            
             address(0),
-            ""
+            "",
+            marketcreator,""
         );
         snapLastCall("testswapwithoutfee1");
         usdcafter = usdc.balanceOf(address(address(market)));
@@ -273,9 +281,10 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             address(btc),
             address(usdc),
             toTTSwapUINT256(7418397, 0),
-            1,
+            
             address(0),
-            ""
+            "",
+            marketcreator,""
         );
         snapLastCall("testswapwithoutfee3");
         usdcafter = usdc.balanceOf(address(market));
@@ -299,9 +308,10 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             address(usdc),
             address(usdt),
             toTTSwapUINT256(10000 * 10 ** 6, 1000 * 10 ** 6),
-            1,
+            
             address(0),
-            ""
+            "",
+            marketcreator,""
         );
         snapLastCall("testswapwithoutfee1");
         uint256 usdcafter = usdc.balanceOf(address(marketcreator));
@@ -329,18 +339,20 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             address(usdc),
             address(usdt),
             toTTSwapUINT256(5000 * 10 ** 6, 1000 * 10 ** 6),
-            1,
+            
             address(0),
-            ""
+            "",
+            marketcreator,""
         );
 
         market.buyGood(
             address(usdc),
             address(usdt),
             toTTSwapUINT256(5000 * 10 ** 6, 1000 * 10 ** 6),
-            1,
+            
             address(0),
-            ""
+            "",
+            marketcreator,""
         );
         snapLastCall("testswapwithoutfee1");
         uint256 usdcafter = usdc.balanceOf(address(marketcreator));
@@ -361,13 +373,14 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         usdt.approve(address(market), 50000 * 10 ** 6 + 1);
         S_GoodTmpState memory beforeusdc = market.getGoodState(address(usdc));
         S_GoodTmpState memory beforeusdt = market.getGoodState(address(usdt));
-        market.buyGood(
+        market.payGood(
             address(usdt),
             address(usdc),
             toTTSwapUINT256(3000 * 10 ** 6, 1000 * 10 ** 6),
-            0,
+            
             marketcreator,
-            ""
+            "",
+            marketcreator,"",0
         );
         snapLastCall("testpaywithoutfee1");
         uint256 usdcafter = usdc.balanceOf(address(marketcreator));
@@ -375,13 +388,13 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         console2.log("usdcafter:", usdcafter);
         console2.log("usdtafter:", usdtafter);
         usdc.approve(address(market), 50000 * 10 ** 6 + 1);
-        market.buyGood(
+        market.payGood(
             address(usdc),
             address(usdt),
             toTTSwapUINT256(10000 * 10 ** 6, 1020408163),
-            0,
             marketcreator,
-            ""
+            "",
+            marketcreator,"",0
         );
         snapLastCall("testpaywithoutfee2");
         usdcafter = usdc.balanceOf(address(marketcreator));

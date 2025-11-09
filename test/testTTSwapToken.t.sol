@@ -8,6 +8,7 @@ import {MyToken} from "../src/test/MyToken.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
 import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
 import {TTSwap_Market} from "../src/TTSwap_Market.sol";
+    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {L_TTSTokenConfigLibrary} from "../src/libraries/L_TTSTokenConfig.sol";
 import {I_TTSwap_Token, s_share, s_proof} from "../src/interfaces/I_TTSwap_Token.sol";
 
@@ -21,6 +22,7 @@ contract testTTSwapToken is Test, GasSnapshot {
     TTSwap_Token tts_token;
     uint256 internal marketcreatorkey;
 
+    TTSwap_Market_Proxy market_proxy;
     using L_TTSTokenConfigLibrary for uint256;
 
     function setUp() public virtual {
@@ -45,7 +47,9 @@ contract testTTSwapToken is Test, GasSnapshot {
         tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
         console2.log("tts_token00", address(tts_token));
 
-         market = new TTSwap_Market(tts_token,marketcreator);
+         market = new TTSwap_Market(tts_token);
+        market_proxy = new TTSwap_Market_Proxy(tts_token,address(market));
+        market = TTSwap_Market(payable(address(market_proxy)));
         console2.log("tts_token01", address(tts_token));
 
         console2.log("tts_token02", address(tts_token));
@@ -71,7 +75,7 @@ contract testTTSwapToken is Test, GasSnapshot {
         tts_token.stake(users[2], 100000);
         vm.stopPrank();
         assertEq(tts_token.stakestate() % 2 ** 128, 100000, "pool value error");
-        assertEq(tts_token.poolstate() / 2 ** 128, 10958904109, "pool asset error1");
+        assertEq(tts_token.poolstate() / 2 ** 128, 10958904109589041, "pool asset error1");
         assertEq(tts_token.poolstate() % 2 ** 128, 0, "pool construct error");
         assertEq(tts_token.balanceOf(users[2]), 0, "tts balance error");
         console2.log("pool value", tts_token.stakestate() % 2 ** 128);
@@ -87,9 +91,9 @@ contract testTTSwapToken is Test, GasSnapshot {
         console2.log("pool asset", tts_token.poolstate() / 2 ** 128);
         console2.log("pool construct", tts_token.poolstate() % 2 ** 128);
         assertEq(tts_token.stakestate() % 2 ** 128, 99000, "pool value error");
-        assertEq(tts_token.poolstate() / 2 ** 128, 10849315068, "pool asset erro2r");
+        assertEq(tts_token.poolstate() / 2 ** 128, 10849315068493151, "pool asset erro2r");
         assertEq(tts_token.poolstate() % 2 ** 128, 0, "pool construct error");
-        assertEq(tts_token.balanceOf(users[2]), 109589041, "tts balance error");
+        assertEq(tts_token.balanceOf(users[2]), 109589041095890, "tts balance error");
     }
 
     function testSetRatio() public {

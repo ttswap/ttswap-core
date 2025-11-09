@@ -41,7 +41,7 @@ contract testInitMetaGood is BaseSetup {
 
         market.initMetaGood(
             address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
             goodconfig,
             defaultdata
         );
@@ -76,8 +76,8 @@ contract testInitMetaGood is BaseSetup {
         );
         assertEq(
             market.getGoodState(metagood).investState,
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            "after initial metagood:metagood investState error"
+            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 12),
+            "after initial metagood:metagood investState error1"
         );
 
         assertEq(
@@ -97,12 +97,12 @@ contract testInitMetaGood is BaseSetup {
         S_ProofState memory _proof1 = market.getProofState(metaproof);
         assertEq(
             _proof1.state.amount0(),
-            50000 * 10 ** 6,
+            50000000000000000,
             "after initial:virtual value error"
         );
         assertEq(
             _proof1.state.amount1(),
-            50000 * 10 ** 6,
+            50000000000000000,
             "after initial:actual value error"
         );
         assertEq(
@@ -193,7 +193,7 @@ contract testInitMetaGood is BaseSetup {
         assertEq(
             good_.investState,
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            "after initial metagood:metagood investState error"
+            "after initial metagood:metagood investState error2"
         );
 
         assertEq(

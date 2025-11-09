@@ -18,11 +18,17 @@ library L_Good {
     using L_TTSwapUINT256Library for uint256;
     using L_Proof for S_ProofState;
     //(2**256-1)-(2**223-1)+(2**128-1)
-    uint256 internal constant updateConfigMask=0xffffffff800000000000000000000000ffffffffffffffffffffffffffffffff;
+    uint256 internal constant feeConfigMask =
+        0xffffffff800000000000000000000000ffffffffffffffffffffffffffffffff;
     //2**223-1
-    uint256 internal constant modifyConfigMask=0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-    //1638416512<<233  (6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6)<<223
-    uint256 internal constant initialConfig=0x30d4204000000000000000000000000000000000000000000000000000000000;
+    uint256 internal constant commissionConfigMask =
+        0x3fffffff80000000000000000000000000000000000000000000000000000000;
+
+    uint256 internal constant coreConfigMask =
+        0xc000000000000000000000000000000000000000000000000000000000000000;
+    //1638416512<<223  (6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6)<<223
+    uint256 internal constant initialConfig =
+        0x30d4204000000000000000000000000000000000000000000000000000000000;
 
     /**
      * @notice Update the good configuration only goodowner
@@ -36,12 +42,12 @@ library L_Good {
     ) internal {
         if (_self.goodConfig.getLimitPower() < _goodConfig.getPower())
             revert TTSwapError(23);
-        uint256 tmpconfig=_self.goodConfig;
+        uint256 tmpconfig = _self.goodConfig;
         assembly {
-            _goodConfig := and(not(updateConfigMask), _goodConfig)
-            tmpconfig:= add(and(tmpconfig, updateConfigMask),_goodConfig)
+            _goodConfig := and(not(feeConfigMask), _goodConfig)
+            tmpconfig := add(and(tmpconfig, feeConfigMask), _goodConfig)
         }
-        _self.goodConfig=tmpconfig;
+        _self.goodConfig = tmpconfig;
     }
 
     /**
@@ -55,14 +61,37 @@ library L_Good {
         uint256 _goodconfig
     ) internal {
         if (!_goodconfig.checkGoodConfig()) revert TTSwapError(24);
-        uint256 tmpconfig=_self.goodConfig;
+        uint256 tmpconfig = _self.goodConfig;
         assembly {
-            _goodconfig := and(not(modifyConfigMask), _goodconfig)
-            tmpconfig:= add(and(tmpconfig, modifyConfigMask),_goodconfig)
+            _goodconfig := and(commissionConfigMask, _goodconfig)
+            tmpconfig := add(
+                and(not(commissionConfigMask), tmpconfig),
+                _goodconfig
+            )
         }
-         _self.goodConfig=tmpconfig;
+        _self.goodConfig = tmpconfig;
     }
 
+    function modifyGoodCoreConfig(
+        S_GoodState storage _self,
+        uint256 _goodconfig
+    ) internal {
+        uint256 tmpconfig = _self.goodConfig;
+        assembly {
+            _goodconfig := and(coreConfigMask, _goodconfig)
+            tmpconfig := add(and(not(coreConfigMask), tmpconfig), _goodconfig)
+        }
+        _self.goodConfig = tmpconfig;
+    }
+
+    function lockGood(S_GoodState storage _self) internal {
+         uint256 tmpconfig = _self.goodConfig;
+         uint256 lockConfig = 0x4000000000000000000000000000000000000000000000000000000000000000;
+        assembly {
+            tmpconfig := add(and(tmpconfig, not(lockConfig)),lockConfig)
+        }
+        _self.goodConfig = tmpconfig;
+    }
     /**
      * @notice Initialize the good state
      * @dev Sets up the initial state, configuration, and owner of the good
@@ -78,12 +107,9 @@ library L_Good {
         self.currentState = toTTSwapUINT256(_init.amount1(), _init.amount1());
         self.investState = toTTSwapUINT256(_init.amount1(), _init.amount0());
         assembly {
-            _goodConfig := and(not(updateConfigMask), _goodConfig)
+            _goodConfig := and(not(feeConfigMask), _goodConfig)
             _goodConfig := add(_goodConfig, initialConfig)
         }
-        // _goodConfig = (_goodConfig << 33) >> 33;
-        // _goodConfig = (_goodConfig >> 128) << 128;
-        // _goodConfig = _goodConfig + (1638416512 << 223); //1638416512 6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
         if (_goodConfig.getPower() > 1) revert TTSwapError(25);
         self.goodConfig = _goodConfig;
         self.owner = msg.sender;
@@ -322,6 +348,7 @@ library L_Good {
         uint128 _goodshares; // The shares of goods to disinvest
         address _gater; // The address of the gater (if applicable)
         address _referral; // The address of the referrer (if applicable)
+        address _sender; // The address of the sender
     }
 
     /**
@@ -434,7 +461,8 @@ library L_Good {
             _params._gater,
             _params._referral,
             normalGoodResult1_.actualDisinvestQuantity -
-                normalGoodResult1_.actual_fee
+                normalGoodResult1_.actual_fee,
+                _params._sender
         );
         // Handle value good disinvestment if applicable
         if (_investProof.valuegood != address(0)) {
@@ -519,7 +547,8 @@ library L_Good {
                 _params._gater,
                 _params._referral,
                 valueGoodResult2_.actualDisinvestQuantity -
-                    valueGoodResult2_.actual_fee
+                    valueGoodResult2_.actual_fee,  
+                _params._sender
             );
         }
 
@@ -555,7 +584,8 @@ library L_Good {
         uint128 _profit,
         address _gater,
         address _referral,
-        uint128 _divestQuantity
+        uint128 _divestQuantity,
+        address _sender
     ) private {
         uint256 _goodconfig = _self.goodConfig;
         // Calculate platform fee and deduct it from the profit
@@ -571,7 +601,7 @@ library L_Good {
 
         if (_referral == address(0)) {
             // If no referrer, distribute fees differently
-            _self.commission[msg.sender] += (liquidFee + _divestQuantity);
+            _self.commission[_sender] += (liquidFee + _divestQuantity);
             _self.commission[_gater] += sellerFee + customerFee;
             _self.commission[address(0)] += (_profit -
                 liquidFee -
@@ -598,7 +628,7 @@ library L_Good {
                 marketfee += referFee;
             }
             _self.commission[address(0)] += marketfee;
-            _self.commission[msg.sender] += (liquidFee +
+            _self.commission[_sender] += (liquidFee +
                 customerFee +
                 _divestQuantity);
         }

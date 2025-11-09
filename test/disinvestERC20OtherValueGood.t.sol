@@ -44,7 +44,7 @@ contract disinvestERC20OtherValueGood is BaseSetup {
             2 ** 197;
         market.initMetaGood(
             address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
             _goodconfig,
             defaultdata
         );
@@ -61,7 +61,7 @@ contract disinvestERC20OtherValueGood is BaseSetup {
             address(0),
             50000 * 10 ** 6,
             defaultdata,
-            defaultdata
+            defaultdata,users[1],defaultdata
         );
         vm.stopPrank();
     }
@@ -82,8 +82,8 @@ contract disinvestERC20OtherValueGood is BaseSetup {
             0,
             "before invest:proof value shares error"
         );
-        assertEq(_proof1.state.amount0(), 49995000000, "before invest:proof value error");
-        assertEq(_proof1.state.amount1(), 49995000000, "before invest:proof value error");
+        assertEq(_proof1.state.amount0(), 49995000000000000, "before invest:proof value error");
+        assertEq(_proof1.state.amount1(), 49995000000000000, "before invest:proof value error");
         assertEq(
             _proof1.invest.amount1(),
             49995000000,
@@ -123,11 +123,11 @@ contract disinvestERC20OtherValueGood is BaseSetup {
         );
         assertEq(
             good_.investState.amount1(),
-            99995000000,
+            99995000000000000,
             "before disinvest erc20 good:metagood investState amount1 error"
         );
 
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),users[1],defaultdata);
         snapLastCall("disinvest_other_erc20_valuegood_first");
         good_ = market.getGoodState(metagood);
         assertEq(
@@ -147,7 +147,7 @@ contract disinvestERC20OtherValueGood is BaseSetup {
         );
         assertEq(
             good_.investState.amount1(),
-            89995000000,
+            89995000000000000,
             "after disinvest erc20 good:metagood investState amount1 error"
         );
 
@@ -162,8 +162,8 @@ contract disinvestERC20OtherValueGood is BaseSetup {
             0,
             "before invest:proof value shares error"
         );
-        assertEq(_proof1.state.amount0(), 39995000000, "before invest:proof value error");
-        assertEq(_proof1.state.amount1(), 39995000000, "before invest:proof value error");
+        assertEq(_proof1.state.amount0(), 39995000000000000, "before invest:proof value error");
+        assertEq(_proof1.state.amount1(), 39995000000000000, "before invest:proof value error");
         assertEq(
             _proof1.invest.amount1(),
             39995000000,
@@ -185,10 +185,10 @@ contract disinvestERC20OtherValueGood is BaseSetup {
             "before invest:proof quantity error"
         );
 
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),users[1],defaultdata);
         snapLastCall("disinvest_other_erc20_valuegood_second");
 
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),users[1],defaultdata);
         snapLastCall("disinvest_other_erc20_valuegood_three");
         vm.stopPrank();
     }

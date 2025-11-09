@@ -47,7 +47,7 @@ contract payERC20ByERC20 is BaseSetup {
             2 ** 197;
         market.initMetaGood(
             address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
             _goodconfig,
             defaultdata
         );
@@ -80,6 +80,8 @@ contract payERC20ByERC20 is BaseSetup {
             address(btc),
             normalgoodconfig,
             defaultdata,
+            defaultdata,
+            users[1],
             defaultdata
         );
         normalgoodbtc = address(btc);
@@ -138,13 +140,14 @@ contract payERC20ByERC20 is BaseSetup {
             "before  pay erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 
-        market.buyGood(
+        market.payGood(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1 * 10 ** 6),
-            0,
             users[1],
-            defaultdata
+            defaultdata,
+            users[1],
+            defaultdata,0
         );
         snapLastCall("pay_erc20_by_erc20_to_self_first");
         assertEq(
@@ -183,13 +186,15 @@ contract payERC20ByERC20 is BaseSetup {
             "after  pay erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 
-        market.buyGood(
+        market.payGood(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(16300 * 10 ** 6, 1 * 10 ** 6),
-            0,
+            
             users[1],
-            defaultdata
+            defaultdata,
+            users[1],
+            defaultdata,0
         );
         snapLastCall("pay_erc20_by_erc20_to_self_second");
 
@@ -248,13 +253,15 @@ contract payERC20ByERC20 is BaseSetup {
             "before  pay erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 
-        market.buyGood(
+        market.payGood(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1 * 10 ** 6),
-            0,
+            
             address(100),
-            defaultdata
+            defaultdata,
+            users[1],
+            defaultdata,0
         );
         snapLastCall("pay_erc20_by_erc20_to_other_user_first");
         assertEq(
@@ -297,8 +304,10 @@ contract payERC20ByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(16300 * 10 ** 6, 1 * 10 ** 6),
-            0,
+            
             address(100),
+            defaultdata,
+            users[1],
             defaultdata
         );
         snapLastCall("pay_erc20_by_erc20_to_other_user_second");

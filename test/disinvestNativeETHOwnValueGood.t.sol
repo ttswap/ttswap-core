@@ -50,7 +50,7 @@ contract disinvestNativeETHOwnValueGood is BaseSetup {
 
     function investOwnERC20ValueGood() public {
         vm.startPrank(marketcreator);
-        market.investGood{value: 50000000000}(metagood, address(0), 50000 * 10 ** 6, defaultdata, defaultdata);
+        market.investGood{value: 50000000000}(metagood, address(0), 50000 * 10 ** 6, defaultdata, defaultdata,marketcreator,defaultdata);
         vm.stopPrank();
     }
 
@@ -116,7 +116,7 @@ contract disinvestNativeETHOwnValueGood is BaseSetup {
         );
         
 
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),marketcreator,defaultdata);
         snapLastCall("disinvest_own_nativeeth_valuegood_first");
         good_ = market.getGoodState(metagood);
         assertEq(
@@ -174,10 +174,10 @@ contract disinvestNativeETHOwnValueGood is BaseSetup {
             0,
             "before invest:proof quantity error"
         );
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),marketcreator,defaultdata);
         snapLastCall("disinvest_own_nativeeth_valuegood_second");
 
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0));
+        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),marketcreator,defaultdata);
         snapLastCall("disinvest_own_nativeeth_valuegood_three");
         vm.stopPrank();
     }

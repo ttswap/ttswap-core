@@ -46,7 +46,7 @@ contract payERC20ByNativeETH is BaseSetup {
             2 ** 197;
         market.initMetaGood{value: 50000 * 10 ** 6}(
             address(1),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
             _goodconfig,
             defaultdata
         );
@@ -79,6 +79,8 @@ contract payERC20ByNativeETH is BaseSetup {
             address(btc),
             normalgoodconfig,
             defaultdata,
+            defaultdata,
+            users[1],
             defaultdata
         );
         normalgoodbtc = address(btc);
@@ -136,13 +138,15 @@ contract payERC20ByNativeETH is BaseSetup {
             "before  pay erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 
-        market.buyGood{value: 6300 * 10 ** 6}(
+        market.payGood{value: 6300 * 10 ** 6}(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1 * 10 ** 6),
-            0,
             users[1],
-            defaultdata
+            defaultdata,
+            users[1],
+            defaultdata,
+            0
         );
         snapLastCall("pay_erc20_by_NativeETH_to_self_first");
         assertEq(
@@ -181,13 +185,15 @@ contract payERC20ByNativeETH is BaseSetup {
             "after  pay erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 
-        market.buyGood{value: 16300 * 10 ** 6}(
+        market.payGood{value: 16300 * 10 ** 6}(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(16300 * 10 ** 6, 1 * 10 ** 6),
-            0,
             users[1],
-            defaultdata
+            defaultdata,
+            users[1],
+            defaultdata,
+            0
         );
         snapLastCall("pay_erc20_by_NativeETH_to_self_second");
 
@@ -245,13 +251,15 @@ contract payERC20ByNativeETH is BaseSetup {
             "before  pay erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 
-        market.buyGood{value: 6300 * 10 ** 6}(
+        market.payGood{value: 6300 * 10 ** 6}(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1 * 10 ** 6),
-            0,
             address(100),
-            defaultdata
+            defaultdata,
+            users[1],
+            defaultdata,
+            0
         );
         snapLastCall("pay_erc20_by_NativeETH_to_other_user_first");
         assertEq(
@@ -290,13 +298,15 @@ contract payERC20ByNativeETH is BaseSetup {
             "after  pay erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 
-        market.buyGood{value: 16300 * 10 ** 6}(
+        market.payGood{value: 16300 * 10 ** 6}(
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(16300 * 10 ** 6, 1 * 10 ** 6),
-            0,
             address(100),
-            defaultdata
+            defaultdata,
+            users[1],
+            defaultdata,
+            0
         );
         snapLastCall("pay_erc20_by_NativeETH_to_other_user_second");
 
