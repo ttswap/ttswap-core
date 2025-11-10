@@ -45,7 +45,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
             "permitShare(uint128 amount,uint120 chips,uint8 metric,address owner,uint128 existamount,uint128 deadline,uint256 nonce)"
         );
 
-    constructor() ERC20("TTSwap Token", "TTS", 6) {}
+    constructor() ERC20("TTSwap Token", "TTS", 12) {}
 
     /**
      * @dev Modifier to ensure function is only called on the main chain
@@ -326,7 +326,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
             !I_TTSwap_Market(marketcontract).ishigher(
                 address(this),
                 usdt,
-                2 ** shares[msg.sender].metric * 2 ** 128 + 20
+                2 ** shares[msg.sender].metric * 2 ** 128 + 20_000_000
             )
         ) revert TTSwapError(68);
         if (shares[msg.sender].leftamount == 0) revert TTSwapError(69);

@@ -519,7 +519,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 swapcache.outputQuantity
             );
             good1change = toTTSwapUINT256(feeQuanity, swapcache.outputQuantity);
-            if (swapcache.swapvalue < 1_000_000_000) revert TTSwapError(swapcache.swapvalue);
+            if (swapcache.swapvalue < 1_000_000_000) revert TTSwapError(14);
             if (
                 good1change.amount1() > _swapQuantity.amount0() &&
                 _swapQuantity.amount0() > 0
