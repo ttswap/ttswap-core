@@ -66,7 +66,7 @@ contract TTSwap_Market_Proxy {
         upgradeable = false;
     }
 
-    function freezeToken() external onlyMarketManagerProxy {
+    function freezeMarket() external onlyMarketManagerProxy {
         implementation = address(0);
     }
 
