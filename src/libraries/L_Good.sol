@@ -17,9 +17,9 @@ library L_Good {
     using L_GoodConfigLibrary for uint256;
     using L_TTSwapUINT256Library for uint256;
     using L_Proof for S_ProofState;
-    //(2**256-1)-(2**223-1)+(2**128-1)
-    uint256 internal constant feeConfigMask =
-        0xffffffff800000000000000000000000ffffffffffffffffffffffffffffffff;
+    //(2**256-1)-(2**223-1)+(2**177-1)
+    uint256 internal constant feeConfigMask =0xffffffff800000000001ffffffffffffffffffffffffffffffffffffffffffff;
+//        0xffffffff800000000000000000000000ffffffffffffffffffffffffffffffff;
     //2**223-1
     uint256 internal constant commissionConfigMask =
         0x3fffffff80000000000000000000000000000000000000000000000000000000;
