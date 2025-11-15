@@ -96,10 +96,14 @@ library L_GoodConfigLibrary {
     function getLimitPower(uint256 config) internal pure returns(uint128 a){
         unchecked {
             assembly {
-                a := shr(250, shl(27, config))
+                a := shr(251, shl(27, config))
             }
             if(a==0) a=1;
         }
+    }
+
+    function getApply(uint256 config)internal pure returns(bool a){
+        return (config & (1 << 223)) > 0;
     }
 
     /// @notice Calculate the investment fee for a given amount

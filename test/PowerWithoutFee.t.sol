@@ -50,7 +50,7 @@ contract PowerWithoutFee is BaseSetup {
 
     function investOwnERC20ValueGood() public {
         vm.startPrank(marketcreator);
-        market.modifyGoodConfig(metagood, 5933383818<<223,marketcreator,defaultdata);//2**32+6*2**28+ 1*2**24+ 5*2**21+7*2**16+7*2**11+2*2**6+10
+        market.modifyGoodConfig(metagood, 79981855779307052498765253981177144678745689328401315716620998322556632039424,marketcreator,defaultdata); //2**255+(6*2**22+ 1*2**18+ 5*2**15+8*2**10+8*2**5+2)*2**229+10*2*2**223
         market.updateGoodConfig(metagood, 980797146154168869349342097376197877515993038197505392640,marketcreator,defaultdata); //5*2**187
         uint256 normalproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
         S_ProofState memory _proof = market.getProofState(normalproof);

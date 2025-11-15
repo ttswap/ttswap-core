@@ -774,7 +774,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (_trader != msg.sender) revert TTSwapError(39);
         if (
             S_ProofKey(
-                msg.sender,
+                _trader,
                 proofs[_proofid].currentgood,
                 proofs[_proofid].valuegood
             ).toId() != _proofid
@@ -786,6 +786,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         L_Good.S_GoodDisinvestReturn memory disinvestValueResult2_;
         address normalgood = proofs[_proofid].currentgood;
         if (goods[normalgood].goodConfig.isFreeze()) revert TTSwapError(10);
+        if (goods[normalgood].goodConfig.getApply() && goods[normalgood].owner==_trader) revert TTSwapError(40);
         address valuegood = proofs[_proofid].valuegood;
         uint256 divestvalue;
         address referal = TTS_CONTRACT.getreferral(msg.sender);
