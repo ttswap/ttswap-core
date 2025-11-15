@@ -120,12 +120,17 @@ contract testGoodConfig is Test {
     }
 
     function test_getLimitPower() public pure {
-        uint256 a_min = 1 * 2 ** 223;
-        uint256 a_mid = 15 * 2 ** 223;
-        uint256 a_max = 63 * 2 ** 223;
+        uint256 a_min = 1 * 2 ** 224;
+        uint256 a_mid = 15 * 2 ** 224;
+        uint256 a_max = 31 * 2 ** 224;
         assertEq(a_min.getLimitPower(), 1);
         assertEq(a_mid.getLimitPower(), 15);
-        assertEq(a_max.getLimitPower(), 63);
+        assertEq(a_max.getLimitPower(), 31);
+    }
+
+    function test_getApply()public pure{
+        uint256 a_max = 1 <<223;
+        assertEq(a_max.getApply(), true);
     }
 
     function test_checkout()public pure {
