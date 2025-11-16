@@ -23,9 +23,9 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     using L_CurrencyLibrary for address;
     using L_SignatureVerification for bytes;
     address internal implementation;
-    address internal usdt;
-    bool internal upgradeable;
+    address internal immutable usdt;
     uint256 public override ttstokenconfig;
+    bool internal upgradeable;
     uint256 public override stakestate; // first 128 bit record lasttime,last 128 bit record poolvalue
     uint128 public override left_share = 45_000_000_000_000_000_000;
     /// @inheritdoc I_TTSwap_Token
@@ -45,7 +45,9 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
             "permitShare(uint128 amount,uint120 chips,uint8 metric,address owner,uint128 existamount,uint128 deadline,uint256 nonce)"
         );
 
-    constructor() ERC20("TTSwap Token", "TTS", 12) {}
+    constructor(address _usdt) ERC20("TTSwap Token", "TTS", 12) {
+        usdt=_usdt;
+    }
 
     /**
      * @dev Modifier to ensure function is only called on the main chain

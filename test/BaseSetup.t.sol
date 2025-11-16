@@ -38,8 +38,8 @@ contract BaseSetup is Test, GasSnapshot {
         usdt = new MyToken("USDT", "USDT", 6);
         eth = new MyToken("ETH", "ETH", 18);
         vm.startPrank(marketcreator);
-        TTSwap_Token tts_token_logic = new TTSwap_Token();
-        tts_token_proxy=new TTSwap_Token_Proxy(address(usdt), marketcreator, 2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
+        TTSwap_Token tts_token_logic = new TTSwap_Token(address(usdt));
+        tts_token_proxy=new TTSwap_Token_Proxy( marketcreator, 2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
         tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
         snapStart("depoly Market Manager");
         market = new TTSwap_Market(tts_token);
