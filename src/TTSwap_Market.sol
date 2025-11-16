@@ -774,7 +774,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (_trader != msg.sender) revert TTSwapError(39);
         if (
             S_ProofKey(
-                msg.sender,
+                _trader,
                 proofs[_proofid].currentgood,
                 proofs[_proofid].valuegood
             ).toId() != _proofid

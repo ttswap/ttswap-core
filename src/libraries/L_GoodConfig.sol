@@ -102,7 +102,7 @@ library L_GoodConfigLibrary {
         }
     }
 
- 
+
     function getApply(uint256 config)internal pure returns(bool a){
         return (config & (1 << 223)) > 0;
     }
