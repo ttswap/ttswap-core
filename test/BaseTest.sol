@@ -68,12 +68,12 @@ contract BaseTest is Test {
         tokenB = new MockERC20();
         
         // Deploy TTS Token implementation
-        implementation = new TTSwap_Token();
+        implementation = new TTSwap_Token(address(usdt));
         
         
         // Deploy proxy with initial DAO admin
         tokenProxy = new TTSwap_Token_Proxy(
-            address(usdt),
+            
             ADMIN,  // Initial DAO admin
             2**255 + 5000, // Initial config - set bit 255 to enable main chain mode + 50% ratio
             "TTSwap Token",

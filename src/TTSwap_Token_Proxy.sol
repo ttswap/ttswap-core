@@ -24,9 +24,8 @@ contract TTSwap_Token_Proxy {
     mapping(address => mapping(address => uint256)) internal allowance;
     mapping(address => uint256) internal nonces;
     address public implementation;
-    address internal usdt;
-    bool public upgradeable;
     uint256 internal ttstokenconfig;
+    bool public upgradeable;
     uint256 internal stakestate;
     uint128 internal left_share = 45_000_000_000_000;
     uint128 internal publicsell;
@@ -34,14 +33,14 @@ contract TTSwap_Token_Proxy {
 
     event e_updateUserConfig(address user, uint256 config);
     constructor(
-        address _usdt,
+
         address _dao_admin,
         uint256 _ttsconfig,
         string memory _name,
         string memory _symbol,
         address _implementation
     ) {
-        usdt = _usdt;
+       
         stakestate = toTTSwapUINT256(uint128(block.timestamp), 0);
         ttstokenconfig = _ttsconfig;
         userConfig[_dao_admin] = userConfig[_dao_admin].setDAOAdmin(true);

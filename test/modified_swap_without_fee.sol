@@ -54,9 +54,9 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         usdc = new MyToken("USDC", "USDC", 6);
         btc = new MyToken("BTC", "BTC", 8);
         vm.startPrank(marketcreator);
-        TTSwap_Token tts_token_logic = new TTSwap_Token();
+        TTSwap_Token tts_token_logic = new TTSwap_Token(address(usdt));
         tts_token_proxy = new TTSwap_Token_Proxy(
-            address(usdt),
+            
             marketcreator,
             2 ** 255 + 10000,
             "TTSwap Token",
