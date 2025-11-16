@@ -18,9 +18,9 @@ import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
  */
 contract TTSwap_Market_Proxy {
     using L_UserConfigLibrary for uint256;
-    address internal implementation;
-    I_TTSwap_Token internal TTS_CONTRACT;
-    bool internal upgradeable;
+    address public implementation;
+    I_TTSwap_Token public TTS_CONTRACT;
+    bool public upgradeable;
     constructor(
         I_TTSwap_Token _TTS_Contract,
         address _implementation
