@@ -23,7 +23,7 @@ contract TTSwap_Token_Proxy {
     mapping(address => uint256) internal balanceOf;
     mapping(address => mapping(address => uint256)) internal allowance;
     mapping(address => uint256) internal nonces;
-    address internal implementation;
+    address public implementation;
     address internal usdt;
     bool internal upgradeable;
     uint256 internal ttstokenconfig;
