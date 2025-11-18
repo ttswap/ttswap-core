@@ -251,6 +251,8 @@ interface I_TTSwap_Market {
         uint256 compareprice
     ) external view returns (bool);
 
+    function refreshPromise(uint256 _proofid) external   ;
+
     /// @notice Retrieves the current state of a proof
     /// @param proofid The ID of the proof to query
     /// @return proofstate The current state of the proof,

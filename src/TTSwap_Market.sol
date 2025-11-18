@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import {I_TTSwap_Market, S_ProofState, S_GoodState, S_ProofKey, S_GoodTmpState} from "./interfaces/I_TTSwap_Market.sol";
+import {
+    I_TTSwap_Market,
+    S_ProofState,
+    S_GoodState,
+    S_ProofKey,
+    S_GoodTmpState
+} from "./interfaces/I_TTSwap_Market.sol";
 import {L_Good} from "./libraries/L_Good.sol";
 import {L_Transient} from "./libraries/L_Transient.sol";
 import {TTSwapError} from "./libraries/L_Error.sol";
@@ -9,7 +15,12 @@ import {L_Proof, L_ProofIdLibrary} from "./libraries/L_Proof.sol";
 import {L_GoodConfigLibrary} from "./libraries/L_GoodConfig.sol";
 import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
 import {L_CurrencyLibrary} from "./libraries/L_Currency.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, add, lowerprice} from "./libraries/L_TTSwapUINT256.sol";
+import {
+    L_TTSwapUINT256Library,
+    toTTSwapUINT256,
+    add,
+    lowerprice
+} from "./libraries/L_TTSwapUINT256.sol";
 import {IMulticall_v4} from "./interfaces/IMulticall_v4.sol";
 import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
 import {L_SignatureVerification} from "./libraries/L_SignatureVerification.sol";
@@ -786,9 +797,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         L_Good.S_GoodDisinvestReturn memory disinvestValueResult2_;
         address normalgood = proofs[_proofid].currentgood;
         if (goods[normalgood].goodConfig.isFreeze()) revert TTSwapError(10);
-        if (goods[normalgood].goodConfig.getApply() && goods[normalgood].owner==_trader) {
-            emit e_getPromiseProof(normalgood,_proofid);
-            revert TTSwapError(40);}
+        if (
+            goods[normalgood].goodConfig.getApply() &&
+            goods[normalgood].owner == _trader
+        ) {
+            revert TTSwapError(40);
+        }
         address valuegood = proofs[_proofid].valuegood;
         uint256 divestvalue;
         address referal = TTS_CONTRACT.getreferral(msg.sender);
@@ -851,6 +865,24 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             _trader
         );
         return (disinvestNormalResult1_.profit, disinvestValueResult2_.profit);
+    }
+
+    function refreshPromise(uint256 _proofid) external override  {
+        if (
+            S_ProofKey(
+                msg.sender,
+                proofs[_proofid].currentgood,
+                proofs[_proofid].valuegood
+            ).toId() != _proofid
+        ) {
+            revert TTSwapError(19);
+        }
+        if (
+            goods[proofs[_proofid].currentgood].goodConfig.getApply() &&
+            goods[proofs[_proofid].currentgood].owner == msg.sender
+        ) {
+            emit e_getPromiseProof(proofs[_proofid].currentgood, _proofid);
+        }
     }
 
     /**
