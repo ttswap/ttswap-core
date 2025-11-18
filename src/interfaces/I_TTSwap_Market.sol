@@ -142,6 +142,11 @@ interface I_TTSwap_Market {
         address _trader
     );
 
+    event e_getPromiseProof(
+        address _goodid,
+        uint256 _proofid
+    );
+
     /// @notice Initialize the first good in the market
     /// @param _erc20address The contract address of the good
     /// @param _initial Initial parameters for the good (amount0: value, amount1: quantity)
