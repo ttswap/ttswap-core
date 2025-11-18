@@ -40,10 +40,7 @@ library L_Good {
         S_GoodState storage _self,
         uint256 _goodConfig
     ) internal {
-        emit debugg_goodconfig(11,_goodConfig.getPower());
-        emit debugg_goodconfig(12,_self.goodConfig.getPower());
-        emit debugg_goodconfig(13,_goodConfig.getApply());
-        emit debugg_goodconfig(14,_self.goodConfig.getApply());
+      
         if (_self.goodConfig.getLimitPower() < _goodConfig.getPower())
             revert TTSwapError(23);
         uint256 tmpconfig = _self.goodConfig;
@@ -53,14 +50,9 @@ library L_Good {
         }
         _self.goodConfig = tmpconfig;
 
-        emit debugg_goodconfig(21,_goodConfig.getPower());
-        emit debugg_goodconfig(22,_self.goodConfig.getPower());
-        emit debugg_goodconfig(23,_goodConfig.getApply());
-        emit debugg_goodconfig(24,_self.goodConfig.getApply());
+
     }
 
-    event debugg_goodconfig(uint256,uint256);
-    event debugg_goodconfig(uint256,bool);
 
     /**
      * @notice Modify the good configuration
@@ -73,11 +65,7 @@ library L_Good {
         uint256 _goodconfig
     ) internal {
         
-        emit debugg_goodconfig(31,_goodconfig.getPower());
-        emit debugg_goodconfig(32,_self.goodConfig.getPower());
-        emit debugg_goodconfig(33,_goodconfig.getApply());
-        emit debugg_goodconfig(34,_self.goodConfig.getApply());
-        emit debugg_goodconfig(35,uint256(0x30d4204000000000000000000000000000000000000000000000000000000000).getApply());
+      
          
         if (!_goodconfig.checkGoodConfig()) revert TTSwapError(24);
         uint256 tmpconfig = _self.goodConfig;
@@ -90,10 +78,7 @@ library L_Good {
         }
         _self.goodConfig = tmpconfig;
      
-        emit debugg_goodconfig(41,_goodconfig.getPower());
-        emit debugg_goodconfig(42,_self.goodConfig.getPower());
-        emit debugg_goodconfig(43,_goodconfig.getApply());
-        emit debugg_goodconfig(44,_self.goodConfig.getApply());
+
     }
 
     function modifyGoodCoreConfig(
