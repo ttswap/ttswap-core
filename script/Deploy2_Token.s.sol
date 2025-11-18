@@ -18,11 +18,11 @@ contract DeployMarket is Script {
         vm.startBroadcast();
         address usdt =0xdAC17F958D2ee523a2206206994597C13D831ec7;
         TTSwap_Token ttstoken = new TTSwap_Token(
-            
+            address(usdt)
         );
 
         TTSwap_Token_Proxy ttstoken_proxy = new TTSwap_Token_Proxy(
-            usdt,
+           
             msg.sender,
             57896044618658097711785492504343953926634992332820282019728792003956564819968,
             "TTSwap Token",
