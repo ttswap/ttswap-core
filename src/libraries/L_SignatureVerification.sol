@@ -1,21 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/// @title Signature Verification Library
+/// @notice Provides functions to verify ECDSA signatures.
+/// @dev Supports both standard 65-byte signatures (r, s, v) and EIP-2098 compact 64-byte signatures (r, vs).
 library L_SignatureVerification {
-    /// @notice Thrown when the passed in signature is not a valid length
+    /// @notice Thrown when the passed in signature is not a valid length (must be 64 or 65 bytes).
     error InvalidSignatureLength();
 
-    /// @notice Thrown when the recovered signer is equal to the zero address
+    /// @notice Thrown when the recovered signer is the zero address (ecrecover failure).
     error InvalidSignature();
 
-    /// @notice Thrown when the recovered signer does not equal the claimedSigner
+    /// @notice Thrown when the recovered signer does not match the expected claimedSigner.
     error InvalidSigner();
 
-    /// @notice Thrown when the recovered contract signature is incorrect
+    /// @notice Thrown when the recovered contract signature is incorrect (reserved for EIP-1271 support in future).
     error InvalidContractSignature();
 
     bytes32 constant UPPER_BIT_MASK = (0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
 
+    /// @notice Verifies that a signature was produced by a specific address.
+    /// @param signature The signature bytes (64 or 65 bytes).
+    /// @param hash The 32-byte hash of the data that was signed.
+    /// @param claimedSigner The address expected to have signed the hash.
+    /// @dev Reverts if the signature is invalid or the signer does not match.
     function verify(bytes calldata signature, bytes32 hash, address claimedSigner) internal pure {
         bytes32 r;
         bytes32 s;

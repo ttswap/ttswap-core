@@ -13,6 +13,7 @@ no_style = true
 deny_warnings = false
 fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}]
 
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 
 [rpc_endpoints]
