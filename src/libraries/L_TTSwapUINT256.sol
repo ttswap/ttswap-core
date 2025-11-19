@@ -129,7 +129,8 @@ function lowerprice(uint256 a, uint256 b, uint256 c) pure returns (bool) {
         > uint256(a.amount1()) * uint256(b.amount0()) * uint256(c.amount0()) ? true : false;
 }
 
-/// @notice Performs a multiplication followed by a division
+/// @notice Performs a multiplication followed by a division (full precision)
+/// @dev Optimized to prevent intermediate overflow during multiplication
 /// @param config The multiplicand
 /// @param amount The multiplier
 /// @param domitor The divisor

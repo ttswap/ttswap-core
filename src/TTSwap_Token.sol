@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
+// version 1.14.0
 pragma solidity 0.8.29;
 
 import {ERC20} from "./base/ERC20.sol";
@@ -67,7 +68,6 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     /// @inheritdoc I_TTSwap_Token
     function setDAOAdmin(address _recipient, bool result) external override {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(62);
-        userConfig[msg.sender] = userConfig[msg.sender].setDAOAdmin(!result);
         userConfig[_recipient] = userConfig[_recipient].setDAOAdmin(result);
         emit e_updateUserConfig(_recipient, userConfig[_recipient]);
     }
@@ -383,10 +383,16 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     }
 
     /**
-     * @dev Stake tokens
-     * @param _staker Address of the staker
-     * @param proofvalue Amount to stake
-     * @return netconstruct Net construct value
+     * @dev Stakes a user's proof of investment to earn platform rewards.
+     * @param _staker The address of the user staking their proof (usually msg.sender, but can be delegated).
+     * @param proofvalue The value of the proof being staked (represents investment amount).
+     * @return netconstruct The net construction fee or initial stake value recorded.
+     * @notice Staking allows users to earn a share of the platform's transaction fees or inflationary rewards.
+     * - Calculates pending rewards and updates the global pool state (`_stakeFee`).
+     * - Records the stake in a mapping, associating it with the `_staker` and `msg.sender` (market contract).
+     * - Updates the global `stakestate` and `poolstate`.
+     * @custom:security Requires `msg.sender` to have `isCallMintTTS` permission (only Market contract).
+     * @custom:security Uses `_stakeFee` to checkpoint global rewards before modifying user stake.
      */
     /// @inheritdoc I_TTSwap_Token
     function stake(
@@ -416,9 +422,16 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     }
 
     /**
-     * @dev Unstake tokens
-     * @param _staker Address of the staker
-     * @param proofvalue Amount to unstake
+     * @dev Unstakes a user's proof of investment and claims accumulated rewards.
+     * @param _staker The address of the user unstaking.
+     * @param proofvalue The amount of proof value to unstake.
+     * @notice This function calculates the user's share of the pool's growth since staking.
+     * - Updates global pool state (`_stakeFee`).
+     * - Calculates profit based on the change in `poolstate` relative to `stakestate`.
+     * - Mints new TTS tokens as profit to the `_staker`.
+     * - Burns the staked proof value from the state.
+     * @custom:security Requires `msg.sender` to have `isCallMintTTS` permission.
+     * @custom:security Handles partial unstaking correctly.
      */
     /// @inheritdoc I_TTSwap_Token
     function unstake(address _staker, uint128 proofvalue) external override {

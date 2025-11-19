@@ -18,7 +18,10 @@ address constant _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
 // address constant _permit2 = 0xa50eb0d081E986c280efF32dae089939Ea07bd22;
 
 /// @title L_CurrencyLibrary
-/// @dev This library allows for transferring and holding native tokens and ERC20 tokens
+/// @notice This library allows for transferring and holding native tokens and ERC20 tokens.
+/// @dev Handles various transfer methods including native ETH, standard ERC20 transferFrom, 
+/// ERC20 Permit, and Permit2 (TransferFrom, Permit, PermitTransferFrom).
+/// It abstracts away the complexity of different token standards and permit signatures.
 library L_CurrencyLibrary {
     using L_CurrencyLibrary for address;
 
@@ -41,17 +44,26 @@ library L_CurrencyLibrary {
 
     bytes constant defualtvalue = bytes("");
 
+    /// @dev Structure to decode user-supplied transfer data.
+    /// @param transfertype The type of transfer mechanism to use.
+    /// 2: DAI-style Permit or EIP-2612 Permit
+    /// 3: Permit2 TransferFrom (allowance already set)
+    /// 4: Permit2 Permit + TransferFrom
+    /// 5: Permit2 PermitTransferFrom (signature transfer)
+    /// @param sigdata The encoded signature data (S_Permit or S_Permit2).
     struct S_transferData {
         uint8 transfertype;
         bytes sigdata;
     }
 
-    /// @notice Thrown when an ERC20 transfer fails
+    /// @notice Thrown when an ETH transfer fails.
     error NativeETHTransferFailed();
-    /// @notice Thrown when an ERC20 transfer fails
+    /// @notice Thrown when an ERC20 transfer fails (e.g. insufficient balance or allowance).
     error ERC20TransferFailed();
-    /// @notice Thrown when an ERC20Permit transfer fails
+    /// @notice Thrown when an ERC20 Permit operation fails.
     error ERC20PermitFailed();
+    /// @notice Thrown when an unsupported transfer type is provided.
+    error UnsupportedTransferType();
 
     error ApproveFailed();
 
@@ -66,6 +78,16 @@ library L_CurrencyLibrary {
         }
     }
 
+    /// @notice Transfers tokens from one address to another using various authorization methods.
+    /// @dev Supports native ETH, standard ERC20, and various Permit schemes via `detail`.
+    /// @param token The address of the token to transfer (or address(1) for native ETH).
+    /// @param from The address to transfer tokens from.
+    /// @param to The address to transfer tokens to.
+    /// @param executor The address executing the transaction (usually msg.sender).
+    /// @param amount The amount of tokens to transfer.
+    /// @param detail Encoded `S_transferData` containing transfer type and signature data.
+    /// @custom:security CRITICAL: If `token` is native ETH, `executor` MUST be `from`.
+    /// @custom:security CRITICAL: If `detail` is provided, `transfertype` MUST be supported (2-5), otherwise it reverts.
     function transferFrom(
         address token,
         address from,
@@ -87,6 +109,7 @@ library L_CurrencyLibrary {
                 (S_transferData)
             );
             if (_simplePermit.transfertype == 2) {
+                // ... permit logic ...
                 S_Permit memory _permit = abi.decode(
                     _simplePermit.sigdata,
                     (S_Permit)
@@ -191,6 +214,8 @@ library L_CurrencyLibrary {
                     from,
                     bytes.concat(_permit.r, _permit.s, bytes1(_permit.v))
                 );
+            } else {
+                revert TTSwapError(42);
             }
         }
     }

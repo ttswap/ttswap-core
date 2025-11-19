@@ -16,6 +16,11 @@ library L_TTSTokenConfigLibrary {
         return b == 1 ? true : false;
     }
 
+    /// @notice Calculates the ratio amount based on configuration.
+    /// @dev Extracts the lower 16 bits (0xffff) of config as a basis point ratio (dividend/10000) and applies it to amount.
+    /// @param config The configuration value containing the ratio in the lowest 16 bits.
+    /// @param amount The amount to apply the ratio to.
+    /// @return b The calculated amount.
     function getratio(uint256 config, uint128 amount) internal pure returns (uint128 b) {
         unchecked {
             assembly {
@@ -26,6 +31,12 @@ library L_TTSTokenConfigLibrary {
         }
     }
 
+    /// @notice Updates the ratio configuration.
+    /// @dev Replaces the lower 16 bits of `config` with the lower 16 bits of `ttsconfig`.
+    /// This effectively updates the stored ratio while preserving other configuration bits.
+    /// @param config The original configuration value.
+    /// @param ttsconfig The new configuration value containing the new ratio in its lower 16 bits.
+    /// @return b The updated configuration value.
     function setratio(uint256 config, uint256 ttsconfig) internal pure returns (uint256 b) {
         unchecked {
             assembly {

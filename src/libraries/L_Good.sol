@@ -125,25 +125,50 @@ library L_Good {
     }
 
     /**
-     * @dev Struct to cache swap-related data
+     * @dev Struct to cache swap-related data for AMM calculations.
+     * @param remainQuantity The remaining input quantity to be swapped after fees.
+     * @param outputQuantity The calculated output quantity received from the swap.
+     * @param feeQuantity The calculated fee amount deducted from the input.
+     * @param swapvalue The calculated effective swap price/value.
+     * @param good1value The investment value/price of the input good.
+     * @param good2value The investment value/price of the output good.
+     * @param good1currentState The current state (liquidity/reserves) of the input good.
+     * @param good1config The configuration of the input good.
+     * @param good2currentState The current state (liquidity/reserves) of the output good.
+     * @param good2config The configuration of the output good.
      */
     struct swapCache {
-        uint128 remainQuantity; // Remaining quantity to be swapped
-        uint128 outputQuantity; // Quantity received from the swap
-        uint128 feeQuantity; // Fee amount for the swap
-        uint128 swapvalue; // Total value of the swap
+        uint128 remainQuantity;
+        uint128 outputQuantity;
+        uint128 feeQuantity;
+        uint128 swapvalue;
         uint128 good1value;
         uint128 good2value;
-        uint256 good1currentState; // Current state of the first good
-        uint256 good1config; // Configuration of the first good
-        uint256 good2currentState; // Current state of the second good
-        uint256 good2config; // Configuration of the second good
+        uint256 good1currentState;
+        uint256 good1config;
+        uint256 good2currentState;
+        uint256 good2config;
     }
 
     /**
-     * @notice Compute the swap result from good1 to good2
-     * @dev Implements a complex swap algorithm considering price limits, fees, and minimum swap amounts
-     * @param _stepCache A cache structure containing swap state and configurations
+     * @notice Compute the swap result from good1 (input) to good2 (output).
+     * @dev Implements the AMM swap logic for selling good1 for good2.
+     * The formula considers price impact based on the ratio of input value to pool reserves.
+     * 
+     * Formula derivation:
+     * Δv = (Va * Δa) / (Qa + Δa/2)
+     * Δb = (Qb * Δv) / (Vb + Δv/2)
+     * 
+     * Where:
+     * - Va: Value of input good
+     * - Vb: Value of output good
+     * - Qa: Current quantity of input good
+     * - Qb: Current quantity of output good
+     * - Δa: Input amount (after fees)
+     * - Δb: Output amount
+     * - Δv: Virtual swap value
+     * 
+     * @param _stepCache A cache structure containing swap state and configurations. Modified in place.
      */
     function swapCompute1(swapCache memory _stepCache) internal pure {
         // compute Token1 fee quantity
@@ -156,6 +181,8 @@ library L_Good {
             _stepCache.feeQuantity;
         //  Δv=(Va*Δa)/(Qa+Δa/2)
         //  =(2*Va*Δa)/(2*Qa+Δa)
+        // Calculate the virtual swap value based on the input amount and current pool reserves.
+        // This value represents the "economic weight" of the input in terms of the output good's pricing model.
         uint256 a = uint256(_stepCache.good1value) *
             uint256(_stepCache.remainQuantity) *
             2;
@@ -167,6 +194,7 @@ library L_Good {
         // calclulate Token2 output quantity
         //  Δb=(Qb*Δv)/(Vb+Δv/2)
         //  =(2*Qb*Δv)/(2*Vb+Δv)
+        // Calculate the output amount of Token2 using the derived virtual swap value.
         a =
             uint256(_stepCache.good2currentState.amount1()) *
             uint256(_stepCache.swapvalue) *
@@ -180,9 +208,15 @@ library L_Good {
     }
 
     /**
-     * @notice Compute the swap result from good2 to good1
-     * @dev Implements a complex swap algorithm considering price limits, fees, and minimum swap amounts
-     * @param _stepCache A cache structure containing swap state and configurations
+     * @notice Compute the swap result from good2 (input) to good1 (output).
+     * @dev Implements the AMM swap logic for buying good1 with good2.
+     * This is the inverse operation of swapCompute1, calculating how much good1 can be bought.
+     * 
+     * Formula derivation (inverse of swapCompute1):
+     * Δb = (2*Qb*Va*Δa)/(2*Vb*Qa+Vb*Δa+Va*Δa)
+     * Solving for Δa (outputQuantity) given Δb (remainQuantity of good2).
+     * 
+     * @param _stepCache A cache structure containing swap state and configurations. Modified in place.
      */
     function swapCompute2(swapCache memory _stepCache) internal pure {
         // compute Token2 fee quantity
@@ -196,11 +230,14 @@ library L_Good {
         // according to the swapCompute1
         // Δb=(2*Qb*Va*Δa)/(2*Vb*Qa+Vb*Δa+Va*Δa)
         // Δa=(2*Δb*Vb*Qa)/(2*Qb*Va-Δb*Vb-Δb*Va)
-
+        // Calculate the numerator for determining the input quantity (Δa).
+        // Based on the target output (Δb), current reserves, and token values.
         uint256 a = uint256(_stepCache.good1currentState.amount1()) *
             uint256(_stepCache.good2value) *
             uint256(_stepCache.remainQuantity) *
             2;
+        // Calculate the denominator for determining the input quantity (Δa).
+        // This involves subtraction, so we must ensure the result is positive (handled by requirement checks in caller).
         uint256 b = uint256(_stepCache.good1value) *
             uint256(_stepCache.good2currentState.amount1()) *
             2 -
@@ -210,9 +247,12 @@ library L_Good {
             uint256(_stepCache.remainQuantity);
         require(b > 1000, "b is 0");
         // calclulate Token1 output quantity
+        // Perform the division to find the exact input amount required.
         _stepCache.outputQuantity = toUint128(a / b);
 
         // Δv=(Va*Δa)/(Qa+Δa/2)
+        // Calculate the virtual swap value using the newly computed input amount.
+        // This ensures the pricing is consistent with the forward swap direction.
         _stepCache.swapvalue = toTTSwapUINT256(
             _stepCache.good1value,
             _stepCache.good1currentState.amount1() +
@@ -278,29 +318,35 @@ library L_Good {
         uint128 enpower
     ) internal {
         // Calculate the invest virtual quantity
+        // The user receives virtual shares magnified by the power/leverage factor.
         investResult_.investQuantity = _invest * enpower;
         // calculate the fee quantity
+        // Calculate investment fee based on the virtual quantity.
         investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
             investResult_.investQuantity
         );
         // before inpower,minus the fee quantity
+        // Deduct the fee from the *actual* invest amount, then re-apply leverage to get the final virtual quantity.
         investResult_.investQuantity =
             (_invest - investResult_.investFeeQuantity) *
             enpower;
 
         // Calculate the actual investment value based from investQuantity on the current state
+        // Determines the monetary value (virtual USD/ETH) of the new shares relative to the pool's total value.
         investResult_.investValue = toTTSwapUINT256(
             investResult_.goodValues,
             investResult_.goodCurrentQuantity
         ).getamount0fromamount1(investResult_.investQuantity);
 
         // Calculate the invest share based from investQuantity on the invest state
+        // Mints shares proportional to the new virtual quantity vs the total existing virtual quantity.
         investResult_.investShare = toTTSwapUINT256(
             investResult_.goodShares,
             investResult_.goodInvestQuantity
         ).getamount0fromamount1(investResult_.investQuantity);
 
         // add invest quantity to token1 pool
+        // Update the pool's total virtual quantity.
         _self.currentState = add(
             _self.currentState,
             toTTSwapUINT256(
@@ -309,6 +355,7 @@ library L_Good {
             )
         );
         // add fee quantity to token1 pool
+        // Add the fee (in actual tokens) to the pool reserves.
         _self.currentState = add(
             _self.currentState,
             toTTSwapUINT256(
@@ -317,6 +364,7 @@ library L_Good {
             )
         );
         // Update the invest state with the new investment
+        // Add newly minted shares and the calculated value to the global investment state.
         _self.investState = add(
             _self.investState,
             toTTSwapUINT256(
@@ -325,6 +373,7 @@ library L_Good {
             )
         );
         // add invest true virtual quantity to good config
+        // Updates a tracking counter in the config (likely for fee/limit calculations), accounting for the leverage.
         _self.goodConfig = add(
             _self.goodConfig,
             toTTSwapUINT256(
@@ -385,6 +434,7 @@ library L_Good {
         )
     {
         // Calculate the disinvestment value based on the investment proof and requested quantity
+        // Determines the proportional share of the user's investment being withdrawn.
         normalGoodResult1_ = S_GoodDisinvestReturn(
             0,
             0,
@@ -392,12 +442,13 @@ library L_Good {
             toTTSwapUINT256(
                 _investProof.invest.amount0(),
                 _investProof.shares.amount0()
-            ).getamount0fromamount1(_params._goodshares),
+            ).getamount0fromamount1(_params._goodshares), // Virtual quantity to divest (normal good)
             toTTSwapUINT256(
                 _investProof.invest.amount1(),
                 _investProof.shares.amount0()
-            ).getamount0fromamount1(_params._goodshares)
+            ).getamount0fromamount1(_params._goodshares)  // Actual quantity to divest (normal good)
         );
+        // Calculate the total value (in terms of the value good) corresponding to the divested portion.
         disinvestvalue = toTTSwapUINT256(
             toTTSwapUINT256(
                 _investProof.state.amount0(),
@@ -408,12 +459,15 @@ library L_Good {
                 _investProof.invest.amount0()
             ).getamount0fromamount1(normalGoodResult1_.vitualDisinvestQuantity)
         );
-
+        if(_params._goodshares>_investProof.shares.amount0() ){
+            revert TTSwapError(41);
+        }
         // Ensure disinvestment conditions are met
+        // Check limits on how much value can be withdrawn at once to prevent manipulation.
         if (
             disinvestvalue.amount0() >
-            _self.goodConfig.getDisinvestChips(_self.investState.amount1())
-        ) {
+            _self.goodConfig.getDisinvestChips(_self.investState.amount1() )||disinvestvalue.amount0()<10000)
+         {
             revert TTSwapError(26);
         }
         if (
@@ -421,9 +475,12 @@ library L_Good {
             _self.goodConfig.getDisinvestChips(_self.currentState.amount1())
         ) revert TTSwapError(27);
 
+        // Calculate the fee for disinvesting.
         normalGoodResult1_.actual_fee = _self.goodConfig.getDisinvestFee(
             normalGoodResult1_.vitualDisinvestQuantity
         );
+        // Calculate the current value of the user's shares based on the *current* state of the pool.
+        // This includes any profits or losses accumulated since investment.
         normalGoodResult1_.profit = toTTSwapUINT256(
             _self.currentState.amount0(),
             _self.investState.amount0()
@@ -432,6 +489,7 @@ library L_Good {
         if (normalGoodResult1_.profit < normalGoodResult1_.actual_fee)
             revert TTSwapError(34);
         // Update main good states
+        // Remove the profit/withdrawn amount from the pool's reserves.
         _self.currentState = sub(
             _self.currentState,
             toTTSwapUINT256(
@@ -440,10 +498,12 @@ library L_Good {
             )
         );
 
+        // Reduce the global investment state (shares and value) by the amount being withdrawn.
         _self.investState = sub(
             _self.investState,
             toTTSwapUINT256(normalGoodResult1_.shares, disinvestvalue.amount0())
         );
+        // Add the collected fee back into the pool reserves.
         _self.currentState = add(
             _self.currentState,
             toTTSwapUINT256(
@@ -459,6 +519,8 @@ library L_Good {
         );
 
         // Calculate final profit and fee for main good
+        // Net profit = Gross withdrawn value - Initial invested virtual quantity.
+        // (This calculation assumes profit is the excess value above the principal).
         normalGoodResult1_.profit =
             normalGoodResult1_.profit -
             normalGoodResult1_.vitualDisinvestQuantity;

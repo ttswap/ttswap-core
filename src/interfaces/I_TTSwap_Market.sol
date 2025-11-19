@@ -29,11 +29,6 @@ interface I_TTSwap_Market {
     /// @param welfare The amount of welfare
     event e_goodWelfare(address goodid, uint128 welfare,address _trader);
 
-    /// @notice Emitted when protocol fee is collected
-    /// @param goodid The ID of the good
-    /// @param feeamount The amount of fee collected
-    event e_collectProtocolFee(address goodid, uint256 feeamount,address _trader);
-
     /// @notice Emitted when a meta good is created and initialized
     /// @dev The decimal precision of _initial.amount0() defaults to 6
     /// @param _proofNo The ID of the investment proof
@@ -97,7 +92,7 @@ interface I_TTSwap_Market {
         uint256 good1change,
         uint256 good2change,
         address _trader,
-        address _recipent,
+        address _recipient,
         uint256 data_hash
     );
 
@@ -204,7 +199,7 @@ interface I_TTSwap_Market {
         address _goodid1,
         address _goodid2,
         uint256 _swapQuantity,
-        address _recipent,
+        address _recipient,
         bytes calldata data,
         address _trader,
         bytes calldata signature,
@@ -336,7 +331,7 @@ interface I_TTSwap_Market {
     /**
      * @dev Queries commission amounts for multiple goods for a specific recipient
      * @param _goodid Array of good addresses to query commission for
-     * @param _recipent The address to check commission amounts for
+     * @param _recipient The address to check commission amounts for
      * @return feeamount Array of commission amounts corresponding to each good
      * @notice This function:
      * - Returns commission amounts for up to 100 goods in a single call
@@ -348,7 +343,7 @@ interface I_TTSwap_Market {
      */
     function queryCommission(
         address[] calldata _goodid,
-        address _recipent
+        address _recipient
     ) external returns (uint256[] memory);
 
     /// @notice Delivers welfare to investors
@@ -380,13 +375,14 @@ interface I_TTSwap_Market {
 }
 
 /**
- * @dev Represents the state of a proof
- * @member currentgood The current good  associated with the proof
- * @member valuegood The value good associated with the proof
- * @member shares amount0:normal good shares amount1:value good shares
- * @member state amount0:total value : amount1:total actual value
- * @member invest amount0:normal good virtual quantity amount1:normal good actual quantity
- * @member valueinvest amount0:value good virtual quantity amount1:value good actual quantity
+ * @dev Represents the state of a proof.
+ * @notice Fields:
+ * - `currentgood`: The current good associated with the proof
+ * - `valuegood`: The value good associated with the proof
+ * - `shares`: amount0 = normal good shares, amount1 = value good shares
+ * - `state`: amount0 = total value, amount1 = total actual value
+ * - `invest`: amount0 = normal good virtual quantity, amount1 = normal good actual quantity
+ * - `valueinvest`: amount0 = value good virtual quantity, amount1 = value good actual quantity
  */
 struct S_ProofState {
     address currentgood;
@@ -398,11 +394,12 @@ struct S_ProofState {
 }
 
 /**
- * @dev Struct representing the state of a good
- * @member goodConfig amount0:Configuration of the good, check goodconfig.sol or whitepaper for details  amount1:is total virtual quantity of the good
- * @member owner Creator of the good
- * @member currentState Present investQuantity, CurrentQuantity
- * @member investState Shares, value
+ * @dev Struct representing the state of a good.
+ * @notice Fields:
+ * - `goodConfig`: amount0 = configuration settings, amount1 = total virtual quantity
+ * - `owner`: Creator of the good
+ * - `currentState`: Present invest quantity and current quantity
+ * - `investState`: Shares and value aggregates
  */
 struct S_GoodState {
     uint256 goodConfig;
@@ -427,13 +424,13 @@ struct S_GoodState {
 }
 
 /**
- * @dev Struct representing a temporary state of a good
- * @member goodConfig amount0:Configuration of the good, check goodconfig.sol or whitepaper for details  amount1:is total virtual quantity of the good
- * @member owner Creator of the good
- * @member currentState Present investQuantity, CurrentQuantity
- * @member investState Shares, value
+ * @dev Struct representing a temporary state of a good.
+ * @notice Fields mirror `S_GoodState` but store lightweight snapshots:
+ * - `goodConfig`: amount0 = configuration settings, amount1 = total virtual quantity
+ * - `owner`: Creator of the good
+ * - `currentState`: Present invest quantity and current quantity
+ * - `investState`: Shares and value aggregates
  */
-
 struct S_GoodTmpState {
     uint256 goodConfig;
     address owner;
@@ -442,10 +439,11 @@ struct S_GoodTmpState {
 }
 
 /**
- * @dev Struct representing a key of a proof
- * @member owner The owner of the proof
- * @member currentgood The current good associated with the proof
- * @member valuegood The value good associated with the proof
+ * @dev Struct representing a key of a proof.
+ * @notice Fields:
+ * - `owner`: The owner of the proof
+ * - `currentgood`: The current good associated with the proof
+ * - `valuegood`: The value good associated with the proof
  */
 struct S_ProofKey {
     address owner;

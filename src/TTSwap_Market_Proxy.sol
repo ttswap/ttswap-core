@@ -6,21 +6,20 @@ import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
 import {toTTSwapUINT256} from "./libraries/L_TTSwapUINT256.sol";
 import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
 /**
- * @title TTSwap_Market
- * @dev Core market contract for TTSwap protocol that manages goods trading, investing, and staking operations
- * @notice This contract implements a decentralized market system with the following key features:
- * - Meta good, value goods, and normal goods management
- * - Automated market making (AMM) with configurable fees
- * - Investment and disinvestment mechanisms
- * - Flash loan functionality
- * - Commission distribution system
- * - ETH or WETH staking integration
+ * @title TTSwap Market Proxy
+ * @dev Proxy contract for TTSwap Market using delegatecall.
+ * @notice This contract holds the storage and delegates logic execution to the implementation contract.
+ * It supports upgradability controlled by admins.
  */
 contract TTSwap_Market_Proxy {
     using L_UserConfigLibrary for uint256;
     address public implementation;
     I_TTSwap_Token public TTS_CONTRACT;
     bool public upgradeable;
+
+    /// @notice Initializes the proxy with the token contract and initial implementation.
+    /// @param _TTS_Contract The address of the TTSwap Token contract (for permission checks).
+    /// @param _implementation The address of the initial Market implementation logic.
     constructor(
         I_TTSwap_Token _TTS_Contract,
         address _implementation
@@ -30,6 +29,7 @@ contract TTSwap_Market_Proxy {
         upgradeable = true;
     }
 
+    /// @notice Fallback function that delegates calls to the implementation contract.
     fallback() external payable {
         address impl = implementation;
         assembly {
@@ -43,29 +43,35 @@ contract TTSwap_Market_Proxy {
         }
     }
 
-    /// onlydao admin can execute
+    /// @dev Restricts access to Market Admins.
     modifier onlyMarketAdminProxy() {
         if (!TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin() || !upgradeable)
             revert TTSwapError(1);
         _;
     }
 
-    /// onlydao admin can execute
+    /// @dev Restricts access to Market Managers.
     modifier onlyMarketManagerProxy() {
         if (!TTS_CONTRACT.userConfig(msg.sender).isMarketManager() || !upgradeable)
             revert TTSwapError(1);
         _;
     }
 
+    /// @notice Upgrades the market implementation contract.
+    /// @param _implementation The new implementation address.
     function upgrade(address _implementation) external onlyMarketAdminProxy {
         implementation = _implementation;
     }
 
+    /// @notice Permanently disables upgradability.
+    /// @dev Can only be called by DAO Admin. Once disabled, the implementation cannot be changed.
     function disableUpgrade() external {
         if (!TTS_CONTRACT.userConfig(msg.sender).isDAOAdmin()) revert TTSwapError(62);
         upgradeable = false;
     }
 
+    /// @notice Freezes the market by setting implementation to address(0).
+    /// @dev Can be called by Market Manager for emergency stops.
     function freezeMarket() external onlyMarketManagerProxy {
         implementation = address(0);
     }

@@ -2,27 +2,43 @@
 pragma solidity 0.8.29;
 
 /// @title L_GoodConfigLibrary
-/// @notice A library for managing and retrieving configuration data for goods
-/// @dev This library uses bitwise operations and assembly for efficient storage and retrieval of configuration data
+/// @notice A library for managing and retrieving configuration data for goods.
+/// @dev This library uses bitwise operations and assembly for efficient storage and retrieval of configuration data.
+/// The configuration is packed into a single `uint256` slot to save gas.
+/// 
+/// Configuration Layout (Bit ranges are approximate and illustrative based on bitwise shifts):
+/// - Bit 255: isValueGood (1 = Value Good, 0 = Normal Good)
+/// - Bit 254: isFreeze (1 = Frozen, 0 = Active)
+/// - Bits 253-224: Various fee configurations (Liquidity, Operator, Gate, Referral, Customer, Platform)
+/// - Bits 223: isApply (1 = Application enabled)
+/// - Bits [63...]: Power factor (Leverage/Multiplier)
 library L_GoodConfigLibrary {
-    /// @notice Check if the good is a value good
-    /// @param config The configuration value
-    /// @return a True if it's a value good, false otherwise
+    /// @notice Checks if the good is configured as a value good.
+    /// @param config The configuration value.
+    /// @return a True if it's a value good, false otherwise.
     function isvaluegood(uint256 config) internal pure returns (bool a) {
         return (config & (1 << 255)) != 0;
     }
 
-    /// @notice Check if the good is a normal good
-    /// @param config The configuration value
-    /// @return a True if it's a normal good, false otherwise
+    /// @notice Checks if the good is configured as a normal good.
+    /// @param config The configuration value.
+    /// @return a True if it's a normal good, false otherwise.
     function isnormalgood(uint256 config) internal pure returns (bool a) {
         return (config & (1 << 255)) == 0;
     }
 
+    /// @notice Checks if the good is frozen (trading paused).
+    /// @param config The configuration value.
+    /// @return a True if the good is frozen, false otherwise.
     function isFreeze(uint256 config) internal pure returns (bool a) {
         return (config & (1 << 254)) != 0;
     }
 
+    /// @notice Calculates the liquidity provider fee.
+    /// @dev Extracts fee percentage from config bits [253...] and applies it to amount.
+    /// @param config The configuration value.
+    /// @param amount The transaction amount.
+    /// @return a The calculated liquidity fee.
     function getLiquidFee(uint256 config, uint256 amount)internal pure returns(uint128 a){
         unchecked {
             assembly {
@@ -33,6 +49,11 @@ library L_GoodConfigLibrary {
         }
     }
 
+    /// @notice Calculates the operator fee (e.g. for market makers or admins).
+    /// @dev Extracts fee percentage from config bits [252...] and applies it to amount.
+    /// @param config The configuration value.
+    /// @param amount The transaction amount.
+    /// @return a The calculated operator fee.
     function getOperatorFee(uint256 config, uint256 amount)internal pure returns(uint128 a){
         unchecked {
             assembly {
@@ -43,6 +64,11 @@ library L_GoodConfigLibrary {
         }
     }
 
+    /// @notice Calculates the gate fee (e.g. for listing or access).
+    /// @dev Extracts fee percentage from config bits [253...] and applies it to amount.
+    /// @param config The configuration value.
+    /// @param amount The transaction amount.
+    /// @return a The calculated gate fee.
     function getGateFee(uint256 config, uint256 amount)internal pure returns(uint128 a){
         unchecked {
             assembly {
@@ -53,6 +79,11 @@ library L_GoodConfigLibrary {
         }
     }
 
+    /// @notice Calculates the referral fee.
+    /// @dev Extracts fee percentage from config bits [251...] and applies it to amount.
+    /// @param config The configuration value.
+    /// @param amount The transaction amount.
+    /// @return a The calculated referral fee.
     function getReferFee(uint256 config, uint256 amount)internal pure returns(uint128 a){
         unchecked {
             assembly {
@@ -63,6 +94,11 @@ library L_GoodConfigLibrary {
         }
     }
 
+    /// @notice Calculates the customer fee (e.g. cashback or discounts).
+    /// @dev Extracts fee percentage from config bits [251...] and applies it to amount.
+    /// @param config The configuration value.
+    /// @param amount The transaction amount.
+    /// @return a The calculated customer fee.
     function getCustomerFee(uint256 config, uint256 amount)internal pure returns(uint128 a){
         unchecked {
             assembly {
@@ -73,6 +109,11 @@ library L_GoodConfigLibrary {
         }
     }
 
+    /// @notice Calculates the platform fee (returned as uint128).
+    /// @dev Extracts fee percentage from config bits [251...] and applies it to amount.
+    /// @param config The configuration value.
+    /// @param amount The transaction amount.
+    /// @return a The calculated platform fee (uint128).
     function getPlatformFee128(uint256 config, uint256 amount)internal pure returns(uint128 a){
         unchecked {
             assembly {
@@ -83,6 +124,11 @@ library L_GoodConfigLibrary {
         }
     }
 
+    /// @notice Calculates the platform fee (returned as uint256).
+    /// @dev Extracts fee percentage from config bits [251...] and applies it to amount.
+    /// @param config The configuration value.
+    /// @param amount The transaction amount.
+    /// @return a The calculated platform fee (uint256).
     function getPlatformFee256(uint256 config, uint256 amount)internal pure returns(uint256 a){
         unchecked {
             assembly {
@@ -93,6 +139,10 @@ library L_GoodConfigLibrary {
         }
     }
 
+    /// @notice Retrieves the power factor (leverage/multiplier) from the configuration.
+    /// @dev Extracts the power value from config bits [251...]. Defaults to 1 if 0.
+    /// @param config The configuration value.
+    /// @return a The power factor.
     function getLimitPower(uint256 config) internal pure returns(uint128 a){
         unchecked {
             assembly {
@@ -103,6 +153,9 @@ library L_GoodConfigLibrary {
     }
 
 
+    /// @notice Checks if the configuration has the "Apply" flag set.
+    /// @param config The configuration value.
+    /// @return a True if the apply flag is set, false otherwise.
     function getApply(uint256 config)internal pure returns(bool a){
         return (config & (1 << 223)) > 0;
     }
@@ -121,6 +174,11 @@ library L_GoodConfigLibrary {
         }
     }
 
+    /// @notice Calculate the full investment quantity (before fee deduction).
+    /// @dev This is the inverse of fee calculation, used when determining how much initial input is needed to yield a target output amount after fees.
+    /// @param config The configuration value.
+    /// @param amount The target investment amount (net of fees).
+    /// @return a The gross investment amount required.
     function getInvestFullFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
         unchecked {
             assembly {
@@ -199,6 +257,17 @@ library L_GoodConfigLibrary {
         return (amount / a);
     }
 
+    /// @notice Validates if a configuration value is well-formed and consistent.
+    /// @dev Checks that the sum of all fee components (liquidity, operator, gate, referal, customer, platform) equals 100%.
+    /// Each component is extracted from specific bit ranges and normalized.
+    /// - Liquid: [251..253] * 10
+    /// - Operator: [247..249] * 2
+    /// - Gate: [244..246] * 4
+    /// - Referral: [239..243]
+    /// - Customer: [234..238]
+    /// - Platform: [229..233]
+    /// @param config The configuration value to check.
+    /// @return result True if the configuration is valid (sum == 100 and no component is 0), false otherwise.
     function checkGoodConfig(uint256 config) internal pure returns(bool result){
         result=false;
         uint256 liquid=((config/(2**251))%(2**3))*10;

@@ -5,17 +5,26 @@ import {  sub, add, L_TTSwapUINT256Library} from "./L_TTSwapUINT256.sol";
 import {I_TTSwap_Token} from "../interfaces/I_TTSwap_Token.sol";
 import {S_ProofState, S_ProofKey} from "../interfaces/I_TTSwap_Market.sol";
 
+/**
+ * @title L_Proof Library
+ * @notice Library for managing investment proofs and staking operations.
+ * @dev Handles state updates for investment proofs (S_ProofState) and interactions with the TTS Token staking system.
+ */
 library L_Proof {
     using L_TTSwapUINT256Library for uint256;
+
     /**
-     * @dev Updates the investment state of a proof
-     * @param _self The proof state to update
-     * @param _currenctgood The current good value
-     * @param _valuegood The value good
-     * @param _shares amount0:normal shares amount1:value shares
-     * @param _state amount0 (first 128 bits) represents total value,amount1 (last 128 bits) represents total actual value
-     * @param _invest amount0 (first 128 bits) represents normal virtual invest quantity, amount1 (last 128 bits) represents normal actual invest quantity
-     * @param _valueinvest amount0 (first 128 bits) represents value virtual invest quantity, amount1 (last 128 bits) represents value actual invest quantity
+     * @dev Updates the investment state of a proof after a new investment.
+     * @param _self The storage pointer to the proof state being updated.
+     * @param _currenctgood The address of the normal good being invested in.
+     * @param _valuegood The address of the value good (if applicable).
+     * @param _shares The shares to add (amount0: normal shares, amount1: value shares).
+     * @param _state The value state to add (amount0: total value, amount1: total actual value).
+     * @param _invest The normal good investment to add (amount0: virtual, amount1: actual).
+     * @param _valueinvest The value good investment to add (amount0: virtual, amount1: actual).
+     * @notice Updates the cumulative totals for shares, value, and investment quantities.
+     * If this is the first investment (invest.amount1 == 0), it sets the `currentgood`.
+     * If a value good is provided, it updates the `valuegood` address and amounts.
      */
     function updateInvest(
         S_ProofState storage _self,
@@ -37,12 +46,13 @@ library L_Proof {
     }
 
     /**
-     * @dev Burns a portion of the proof
-     * @param _self The proof state to update
-     * @param _shares amount0:normal shares amount1:value shares
-     * @param _state amount0 (first 128 bits) represents total value,amount1 (last 128 bits) represents total actual value
-     * @param _invest amount0 (first 128 bits) represents normal virtual invest quantity, amount1 (last 128 bits) represents normal actual invest quantity
-     * @param _valueinvest amount0 (first 128 bits) represents value virtual invest quantity, amount1 (last 128 bits) represents value actual invest quantity
+     * @dev Burns a portion of the proof during disinvestment.
+     * @param _self The storage pointer to the proof state being updated.
+     * @param _shares The shares to subtract (amount0: normal shares, amount1: value shares).
+     * @param _state The value state to subtract (amount0: total value, amount1: total actual value).
+     * @param _invest The normal good investment to subtract (amount0: virtual, amount1: actual).
+     * @param _valueinvest The value good investment to subtract (amount0: virtual, amount1: actual).
+     * @notice Reduces the cumulative totals. Used when a user withdraws liquidity.
      */
     function burnProof(
         S_ProofState storage _self,
@@ -64,11 +74,12 @@ library L_Proof {
     }
 
     /**
-     * @dev Stakes a certain amount of proof value
-     * @param contractaddress The address of the staking contract
-     * @param to The address to stake for
-     * @param proofvalue The amount of proof value to stake
-     * @return The contruct amount
+     * @dev Stakes a certain amount of proof value to the TTS Token contract.
+     * @param contractaddress The interface of the TTS Token contract.
+     * @param to The address of the user staking the value.
+     * @param proofvalue The amount of proof value to stake.
+     * @return The net construction fee or value recorded by the token contract.
+     * @notice Calls the external `stake` function on the TTS Token contract.
      */
     function stake(
         I_TTSwap_Token contractaddress,
@@ -79,10 +90,11 @@ library L_Proof {
     }
 
     /**
-     * @dev Unstakes a certain amount of proof value
-     * @param contractaddress The address of the staking contract
-     * @param from The address to unstake from
-     * @param divestvalue The amount of proof value to unstake
+     * @dev Unstakes a certain amount of proof value from the TTS Token contract.
+     * @param contractaddress The interface of the TTS Token contract.
+     * @param from The address of the user unstaking.
+     * @param divestvalue The amount of proof value to unstake.
+     * @notice Calls the external `unstake` function on the TTS Token contract.
      */
     function unstake(
         I_TTSwap_Token contractaddress,
@@ -93,7 +105,16 @@ library L_Proof {
     }
 }
 
+/**
+ * @title L_ProofIdLibrary
+ * @notice Library for calculating unique proof IDs.
+ */
 library L_ProofIdLibrary {
+    /**
+     * @dev Generates a unique ID for a proof key.
+     * @param proofKey The proof key structure containing owner and good addresses.
+     * @return poolId The Keccak-256 hash of the proof key.
+     */
     function toId(S_ProofKey memory proofKey) internal pure returns (uint256 poolId) {
         assembly {
             poolId := keccak256(proofKey,0x60)

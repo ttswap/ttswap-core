@@ -5,15 +5,10 @@ import {TTSwapError} from "./libraries/L_Error.sol";
 import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
 import {toTTSwapUINT256} from "./libraries/L_TTSwapUINT256.sol";
 /**
- * @title TTSwap_Market
- * @dev Core market contract for TTSwap protocol that manages goods trading, investing, and staking operations
- * @notice This contract implements a decentralized market system with the following key features:
- * - Meta good, value goods, and normal goods management
- * - Automated market making (AMM) with configurable fees
- * - Investment and disinvestment mechanisms
- * - Flash loan functionality
- * - Commission distribution system
- * - ETH or WETH staking integration
+ * @title TTSwap Token Proxy
+ * @dev Proxy contract for TTSwap Token using delegatecall.
+ * @notice This contract stores the token state (balances, allowances, etc.) and delegates
+ * logic execution to the implementation contract. It supports upgradability.
  */
 contract TTSwap_Token_Proxy {
     using L_UserConfigLibrary for uint256;
@@ -32,6 +27,12 @@ contract TTSwap_Token_Proxy {
     mapping(address => uint256) internal userConfig;
 
     event e_updateUserConfig(address user, uint256 config);
+    /// @notice Initializes the token proxy with admin, config, metadata, and implementation.
+    /// @param _dao_admin The address of the initial DAO admin.
+    /// @param _ttsconfig The initial token configuration value.
+    /// @param _name The name of the token.
+    /// @param _symbol The symbol of the token.
+    /// @param _implementation The address of the initial Token implementation logic.
     constructor(
 
         address _dao_admin,
@@ -51,6 +52,7 @@ contract TTSwap_Token_Proxy {
         emit e_updateUserConfig(_dao_admin, userConfig[_dao_admin]);
     }
 
+    /// @notice Fallback function that delegates calls to the implementation contract.
     fallback() external payable {
         address impl = implementation;
         assembly {
@@ -64,24 +66,28 @@ contract TTSwap_Token_Proxy {
         }
     }
 
-    /// onlydao admin can execute
+    /// @dev Restricts access to Token Admins.
     modifier onlyTokenAdminProxy() {
         if (!userConfig[msg.sender].isTokenAdmin() || !upgradeable)
             revert TTSwapError(1);
         _;
     }
 
-    /// onlydao admin can execute
+    /// @dev Restricts access to Token Managers (Operators).
     modifier onlyTokenOperatorProxy() {
         if (!userConfig[msg.sender].isTokenManager() || !upgradeable)
             revert TTSwapError(1);
         _;
     }
 
+    /// @notice Upgrades the token implementation contract.
+    /// @param _implementation The new implementation address.
     function upgrade(address _implementation) external onlyTokenAdminProxy {
         implementation = _implementation;
     }
 
+    /// @notice Freezes the token logic by setting implementation to address(0).
+    /// @dev Can be called by Token Manager for emergency stops.
     function freezeToken() external onlyTokenOperatorProxy {
         implementation = address(0);
     }
