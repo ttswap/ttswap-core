@@ -707,13 +707,14 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 goods[_goodid1].commission[msg.sender] += feeQuanity;
                 good2change = _swapQuantity.amount0() - feeQuanity;
                 _goodid1.safeTransfer(_recipient, good2change);
+                good2change=good2change<<128+feeQuanity;
             }
             emit e_payGood(
                 _goodid1,
                 address(0),
-                good2change,
+                good1change.getamount1fromamount0( _swapQuantity.amount0()),
                 _swapQuantity,
-                feeQuanity,
+                good2change,
                 _trader,
                 _recipient,
                 data_hash
