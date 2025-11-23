@@ -83,7 +83,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     mapping(uint256 proofid => S_ProofState) private proofs;
     mapping(address _trader => uint256 nonce) private nonces;
     uint256 internal immutable INITIAL_CHAIN_ID;
-    uint128 internal constant excuteFee = 200000000000;
+    uint128 internal constant excuteFee = 200_000_000_000;//2**12
     bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
 
     /**
@@ -502,8 +502,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             feeQuanity = swapcache.good1currentState.getamount0fromamount1(
                 excuteFee
             );
-            goods[_goodid2].commission[msg.sender] += feeQuanity;
+
             swapcache.good1currentState = _swapQuantity.amount1() - feeQuanity;
+            goods[_goodid2].commission[msg.sender] += feeQuanity;
             _goodid2.safeTransfer(_recipient, swapcache.good1currentState);
         }
 
@@ -669,10 +670,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 feeQuanity = swapcache.good1currentState.getamount0fromamount1(
                     excuteFee
                 );
-                goods[_goodid2].commission[msg.sender] += feeQuanity;
+
                 swapcache.good1currentState =
                     _swapQuantity.amount1() -
                     feeQuanity;
+                goods[_goodid2].commission[msg.sender] += feeQuanity;
                 _goodid2.safeTransfer(_recipient, swapcache.good1currentState);
             }
 
@@ -704,8 +706,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                     goods[_goodid1].investState.amount1()
                 );
                 feeQuanity = good1change.getamount0fromamount1(excuteFee);
-                goods[_goodid1].commission[msg.sender] += feeQuanity;
                 good2change = _swapQuantity.amount0() - feeQuanity;
+                goods[_goodid1].commission[msg.sender] += feeQuanity;
                 _goodid1.safeTransfer(_recipient, good2change);
                 good2change=good2change<<128+feeQuanity;
             }
