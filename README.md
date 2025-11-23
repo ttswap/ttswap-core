@@ -98,10 +98,10 @@ contract MyPortal  {
     address IamGater
 
     function doThing () {
-        market.buyGood(...);
+        market.buyGood(...,referal);
         market.initGood(...);
         market.investGood(...);
-        market.disinvestProof(....,IamGater,referal);
+        market.disinvestProof(....,IamGater);
         ....
     }
 }

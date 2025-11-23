@@ -14,7 +14,8 @@ import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
 contract TTSwap_Market_Proxy {
     using L_UserConfigLibrary for uint256;
     address public implementation;
-    I_TTSwap_Token public TTS_CONTRACT;
+    I_TTSwap_Token public immutable TTS_CONTRACT;
+    mapping(address _trader => uint256 nonce) private nonces;
     bool public upgradeable;
 
     /// @notice Initializes the proxy with the token contract and initial implementation.
@@ -38,7 +39,7 @@ contract TTSwap_Market_Proxy {
             returndatacopy(0, 0, returndatasize())
             if iszero(result) {
                 revert(0, returndatasize())
-            }
+            } 
             return(0, returndatasize())
         }
     }
