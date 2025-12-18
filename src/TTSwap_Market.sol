@@ -59,7 +59,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * - Governance token functionality
      */
     address internal implementation;
-    I_TTSwap_Token internal TTS_CONTRACT;
+    I_TTSwap_Token internal immutable TTS_CONTRACT;
+
+    mapping(address _trader => uint256 nonce) private nonces;
     bool internal upgradeable;
 
     /**
@@ -81,7 +83,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * valueinvest amount0:value good virtual quantity amount1:value good actual quantity
      */
     mapping(uint256 proofid => S_ProofState) private proofs;
-    mapping(address _trader => uint256 nonce) private nonces;
     uint256 internal immutable INITIAL_CHAIN_ID;
     uint128 internal constant excuteFee = 200_000_000_000;//2**12
     bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;

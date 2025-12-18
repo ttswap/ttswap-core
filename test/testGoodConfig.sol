@@ -193,12 +193,12 @@ contract testGoodConfig is Test {
     function test_getPower() public pure {
         uint256 a_min = 1 * 2 ** 187;
         uint256 a_mid = 15 * 2 ** 187;
-        uint256 a_max = 63 * 2 ** 187;
+        uint256 a_max = 31 * 2 ** 187;
         uint256 a_max2 = 127 * 2 ** 187;
         assertEq(a_min.getPower(), 1);
         assertEq(a_mid.getPower(), 15);
-        assertEq(a_max.getPower(), 63);
-        assertEq(a_max2.getPower(), 63);
+        assertEq(a_max.getPower(), 31);
+        assertEq(a_max2.getPower(), 31);
     }
 
     function test_getDisinvestChips() public pure {
