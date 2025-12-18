@@ -238,7 +238,7 @@ library L_GoodConfigLibrary {
     function getPower(uint256 config) internal pure returns (uint128) {
         uint128 a;
         assembly {
-            a := shr(250, shl(63, config))
+            a := shr(251, shl(64, config))
         }
         if (a == 0) return 1;
         return (a);

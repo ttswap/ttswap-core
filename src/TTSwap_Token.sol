@@ -351,7 +351,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     ) external override onlymain {
         publicsell += uint128(usdtamount);
         if (publicsell > 500_000_000_000) revert TTSwapError(70);
-        usdt.transferFrom(msg.sender, address(this), usdtamount, data);
+        usdt.transferFrom(msg.sender, msg.sender, usdtamount, data);
         uint256 ttsamount;
         if (publicsell <= 87_500_000_000) {
             ttsamount = (usdtamount * 24_000_000);
