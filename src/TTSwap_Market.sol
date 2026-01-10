@@ -84,7 +84,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      */
     mapping(uint256 proofid => S_ProofState) private proofs;
     uint256 internal immutable INITIAL_CHAIN_ID;
-    uint128 internal constant excuteFee = 200_000_000_000;//2**12
+    uint128 internal constant excuteFee = 100_000_000_000;//10**12
     bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
 
     /**
@@ -130,7 +130,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @inheritdoc IMulticall_v4
     function multicall(
         bytes[] calldata data
-    ) external payable msgValue returns (bytes[] memory results) {
+    ) external payable msgValue noReentrant returns (bytes[] memory results) {
         results = new bytes[](data.length);
         for (uint256 i = 0; i < data.length; i++) {
             (bool success, bytes memory result) = address(this).delegatecall(
@@ -400,7 +400,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 ),
                 _trader
             );
-
+        
         // Initialize a swap cache to store intermediate values during the calculation.
         // This struct avoids "stack too deep" errors and organizes the swap data.
         L_Good.swapCache memory swapcache = L_Good.swapCache({
@@ -710,7 +710,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 good2change = _swapQuantity.amount0() - feeQuanity;
                 goods[_goodid1].commission[msg.sender] += feeQuanity;
                 _goodid1.safeTransfer(_recipient, good2change);
-                good2change=good2change<<128+feeQuanity;
+                good2change=(good2change<<128)+feeQuanity;
             }
             emit e_payGood(
                 _goodid1,
