@@ -14,7 +14,7 @@ contract TTSwap_Token_Proxy {
     using L_UserConfigLibrary for uint256;
     string internal name;
     string internal symbol;
-    string internal totalSupply;
+    uint256 internal totalSupply;
     mapping(address => uint256) internal balanceOf;
     mapping(address => mapping(address => uint256)) internal allowance;
     mapping(address => uint256) internal nonces;

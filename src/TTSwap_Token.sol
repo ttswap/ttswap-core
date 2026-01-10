@@ -4,12 +4,22 @@ pragma solidity 0.8.29;
 
 import {ERC20} from "./base/ERC20.sol";
 import {I_TTSwap_Market} from "./interfaces/I_TTSwap_Market.sol";
-import {I_TTSwap_Token, s_share, s_proof} from "./interfaces/I_TTSwap_Token.sol";
+import {
+    I_TTSwap_Token,
+    s_share,
+    s_proof
+} from "./interfaces/I_TTSwap_Token.sol";
 import {L_TTSTokenConfigLibrary} from "./libraries/L_TTSTokenConfig.sol";
 import {L_UserConfigLibrary} from "./libraries/L_UserConfig.sol";
 import {L_CurrencyLibrary} from "./libraries/L_Currency.sol";
 import {TTSwapError} from "./libraries/L_Error.sol";
-import {toTTSwapUINT256, L_TTSwapUINT256Library, add, sub, mulDiv} from "./libraries/L_TTSwapUINT256.sol";
+import {
+    toTTSwapUINT256,
+    L_TTSwapUINT256Library,
+    add,
+    sub,
+    mulDiv
+} from "./libraries/L_TTSwapUINT256.sol";
 import {IEIP712} from "./interfaces/IEIP712.sol";
 import {L_SignatureVerification} from "./libraries/L_SignatureVerification.sol";
 
@@ -47,7 +57,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         );
 
     constructor(address _usdt) ERC20("TTSwap Token", "TTS", 12) {
-        usdt=_usdt;
+        usdt = _usdt;
     }
 
     /**
@@ -350,7 +360,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         bytes calldata data
     ) external override onlymain {
         publicsell += uint128(usdtamount);
-        if (publicsell > 500_000_000_000) revert TTSwapError(70);
+        if (publicsell > 250_000_000_000) revert TTSwapError(70);
         usdt.transferFrom(msg.sender, msg.sender, usdtamount, data);
         uint256 ttsamount;
         if (publicsell <= 87_500_000_000) {
@@ -472,9 +482,11 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      * @dev Internal function to handle staking fees
      */
     function _stakeFee() internal {
-        if (stakestate.amount0() + 86400 < block.timestamp) {
+        while (stakestate.amount0() + 86400 < block.timestamp) {
             stakestate = add(stakestate, toTTSwapUINT256(86400, 0));
-            uint128 leftamount = uint128(200_000_000_000_000_000_000 - totalSupply);
+            uint128 leftamount = 200_000_000_000_000_000_000 > totalSupply
+                ? uint128(200_000_000_000_000_000_000 - totalSupply)
+                : 0;
             uint128 mintamount = leftamount < 1000000
                 ? 1000000
                 : leftamount / 18250; //leftamount /50 /365
