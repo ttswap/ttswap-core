@@ -84,7 +84,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      */
     mapping(uint256 proofid => S_ProofState) private proofs;
     uint256 internal immutable INITIAL_CHAIN_ID;
-    uint128 internal constant excuteFee = 100_000_000_000;//10**12
+    uint128 internal constant excuteFee = 50_000_000_000;//10**12
     bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
 
     /**
