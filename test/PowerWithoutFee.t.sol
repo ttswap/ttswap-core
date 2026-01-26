@@ -68,7 +68,7 @@ contract PowerWithoutFee is BaseSetup {
         console2.log('goodConfig.amount1',market.getGoodState(metagood).goodConfig.amount1());
         console2.log('investState.amount0',market.getGoodState(metagood).investState.amount0());
          _proof = market.getProofState(normalproof);
-        assertEq(_proof.shares.amount0(), 300000000000, "after invest:proof value error");
+        assertEq(_proof.shares.amount0(), 100000000000, "after invest:proof value error");
         assertEq(_proof.shares.amount1(), 0, "after invest:proof value error");
         assertEq(_proof.state.amount0(), 300000000000, "after invest:proof value error");
         assertEq(_proof.state.amount1(), 100000000000, "after invest:proof value error");
@@ -84,7 +84,7 @@ contract PowerWithoutFee is BaseSetup {
         uint256 normalproof;
         normalproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
         S_ProofState memory _proof = market.getProofState(normalproof);
-        assertEq(_proof.shares.amount0(), 300000000000, "before invest:proof value error");
+        assertEq(_proof.shares.amount0(), 100000000000, "before invest:proof value error");
         assertEq(_proof.shares.amount1(), 0, "before invest:proof value error");
         assertEq(_proof.state.amount0(), 300000000000, "before invest:proof value error");
         assertEq(_proof.state.amount1(), 100000000000, "before invest:proof value error");
@@ -101,7 +101,7 @@ contract PowerWithoutFee is BaseSetup {
         );
         assertEq(
             good_.currentState.amount0(),
-            300000000000,
+            100000000000,
             "before disinvest nativeeth good:metagood currentState amount0 error"
         );
         assertEq(
@@ -111,7 +111,7 @@ contract PowerWithoutFee is BaseSetup {
         );
         assertEq(
             good_.investState.amount0(),
-            300000000000,
+            100000000000,
             "before disinvest nativeeth good:metagood investState amount0 error"
         );
         assertEq(
@@ -125,12 +125,12 @@ contract PowerWithoutFee is BaseSetup {
         good_ = market.getGoodState(metagood);
         assertEq(
             good_.goodConfig.amount1(),
-            193333333333,
+            180000000000,
             "after disinvest nativeeth good:actual value error"
         );
         assertEq(
             good_.currentState.amount0(),
-            290000000000,
+            90000000000,
             "after disinvest nativeeth good:metagood currentState amount0 error"
         );
         assertEq(
@@ -140,21 +140,21 @@ contract PowerWithoutFee is BaseSetup {
         );
         assertEq(
             good_.investState.amount0(),
-            290000000000,
+            90000000000,
             "after disinvest nativeeth good:metagood investState amount0 error"
         );
         assertEq(
             good_.investState.amount1(),
-            290000000000,
+            270000000000,
             "after disinvest nativeeth good:metagood investState amount1 error"
         );
         _proof = market.getProofState(normalproof);
-        assertEq(_proof.shares.amount0(), 290000000000, "after invest:proof value error");
+        assertEq(_proof.shares.amount0(), 90000000000, "after invest:proof value error");
         assertEq(_proof.shares.amount1(), 0, "after invest:proof value error");
-        assertEq(_proof.state.amount0(), 290000000000, "after invest:proof value error");
-        assertEq(_proof.state.amount1(), 96666666667, "after invest:proof value error");
-        assertEq(_proof.invest.amount0(), 290000000000, "after invest:proof quantity error");
-        assertEq(_proof.invest.amount1(), 96666666667, "after invest:proof quantity error");
+        assertEq(_proof.state.amount0(), 270000000000, "after invest:proof value error");
+        assertEq(_proof.state.amount1(), 90000000000, "after invest:proof value error");
+        assertEq(_proof.invest.amount0(), 270000000000, "after invest:proof quantity error");
+        assertEq(_proof.invest.amount1(), 90000000000, "after invest:proof quantity error");
         assertEq(_proof.valueinvest.amount0(), 0, "after invest:proof quantity error");
         assertEq(_proof.valueinvest.amount1(), 0, "after invest:proof quantity error");
         market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),marketcreator,defaultdata);

@@ -319,17 +319,17 @@ library L_Good {
     ) internal {
         // Calculate the invest virtual quantity
         // The user receives virtual shares magnified by the power/leverage factor.
-        investResult_.investQuantity = _invest * enpower;
+
         // calculate the fee quantity
         // Calculate investment fee based on the virtual quantity.
         investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
-            investResult_.investQuantity
+            _invest
         );
-        // before inpower,minus the fee quantity
-        // Deduct the fee from the *actual* invest amount, then re-apply leverage to get the final virtual quantity.
-        investResult_.investQuantity =
-            (_invest - investResult_.investFeeQuantity) *
-            enpower;
+        _invest=_invest-investResult_.investFeeQuantity;
+        investResult_.investQuantity = _invest * enpower;
+
+        
+
 
         // Calculate the actual investment value based from investQuantity on the current state
         // Determines the monetary value (virtual USD/ETH) of the new shares relative to the pool's total value.
@@ -343,14 +343,14 @@ library L_Good {
         investResult_.investShare = toTTSwapUINT256(
             investResult_.goodShares,
             investResult_.goodInvestQuantity
-        ).getamount0fromamount1(investResult_.investQuantity);
+        ).getamount0fromamount1(_invest);
 
         // add invest quantity to token1 pool
         // Update the pool's total virtual quantity.
         _self.currentState = add(
             _self.currentState,
             toTTSwapUINT256(
-                investResult_.investQuantity,
+                _invest,
                 investResult_.investQuantity
             )
         );
@@ -379,8 +379,7 @@ library L_Good {
             toTTSwapUINT256(
                 0,
                 investResult_.investQuantity -
-                    investResult_.investQuantity /
-                    enpower
+                    _invest
             )
         );
     }
@@ -408,6 +407,8 @@ library L_Good {
         address _referral; // The address of the referrer (if applicable)
         address _sender; // The address of the sender
     }
+
+    event debuggdisivest(uint256,uint256);
 
     /**
      * @notice Disinvest from a good and potentially its associated value good
@@ -448,6 +449,7 @@ library L_Good {
                 _investProof.shares.amount0()
             ).getamount0fromamount1(_params._goodshares)  // Actual quantity to divest (normal good)
         );
+        emit debuggdisivest(1,_params._goodshares);
         // Calculate the total value (in terms of the value good) corresponding to the divested portion.
         disinvestvalue = toTTSwapUINT256(
             toTTSwapUINT256(
@@ -523,7 +525,7 @@ library L_Good {
         // (This calculation assumes profit is the excess value above the principal).
         normalGoodResult1_.profit =
             normalGoodResult1_.profit -
-            normalGoodResult1_.vitualDisinvestQuantity;
+            normalGoodResult1_.actualDisinvestQuantity;
 
         // Allocate fees for main good
         allocateFee(
@@ -574,7 +576,7 @@ library L_Good {
             ).getamount0fromamount1(valueGoodResult2_.shares);
             valueGoodResult2_.actual_fee = _valueGoodState
                 .goodConfig
-                .getDisinvestFee(valueGoodResult2_.vitualDisinvestQuantity);
+                .getDisinvestFee(valueGoodResult2_.actualDisinvestQuantity);
             if (valueGoodResult2_.profit < valueGoodResult2_.actual_fee)
                 revert TTSwapError(34);
 
@@ -582,7 +584,7 @@ library L_Good {
             _valueGoodState.currentState = sub(
                 _valueGoodState.currentState,
                 toTTSwapUINT256(
-                    valueGoodResult2_.vitualDisinvestQuantity,
+                    valueGoodResult2_.actualDisinvestQuantity,
                     valueGoodResult2_.vitualDisinvestQuantity
                 )
             );
@@ -622,6 +624,8 @@ library L_Good {
                 _params._sender
             );
         }
+
+        emit debuggdisivest(2,normalGoodResult1_.shares);
 
         // Burn the investment proof
         _investProof.burnProof(
