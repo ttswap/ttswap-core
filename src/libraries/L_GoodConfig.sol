@@ -148,7 +148,7 @@ library L_GoodConfigLibrary {
             assembly {
                 a := shr(251, shl(27, config))
             }
-            if(a==0) a=1;
+            if(a==0){a=100;}else{a=a*100;}
         }
     }
 
@@ -240,7 +240,8 @@ library L_GoodConfigLibrary {
         assembly {
             a := shr(251, shl(64, config))
         }
-        if (a == 0) return 1;
+        if (a == 0) return a=1;
+        a=a*100;
         return (a);
     }
 

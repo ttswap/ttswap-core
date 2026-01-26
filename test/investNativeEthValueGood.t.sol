@@ -151,12 +151,12 @@ contract investNativeETHValueGood is BaseSetup {
         assertEq(
             _proof1.invest.amount1(),
             99995000000,
-            "after invest:proof quantity error"
+            "after invest:proof invest quantity  error"
         );
         assertEq(
             _proof1.valueinvest.amount1(),
             0,
-            "after invest:proof quantity error"
+            "after invest:proof valueinvest quantity  error"
         );
 
         market.investGood{value: 50000000000}(

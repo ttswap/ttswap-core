@@ -6,7 +6,13 @@ import {TTSwapError} from "./L_Error.sol";
 import {L_GoodConfigLibrary} from "./L_GoodConfig.sol";
 
 import {S_GoodState, S_ProofState} from "../interfaces/I_TTSwap_Market.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, toUint128, add, sub} from "./L_TTSwapUINT256.sol";
+import {
+    L_TTSwapUINT256Library,
+    toTTSwapUINT256,
+    toUint128,
+    add,
+    sub
+} from "./L_TTSwapUINT256.sol";
 
 /**
  * @title L_Good Library
@@ -18,8 +24,9 @@ library L_Good {
     using L_TTSwapUINT256Library for uint256;
     using L_Proof for S_ProofState;
     //(2**256-1)-(2**223-1)+(2**177-1)
-    uint256 internal constant feeConfigMask =0xffffffff800000000001ffffffffffffffffffffffffffffffffffffffffffff;
-//        0xffffffff800000000000000000000000ffffffffffffffffffffffffffffffff;
+    uint256 internal constant feeConfigMask =
+        0xffffffff800000000001ffffffffffffffffffffffffffffffffffffffffffff;
+    //        0xffffffff800000000000000000000000ffffffffffffffffffffffffffffffff;
     //2**223-1
     uint256 internal constant commissionConfigMask =
         0x3fffffff80000000000000000000000000000000000000000000000000000000;
@@ -40,7 +47,6 @@ library L_Good {
         S_GoodState storage _self,
         uint256 _goodConfig
     ) internal {
-      
         if (_self.goodConfig.getLimitPower() < _goodConfig.getPower())
             revert TTSwapError(23);
         uint256 tmpconfig = _self.goodConfig;
@@ -49,10 +55,7 @@ library L_Good {
             tmpconfig := add(and(tmpconfig, feeConfigMask), _goodConfig)
         }
         _self.goodConfig = tmpconfig;
-
-
     }
-
 
     /**
      * @notice Modify the good configuration
@@ -64,9 +67,6 @@ library L_Good {
         S_GoodState storage _self,
         uint256 _goodconfig
     ) internal {
-        
-      
-         
         if (!_goodconfig.checkGoodConfig()) revert TTSwapError(24);
         uint256 tmpconfig = _self.goodConfig;
         assembly {
@@ -77,8 +77,6 @@ library L_Good {
             )
         }
         _self.goodConfig = tmpconfig;
-     
-
     }
 
     function modifyGoodCoreConfig(
@@ -94,10 +92,10 @@ library L_Good {
     }
 
     function lockGood(S_GoodState storage _self) internal {
-         uint256 tmpconfig = _self.goodConfig;
-         uint256 lockConfig = 0x4000000000000000000000000000000000000000000000000000000000000000;
+        uint256 tmpconfig = _self.goodConfig;
+        uint256 lockConfig = 0x4000000000000000000000000000000000000000000000000000000000000000;
         assembly {
-            tmpconfig := add(and(tmpconfig, not(lockConfig)),lockConfig)
+            tmpconfig := add(and(tmpconfig, not(lockConfig)), lockConfig)
         }
         _self.goodConfig = tmpconfig;
     }
@@ -119,7 +117,7 @@ library L_Good {
             _goodConfig := and(not(feeConfigMask), _goodConfig)
             _goodConfig := add(_goodConfig, initialConfig)
         }
-        if (_goodConfig.getPower() > 1) revert TTSwapError(25);
+        if (_goodConfig.getPower() > 100) revert TTSwapError(25);
         self.goodConfig = _goodConfig;
         self.owner = msg.sender;
     }
@@ -154,11 +152,11 @@ library L_Good {
      * @notice Compute the swap result from good1 (input) to good2 (output).
      * @dev Implements the AMM swap logic for selling good1 for good2.
      * The formula considers price impact based on the ratio of input value to pool reserves.
-     * 
+     *
      * Formula derivation:
      * Δv = (Va * Δa) / (Qa + Δa/2)
      * Δb = (Qb * Δv) / (Vb + Δv/2)
-     * 
+     *
      * Where:
      * - Va: Value of input good
      * - Vb: Value of output good
@@ -167,7 +165,7 @@ library L_Good {
      * - Δa: Input amount (after fees)
      * - Δb: Output amount
      * - Δv: Virtual swap value
-     * 
+     *
      * @param _stepCache A cache structure containing swap state and configurations. Modified in place.
      */
     function swapCompute1(swapCache memory _stepCache) internal pure {
@@ -211,11 +209,11 @@ library L_Good {
      * @notice Compute the swap result from good2 (input) to good1 (output).
      * @dev Implements the AMM swap logic for buying good1 with good2.
      * This is the inverse operation of swapCompute1, calculating how much good1 can be bought.
-     * 
+     *
      * Formula derivation (inverse of swapCompute1):
      * Δb = (2*Qb*Va*Δa)/(2*Vb*Qa+Vb*Δa+Va*Δa)
      * Solving for Δa (outputQuantity) given Δb (remainQuantity of good2).
-     * 
+     *
      * @param _stepCache A cache structure containing swap state and configurations. Modified in place.
      */
     function swapCompute2(swapCache memory _stepCache) internal pure {
@@ -305,6 +303,8 @@ library L_Good {
         uint128 goodCurrentQuantity;
     }
 
+    event debuggdisivest(uint256, uint256);
+    event debugginvest(uint256, uint256, uint256, uint256);
     /**
      * @notice Invest in a good
      * @dev Calculates fees, updates states, and returns investment results
@@ -325,11 +325,10 @@ library L_Good {
         investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
             _invest
         );
-        _invest=_invest-investResult_.investFeeQuantity;
-        investResult_.investQuantity = _invest * enpower;
+        _invest = _invest - investResult_.investFeeQuantity;
+        investResult_.investQuantity = _invest * enpower/100;
 
-        
-
+        emit debugginvest(1,_invest,enpower,investResult_.investQuantity);
 
         // Calculate the actual investment value based from investQuantity on the current state
         // Determines the monetary value (virtual USD/ETH) of the new shares relative to the pool's total value.
@@ -349,10 +348,7 @@ library L_Good {
         // Update the pool's total virtual quantity.
         _self.currentState = add(
             _self.currentState,
-            toTTSwapUINT256(
-                _invest,
-                investResult_.investQuantity
-            )
+            toTTSwapUINT256(_invest, investResult_.investQuantity)
         );
         // add fee quantity to token1 pool
         // Add the fee (in actual tokens) to the pool reserves.
@@ -376,11 +372,7 @@ library L_Good {
         // Updates a tracking counter in the config (likely for fee/limit calculations), accounting for the leverage.
         _self.goodConfig = add(
             _self.goodConfig,
-            toTTSwapUINT256(
-                0,
-                investResult_.investQuantity -
-                    _invest
-            )
+            toTTSwapUINT256(0, investResult_.investQuantity - _invest)
         );
     }
 
@@ -408,7 +400,6 @@ library L_Good {
         address _sender; // The address of the sender
     }
 
-    event debuggdisivest(uint256,uint256);
 
     /**
      * @notice Disinvest from a good and potentially its associated value good
@@ -447,9 +438,9 @@ library L_Good {
             toTTSwapUINT256(
                 _investProof.invest.amount1(),
                 _investProof.shares.amount0()
-            ).getamount0fromamount1(_params._goodshares)  // Actual quantity to divest (normal good)
+            ).getamount0fromamount1(_params._goodshares) // Actual quantity to divest (normal good)
         );
-        emit debuggdisivest(1,_params._goodshares);
+        emit debuggdisivest(1, _params._goodshares);
         // Calculate the total value (in terms of the value good) corresponding to the divested portion.
         disinvestvalue = toTTSwapUINT256(
             toTTSwapUINT256(
@@ -461,15 +452,16 @@ library L_Good {
                 _investProof.invest.amount0()
             ).getamount0fromamount1(normalGoodResult1_.vitualDisinvestQuantity)
         );
-        if(_params._goodshares>_investProof.shares.amount0() ){
+        if (_params._goodshares > _investProof.shares.amount0()) {
             revert TTSwapError(41);
         }
         // Ensure disinvestment conditions are met
         // Check limits on how much value can be withdrawn at once to prevent manipulation.
         if (
             disinvestvalue.amount0() >
-            _self.goodConfig.getDisinvestChips(_self.investState.amount1() )||disinvestvalue.amount0()<10000)
-         {
+            _self.goodConfig.getDisinvestChips(_self.investState.amount1()) ||
+            disinvestvalue.amount0() < 10000
+        ) {
             revert TTSwapError(26);
         }
         if (
@@ -535,7 +527,7 @@ library L_Good {
             _params._referral,
             normalGoodResult1_.actualDisinvestQuantity -
                 normalGoodResult1_.actual_fee,
-                _params._sender
+            _params._sender
         );
         // Handle value good disinvestment if applicable
         if (_investProof.valuegood != address(0)) {
@@ -620,12 +612,12 @@ library L_Good {
                 _params._gater,
                 _params._referral,
                 valueGoodResult2_.actualDisinvestQuantity -
-                    valueGoodResult2_.actual_fee,  
+                    valueGoodResult2_.actual_fee,
                 _params._sender
             );
         }
 
-        emit debuggdisivest(2,normalGoodResult1_.shares);
+        emit debuggdisivest(2, normalGoodResult1_.shares);
 
         // Burn the investment proof
         _investProof.burnProof(
@@ -708,4 +700,37 @@ library L_Good {
                 _divestQuantity);
         }
     }
+
+    function getInvestPower(
+        S_GoodState storage _self
+    ) internal  returns (uint128 limitpower_) {
+        uint128 maxpower = _self.goodConfig.getPower();
+       
+        if (maxpower == 0) {
+            maxpower = 200;
+        }
+
+        uint128 virtual_quantity = _self.goodConfig.amount1();
+        uint128 current_quantity = _self.currentState.amount1() -
+            virtual_quantity;
+        uint128 invest_quantity = _self.currentState.amount0();
+
+        emit debugginvest(current_quantity, invest_quantity, 4, 4);
+        if (current_quantity < invest_quantity) {
+            limitpower_ = (current_quantity * maxpower / invest_quantity) ;
+            limitpower_ = limitpower_ <= maxpower ? limitpower_ : maxpower;
+            limitpower_=limitpower_<100?100:limitpower_;
+            emit debugginvest(limitpower_, maxpower, 1, 1);
+        } else {
+            current_quantity=2*invest_quantity-current_quantity;
+            limitpower_ = (current_quantity  * maxpower / invest_quantity);
+            limitpower_ = limitpower_ <= maxpower ? limitpower_ : maxpower;
+
+            limitpower_=limitpower_<100?100:limitpower_;
+
+            emit debugginvest(limitpower_, maxpower, 2, 2);
+        }
+        emit debugginvest(limitpower_, limitpower_, 3, 3);
+    }
+
 }

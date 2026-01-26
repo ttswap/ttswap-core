@@ -236,7 +236,7 @@ contract investERC20NormalGood is BaseSetup {
         assertEq(
             usdt.balanceOf(address(market)),
             175997210000,
-            "after invest erc20_normalgood:usdt market account invest balance error"
+            "after invest erc20_normalgood:usdt market account invest balance error1"
         );
 
         assertEq(

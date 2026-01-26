@@ -281,7 +281,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         // Calculate the investment details for the value good.
         // This step ensures the new normal good is paired with the correct amount/value of the value good
         // based on the current market state of the value good.
-        goods[_valuegood].investGood(_initial.amount1(), investResult, 1);
+        goods[_valuegood].investGood(_initial.amount1(), investResult, 100);
         
         if (investResult.investValue < 500000000000000) revert TTSwapError(35);
         
@@ -770,11 +770,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         // Calculate the power/leverage factor.
         // The power determines how much "virtual" liquidity is minted relative to the actual deposit.
         // It is capped by the lower power factor of the two goods in the pair.
-        uint128 enpower = goods[_togood].goodConfig.getPower();
+        uint128 enpower = goods[_togood].getInvestPower();
         if (_valuegood != address(0)) {
-            enpower = enpower < goods[_valuegood].goodConfig.getPower()
+            enpower = enpower < goods[_valuegood].getInvestPower()
                 ? enpower
-                : goods[_valuegood].goodConfig.getPower();
+                : goods[_valuegood].getInvestPower();
         }
         
         // Transfer normal good tokens from investor to market.
@@ -829,7 +829,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             _valuegood.transferFrom(
                 msg.sender,
                 msg.sender,
-                valueInvest_.investQuantity /
+                valueInvest_.investQuantity * 100 /
                     enpower +
                     valueInvest_.investFeeQuantity,
                 data2
@@ -840,7 +840,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         uint256 proofNo = S_ProofKey(msg.sender, _togood, _valuegood).toId();
         uint128 investvalue = normalInvest_.investValue;
 
-        investvalue = (normalInvest_.investValue / enpower);
+        investvalue = (normalInvest_.investValue *100 / enpower);
         
         // Update the investment proof with the new shares and amounts.
         proofs[proofNo].updateInvest(
@@ -853,11 +853,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             toTTSwapUINT256(normalInvest_.investValue, investvalue),
             toTTSwapUINT256(
                 normalInvest_.investQuantity,
-                normalInvest_.investQuantity / enpower //real quantity
+                normalInvest_.investQuantity *100/ enpower //real quantity
             ),
             toTTSwapUINT256(
                 valueInvest_.investQuantity,
-                valueInvest_.investQuantity / enpower
+                valueInvest_.investQuantity *100/ enpower
             )
         );
         emit e_investGood(
