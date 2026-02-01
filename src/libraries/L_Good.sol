@@ -158,11 +158,7 @@ library L_Good {
             K: 0
         });
         if (side) {
-            emit debug_swap(10,_swapParam);
-            emit debug_swap(11,quantityCache.current_quantity);
-            emit debug_swap(12,quantityCache.invest_quantity);
-            emit debug_swap(13,quantityCache.virtual_quantity);
-            emit debug_swap(14,quantityCache.swap);
+            
            
             quantityCache.swap_fee = _self.goodConfig.getSellFee(_swapParam);
             quantityCache.swap = quantityCache.swap - quantityCache.swap_fee;
@@ -276,8 +272,6 @@ library L_Good {
                         100)
             );
 
-            emit debug_swap(1,quantityCache.K);
-            emit debug_swap(2,quantityCache.swap);
             quantityCache.swap_fee = _self.goodConfig.getBuyFee(swapTemp);
             swapTemp = swapTemp - quantityCache.swap_fee;
 
@@ -326,7 +320,6 @@ library L_Good {
         return toTTSwapUINT256(quantityCache.swap_fee, swapTemp);
     }
 
-    event debug_swap(uint128,uint128);
 
     function getGoodState(
         S_GoodState storage _self
@@ -769,7 +762,7 @@ library L_Good {
         uint128 swap_quantity,
         uint256 good1config,
         bool side
-    ) internal  returns (uint128 K) {
+    ) internal  pure returns (uint128 K) {
         uint128 maxpower = good1config.getPower();
         maxpower += 100;
         // R = Q - P (actual quantity), with P as virtual liquidity.
@@ -783,21 +776,15 @@ library L_Good {
         } else {
             current_quantity = current_quantity - swap_quantity;
         }
-        emit debug_swap(15,current_quantity);
-        emit debug_swap(16,invest_quantity);
-        emit debug_swap(17,maxpower);
-        emit debug_swap(18,virtual_quantity);
-        emit debug_swap(19,swap_quantity);
-        emit debug_swap(20,k1);
+       
         // k2: depth factor at the end point after applying swap quantity.
         uint128 k2 = current_quantity < invest_quantity
             ? ((current_quantity * maxpower) / invest_quantity)
             : ((invest_quantity * maxpower) / current_quantity);
-        emit debug_swap(21,k2);
+        
         // K = harmonic mean of k1 and k2 (whitepaper K_A).
         K = (k1 + k2) == 0 ? 1 : (k1 * k2 * 2) / (k1 + k2);
         K = K == 0 ? 1 : K;
-        emit debug_swap(22,K);
     }
 
     function getGood2K(
@@ -808,7 +795,7 @@ library L_Good {
         uint128 swap_value,
         uint128 good2value,
         bool side
-    ) internal  returns (uint128 K) {
+    ) internal pure returns (uint128 K) {
         uint128 maxpower = good2config.getPower();
         maxpower += 100;
         // R = Q - P (actual quantity), with P as virtual liquidity.
@@ -816,10 +803,8 @@ library L_Good {
         uint128 k1 = current_quantity <= invest_quantity
             ? ((current_quantity * maxpower) / invest_quantity)
             : ((invest_quantity * maxpower) / current_quantity);
-        emit debug_swap(3,k1);
+        
         uint128 real_quantity;
-        emit debug_swap(5,good2value);
-        emit debug_swap(6,swap_value);
         if (side) {
             // Value decreases by swap_value on input, compute value-adjusted R' (tilde R).
             real_quantity = uint128(
@@ -833,20 +818,14 @@ library L_Good {
                     uint256(good2value + swap_value)) / uint256(good2value)
             );
         }
-        emit debug_swap(6,real_quantity);
-        emit debug_swap(7,invest_quantity);
-        emit debug_swap(8,maxpower);
-        emit debug_swap(9,virtual_quantity);
         real_quantity = real_quantity - virtual_quantity;
 
         // k2: depth factor at the value-shifted end point.
         uint128 k2 = real_quantity <= invest_quantity
             ? ((real_quantity * maxpower) / invest_quantity)
             : ((invest_quantity * maxpower) / real_quantity);
-        emit debug_swap(4,k2);
         // K = harmonic mean of k1 and k2 (whitepaper K_B).
         K = (k1 + k2) == 0 ? 1 : (k1 * k2 * 2) / (k1 + k2);
         K = K == 0 ? 1 : K;
-        emit debug_swap(5,K);
     }
 }

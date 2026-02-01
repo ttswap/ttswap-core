@@ -439,8 +439,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
         // Transfer output tokens from market to recipient.
         if (msg.sender == _trader) {
-            emit debug_swapgood(1, good2change.amount0());
-            emit debug_swapgood(1, good2change.amount1());
             _goodid2.safeTransfer(_trader, good2change.amount1());
         } else {
             // Fee is denominated in output good units to keep payout consistent.
@@ -471,7 +469,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         );
     }
 
-    event debug_swapgood(uint128 good1change, uint128 good2change);
     /**
      * @dev Executes a payment or swap using specific output quantity (Pay).
      * @param _goodid1 The address of the input good (paying with).
