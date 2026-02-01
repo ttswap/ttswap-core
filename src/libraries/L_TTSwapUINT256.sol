@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.29;
 
+/// @notice Custom errors for gas-efficient overflow handling
+error TTSwapUINT256AddOverflow();
+error TTSwapUINT256SubOverflow();
+error TTSwapUINT256AddSubOverflow();
+error TTSwapUINT256SubAddOverflow();
+error TTSwapUINT256ToUint128Overflow();
+
 using L_TTSwapUINT256Library for uint256;
 /// @notice Converts two uint128 values into a T_BalanceUINT256
 /// @param _amount0 The first 128-bit amount
@@ -33,8 +40,9 @@ function add(uint256 a, uint256 b) pure returns (uint256) {
         res0 := add(a0, b0)
         res1 := add(a1, b1)
     }
-    require(res0 >= a0 && res0 >= b0 && res1 >= a1 && res1 >= b1 && res1 <type(uint128).max && res0 <type(uint128).max, "TTSwapUINT256: add overflow");
-    return (res0<<128)+res1;
+    if (res0 < a0 || res1 < a1 || res0 >= type(uint128).max || res1 >= type(uint128).max) 
+        revert TTSwapUINT256AddOverflow();
+    return (res0 << 128) + res1;
 }
 
 
@@ -49,7 +57,7 @@ function sub(uint256 a, uint256 b) pure returns (uint256) {
     uint256 a1;
     uint256 b0;
     uint256 b1;
-    unchecked{
+    unchecked {
     assembly ("memory-safe") {
          a0 := shr(128, a)
          a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
@@ -58,8 +66,8 @@ function sub(uint256 a, uint256 b) pure returns (uint256) {
         res0 := sub(a0, b0)
         res1 := sub(a1, b1)
     }}
-    require(res0 <=a0 && res1<=a1 &&a1>=b1 && a0>=b0, "TTSwapUINT256: sub overflow");
-    return (res0<<128)+res1;
+    if (a0 < b0 || a1 < b1) revert TTSwapUINT256SubOverflow();
+    return (res0 << 128) + res1;
 }
 
 /// @notice Adds the first components and subtracts the second components of two T_BalanceUINT256 values
@@ -73,7 +81,7 @@ function addsub(uint256 a, uint256 b) pure returns (uint256) {
     uint256 a1;
     uint256 b0;
     uint256 b1;
-    unchecked{
+    unchecked {
     assembly ("memory-safe") {
          a0 := shr(128, a)
          a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
@@ -82,8 +90,8 @@ function addsub(uint256 a, uint256 b) pure returns (uint256) {
         res0 := add(a0, b0)
         res1 := sub(a1, b1)
     }}
-    require(res0 >=a0 && res0>=b0 && res1<=a1 && a1>=b1 && res0<type(uint128).max , "TTSwapUINT256: addsub overflow");
-    return (res0<<128)+res1;
+    if (res0 < a0 || a1 < b1 || res0 >= type(uint128).max) revert TTSwapUINT256AddSubOverflow();
+    return (res0 << 128) + res1;
 }
 
 /// @notice Subtracts the first components and adds the second components of two T_BalanceUINT256 values
@@ -97,26 +105,25 @@ function subadd(uint256 a, uint256 b) pure returns (uint256) {
     uint256 a1;
     uint256 b0;
     uint256 b1;
-    unchecked{
+    unchecked {
     assembly ("memory-safe") {
-        a0 := sar(128, a)
+        a0 := shr(128, a)
         a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
-        b0 := sar(128, b)
+        b0 := shr(128, b)
         b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
         res0 := sub(a0, b0)
         res1 := add(a1, b1)
     }}
-
-    require(res1 >=a1 && res1>=b1 && res0<=a0 && a0>=b0 && res1<type(uint128).max , "TTSwapUINT256: subadd overflow");
-    return (res0<<128)+res1;
+    if (a0 < b0 || res1 < a1 || res1 >= type(uint128).max) revert TTSwapUINT256SubAddOverflow();
+    return (res0 << 128) + res1;
 }
 
 /// @notice Safely converts a uint256 to a uint128
 /// @param a The uint256 value to convert
 /// @return b converted uint128 value, or 0 if overflow
 function toUint128(uint256 a) pure returns (uint128 b) {
-    b=uint128(a);
-    require(a==uint256(b) , "TTSwapUINT256: toUint128 overflow");
+    b = uint128(a);
+    if (a != uint256(b)) revert TTSwapUINT256ToUint128Overflow();
 }
 
 /// @notice Compares the prices of three T_BalanceUINT256 values

@@ -21,7 +21,7 @@ library L_UserConfigLibrary {
     /// @param config The user's configuration value.
     /// @return a True if DAO Admin, false otherwise.
     function isDAOAdmin(uint256 config) internal pure returns(bool a){
-        return (config&uint256(2**255))>0;
+        return (config&(1 << 255))>0;
     }
 
     /// @notice Sets or unsets DAO Admin privileges.
@@ -29,7 +29,7 @@ library L_UserConfigLibrary {
     /// @param a The new boolean status.
     /// @return e The updated configuration value.
     function setDAOAdmin(uint256 config,bool a)internal pure  returns(uint256 e){
-        return (config&(~(uint256(2**255))))|(a?uint256(2**255):0);
+        return (config&(~(uint256(1 << 255))))|(a?uint256(1 << 255):0);
     }
 
     /// @notice Checks if the user has Token Admin privileges.

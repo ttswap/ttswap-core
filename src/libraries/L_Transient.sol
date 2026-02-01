@@ -115,8 +115,9 @@ library L_Transient {
     /// This ensures that unused ETH sent to the contract is returned to the user at the end of the transaction.
     function checkafter() internal {
         subDepth();
-        if (getDepth() == 0 && getValue() > 0) {
-            uint256 amount = getValue();
+        uint256 amount = getValue();
+        if (getDepth() == 0 && amount > 0) {
+            
             setValue(0);
             bool success;
             address to = msg.sender;

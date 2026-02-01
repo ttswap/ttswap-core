@@ -364,12 +364,15 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         usdt.transferFrom(msg.sender, msg.sender, usdtamount, data);
         uint256 ttsamount;
         if (publicsell <= 87_500_000_000) {
+            // Tier 1: highest rate before reaching the first cap.
             ttsamount = (usdtamount * 25_000_000);
             _mint(msg.sender, ttsamount);
         } else if (publicsell <= 162_500_000_000) {
+            // Tier 2: mid rate after tier-1 cap is crossed.
             ttsamount = usdtamount * 20_000_000;
             _mint(msg.sender, ttsamount);
         } else if (publicsell <= 250_000_000_000) {
+            // Tier 3: lowest rate before the hard cap.
             ttsamount = (usdtamount * 16_000_000);
             _mint(msg.sender, ttsamount);
         }
@@ -412,9 +415,14 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         if (!userConfig[msg.sender].isCallMintTTS()) revert TTSwapError(71);
         _stakeFee();
         uint256 restakeid = uint256(keccak256(abi.encode(_staker, msg.sender)));
+        // netconstruct represents the proportional construct fee minted into the pool.
+        // If poolstate.amount1() is zero, no construct fee can be derived yet.
         netconstruct = poolstate.amount1() == 0
             ? 0
             : mulDiv(poolstate.amount0(), proofvalue, stakestate.amount1());
+        // Pool accounting:
+        // poolstate.amount0() tracks total pool value, amount1() tracks total construct fee.
+        // stakestate.amount1() tracks total proof value staked (shares denominator).
         poolstate = add(poolstate, toTTSwapUINT256(netconstruct, netconstruct));
         stakestate = add(stakestate, toTTSwapUINT256(0, proofvalue));
         stakeproof[restakeid].fromcontract = msg.sender;
@@ -450,6 +458,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         uint128 profit;
         uint128 construct;
         uint256 restakeid = uint256(keccak256(abi.encode(_staker, msg.sender)));
+        // Clamp to the user's remaining proof value, then compute the matching construct amount.
         if (proofvalue >= stakeproof[restakeid].proofstate.amount0()) {
             proofvalue = stakeproof[restakeid].proofstate.amount0();
             construct = stakeproof[restakeid].proofstate.amount1();
@@ -463,10 +472,12 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
                 toTTSwapUINT256(proofvalue, construct)
             );
         }
+        // Profit is the user's share of pool growth, derived from current pool ratio.
         profit = toTTSwapUINT256(poolstate.amount0(), stakestate.amount1())
             .getamount0fromamount1(proofvalue);
         stakestate = sub(stakestate, toTTSwapUINT256(0, proofvalue));
         poolstate = sub(poolstate, toTTSwapUINT256(profit, construct));
+        // Net profit excludes the construct portion that was already accounted for.
         profit = profit - construct;
         if (profit > 0) _mint(_staker, profit);
         emit e_stakeinfo(

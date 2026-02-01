@@ -98,9 +98,11 @@ library L_CurrencyLibrary {
     ) internal {
         bool success;
         if (token.isNative()) {
+            // Native ETH: value is tracked via L_Transient; executor must be the payer.
             if (executor != from) revert TTSwapError(39);
             L_Transient.decreaseValue(amount);
         } else if (detail.length == 0) {
+            // Plain ERC20 transferFrom path (no permit).
             if (executor != from) revert  TTSwapError(39);
             transferFromInter(token, from, to, amount);
         } else {
@@ -109,7 +111,7 @@ library L_CurrencyLibrary {
                 (S_transferData)
             );
             if (_simplePermit.transfertype == 2) {
-                // ... permit logic ...
+                // EIP-2612 or DAI-style permit: approve then transferFrom.
                 S_Permit memory _permit = abi.decode(
                     _simplePermit.sigdata,
                     (S_Permit)
@@ -158,6 +160,7 @@ library L_CurrencyLibrary {
                     revert ERC20PermitFailed();
                 }
             } else if (_simplePermit.transfertype == 3) {
+                // Permit2 TransferFrom: allowance is pre-approved on Permit2.
                 if (executor != from) revert  TTSwapError(39);
                 IAllowanceTransfer(_permit2).transferFrom(
                     from,
@@ -166,6 +169,7 @@ library L_CurrencyLibrary {
                     token
                 );
             } else if (_simplePermit.transfertype == 4) {
+                // Permit2 Permit + TransferFrom: set allowance on Permit2 then move tokens.
                 S_Permit2 memory _permit = abi.decode(
                     _simplePermit.sigdata,
                     (S_Permit2)
@@ -194,6 +198,7 @@ library L_CurrencyLibrary {
                     token
                 );
             } else if (_simplePermit.transfertype == 5) {
+                // Permit2 PermitTransferFrom: signature-based transfer without prior allowance.
                 S_Permit2 memory _permit = abi.decode(
                     _simplePermit.sigdata,
                     (S_Permit2)
