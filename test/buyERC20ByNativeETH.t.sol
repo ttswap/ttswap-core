@@ -152,7 +152,7 @@ contract buyERC20ByNativeETH is BaseSetup {
         );
         assertEq(
             btc.balanceOf(address(market)),
-            90732765,
+            90765065,
             "after buy erc20_normalgood:btc address(market) account  balance error"
         );
         metagoodkeystate = market.getGoodState(metagood);
@@ -171,13 +171,13 @@ contract buyERC20ByNativeETH is BaseSetup {
         normalgoodkeystate = market.getGoodState(normalgoodbtc);
         assertEq(
             normalgoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(100004635, 90732765).amount0(),
+            toTTSwapUINT256(100004619, 90765065).amount0(),
             "after buy erc20 normalgood:normalgoodkey currentState error"
         );
 
         assertEq(
             normalgoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(100004635, 90732765).amount1(),
+            toTTSwapUINT256(100004619, 90765065).amount1(),
             "after  buy erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 
@@ -260,7 +260,7 @@ contract buyERC20ByNativeETH is BaseSetup {
         );
         assertEq(
             btc.balanceOf(address(market)),
-            90732765,
+            90765065,
             "after buy erc20_normalgood:btc address(market) account  balance error"
         );
         metagoodkeystate = market.getGoodState(metagood);
@@ -279,13 +279,13 @@ contract buyERC20ByNativeETH is BaseSetup {
         normalgoodkeystate = market.getGoodState(normalgoodbtc);
         assertEq(
             normalgoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(100004635, 90732765).amount0(),
+            toTTSwapUINT256(100004619, 90765065).amount0(),
             "after buy erc20 normalgood:normalgoodkey currentState error"
         );
 
         assertEq(
             normalgoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(100004635, 90732765).amount1(),
+            toTTSwapUINT256(100004619, 90765065).amount1(),
             "after  buy erc20  normalgood:normalgoodkey currentState amount1 error"
         );
 

@@ -151,7 +151,7 @@ contract payERC20ByNativeETH is BaseSetup {
         snapLastCall("pay_erc20_by_NativeETH_to_self_first");
         assertEq(
             address(market).balance,
-            113635681142,
+            113635731568,
             "after pay erc20_normalgood:usdt address(market) account  balance error"
         );
         assertEq(
@@ -162,13 +162,13 @@ contract payERC20ByNativeETH is BaseSetup {
         metagoodkeystate = market.getGoodState(metagood);
         assertEq(
             metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113000444665, 113635681142).amount0(),
+            toTTSwapUINT256(113000444700, 113635731568).amount0(),
             "after  pay erc20  normalgood:metagoodkey currentState error"
         );
 
         assertEq(
             metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113000444665, 113635681142).amount1(),
+            toTTSwapUINT256(113000444700, 113635731568).amount1(),
             "after  pay erc20  normalgood:metagoodkey currentState amount1 error"
         );
 
@@ -264,7 +264,7 @@ contract payERC20ByNativeETH is BaseSetup {
         snapLastCall("pay_erc20_by_NativeETH_to_other_user_first");
         assertEq(
             address(market).balance,
-            113635681142,
+            113635731568,
             "after pay erc20_normalgood:usdt address(market) account  balance error"
         );
         assertEq(
@@ -275,13 +275,13 @@ contract payERC20ByNativeETH is BaseSetup {
         metagoodkeystate = market.getGoodState(metagood);
         assertEq(
             metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113000444665, 113635681142).amount0(),
+            toTTSwapUINT256(113000444700, 113635731568).amount0(),
             "after  pay erc20  normalgood:metagoodkey currentState error"
         );
 
         assertEq(
             metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113000444665, 113635681142).amount1(),
+            toTTSwapUINT256(113000444700, 113635731568).amount1(),
             "after  pay erc20  normalgood:metagoodkey currentState amount1 error"
         );
 
