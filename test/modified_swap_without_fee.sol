@@ -145,14 +145,14 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         snapLastCall("testswapwithoutfee1");
         uint256 usdcafter = usdc.balanceOf(address(marketcreator));
         uint256 usdtafter = usdt.balanceOf(address(marketcreator));
-        console2.log("usdcbefore:", usdcbefore);
-        console2.log("usdtbefore:", usdtbefore);
-        console2.log("usdcafter:", usdcafter);
-        console2.log("usdtafter:", usdtafter);
+        console2.log("usdcbefore1:", usdcbefore);
+        console2.log("usdcafter1:", usdcafter);
+        console2.log("usdtbefore1:", usdtbefore);
+        console2.log("usdtafter1:", usdtafter);
         market.buyGood(
             address(usdt),
             address(usdc),
-            toTTSwapUINT256(8333333332, 6000000000),
+            toTTSwapUINT256(8181772266, 6000000000),
             
             msg.sender,
             "",
