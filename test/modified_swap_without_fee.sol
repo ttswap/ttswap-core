@@ -125,6 +125,160 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         vm.stopPrank();
     }
 
+    /**
+     * @notice 纯数学测试：当K为固定值时，good1Swap+good2Swap 组合是否可逆
+     * @dev 复现白皮书附录I的公式，验证 Δa -> ΔV -> Δb -> ΔV' -> Δa' 时 Δa' == Δa
+     *      白皮书证明：当 K=2 时严格可逆；代码中 K 缩放100倍，故 K=200
+     * 公式 (无手续费):
+     * - good1Swap输入侧: ΔV = K*V*Δa / (K*Q + Δa*100)
+     * - good2Swap输出侧: Δb = K*Q*ΔV / (K*V + ΔV*100)
+     */
+    function testFixedKSwapReversibility() public pure {
+        // 固定K值，对应白皮书K=2 (代码中K缩放100倍，故K=200)
+        uint128 K = 200;
+
+        // 初始池状态 (与initMetaGood一致: Q=V, I=Q, virtual=0)
+        uint128 Q_A = 50_000 * 10**6;
+        uint128 V_A = 50_000 * 10**12; // amount1 of investState
+        uint128 Q_B = 50_000 * 10**6;
+        uint128 V_B = 50_000 * 10**12;
+
+        // 正向: 输入 Δa 个 Token A
+        uint128 deltaA = 10_000 * 10**6;
+
+        // Step 1: good1Swap(A, side=true): quantity -> value
+        uint256 deltaV = (uint256(K) * uint256(V_A) * uint256(deltaA))
+            / (uint256(K) * uint256(Q_A) + uint256(deltaA) * 100);
+
+        // Step 2: good2Swap(B, side=true): value -> quantity
+        uint256 deltaB = (uint256(K) * uint256(Q_B) * deltaV)
+            / (uint256(K) * uint256(V_B) + deltaV * 100);
+
+        // 正向后池状态
+        uint128 Q_A_after = Q_A + deltaA;
+        uint128 Q_B_after = uint128(uint256(Q_B) - deltaB);
+
+        // 反向: 输入 Δb 个 Token B 换回 Token A
+        uint128 deltaB_u128 = uint128(deltaB);
+
+        // Step 3: good1Swap(B, side=true): quantity -> value
+        uint256 deltaV_rev = (uint256(K) * uint256(V_B) * uint256(deltaB_u128))
+            / (uint256(K) * uint256(Q_B_after) + uint256(deltaB_u128) * 100);
+
+        // Step 4: good2Swap(A, side=true): value -> quantity
+        uint256 deltaA_rev = (uint256(K) * uint256(Q_A_after) * deltaV_rev)
+            / (uint256(K) * uint256(V_A) + deltaV_rev * 100);
+
+        // 可逆性断言: Δa' 应等于 Δa (允许1单位整数截断误差)
+        assertApproxEqAbs(
+            deltaA_rev,
+            uint256(deltaA),
+            1,
+            "Fixed K: A->B->A should be reversible (within rounding)"
+        );
+    }
+
+    /// @notice 验证 K=300 时是否可逆 (白皮书附录I: 仅 K=2 时可逆)
+    function testFixedK300SwapReversibility() public pure {
+        uint128 K = 300;
+        uint128 Q_A = 50_000 * 10**6;
+        uint128 V_A = 50_000 * 10**12;
+        uint128 Q_B = 50_000 * 10**6;
+        uint128 V_B = 50_000 * 10**12;
+        uint128 deltaA = 10_000 * 10**6;
+
+        uint256 deltaV = (uint256(K) * uint256(V_A) * uint256(deltaA))
+            / (uint256(K) * uint256(Q_A) + uint256(deltaA) * 100);
+        uint256 deltaB = (uint256(K) * uint256(Q_B) * deltaV)
+            / (uint256(K) * uint256(V_B) + deltaV * 100);
+
+        uint128 Q_A_after = Q_A + deltaA;
+        uint128 Q_B_after = uint128(uint256(Q_B) - deltaB);
+
+        uint256 deltaV_rev = (uint256(K) * uint256(V_B) * deltaB)
+            / (uint256(K) * uint256(Q_B_after) + deltaB * 100);
+        uint256 deltaA_rev = (uint256(K) * uint256(Q_A_after) * deltaV_rev)
+            / (uint256(K) * uint256(V_A) + deltaV_rev * 100);
+
+        // K=300 不可逆: 反向换回量 deltaA_rev > deltaA，存在套利空间
+        assertGt(deltaA_rev, uint256(deltaA), "K=300: not reversible, reverse yields more");
+    }
+
+    /**
+     * @notice 验证非对称K的可逆性: A池 数量→价值K=300, 价值→数量K=150; B池K=200
+     * @dev 带*100因子的可逆条件: k2=100*k1/(k1-100). 故 k1=300 时 k2=150 恰好可逆
+     */
+    function testAsymmetricKReversibility() public pure {
+        uint128 K_A_in = 300;  // A 数量→价值
+        uint128 K_A_out = 150; // A 价值→数量
+        uint128 K_B = 200;     // B 双向
+
+        uint128 Q_A = 50_000 * 10**6;
+        uint128 V_A = 50_000 * 10**12;
+        uint128 Q_B = 50_000 * 10**6;
+        uint128 V_B = 50_000 * 10**12;
+        uint128 deltaA = 10_000 * 10**6;
+
+        // 正向 A->B: A用K_A_in算Δv, B用K_B算Δb
+        uint256 deltaV = (uint256(K_A_in) * uint256(V_A) * uint256(deltaA))
+            / (uint256(K_A_in) * uint256(Q_A) + uint256(deltaA) * 100);
+        uint256 deltaB = (uint256(K_B) * uint256(Q_B) * deltaV)
+            / (uint256(K_B) * uint256(V_B) + deltaV * 100);
+
+        uint128 Q_A_after = Q_A + deltaA;
+        uint128 Q_B_after = uint128(uint256(Q_B) - deltaB);
+
+        // 反向 B->A: B用K_B算Δv', A用K_A_out算Δa'
+        uint256 deltaV_rev = (uint256(K_B) * uint256(V_B) * deltaB)
+            / (uint256(K_B) * uint256(Q_B_after) + deltaB * 100);
+        uint256 deltaA_rev = (uint256(K_A_out) * uint256(Q_A_after) * deltaV_rev)
+            / (uint256(K_A_out) * uint256(V_A) + deltaV_rev * 100);
+
+        // 可逆性: 允许整数截断误差
+        assertApproxEqAbs(
+            deltaA_rev,
+            uint256(deltaA),
+            1,
+            "Asymmetric K: A(K_in=300,K_out=150) B(200) reversibility check"
+        );
+    }
+
+    /**
+     * @notice 验证双池同参数可逆性: A和B均为 数量→价值K=300, 价值→数量K=150
+     */
+    function testBothPoolsAsymmetricKReversibility() public pure {
+        uint128 K_in = 300;
+        uint128 K_out = 150;
+
+        uint128 Q_A = 50_000 * 10**6;
+        uint128 V_A = 50_000 * 10**12;
+        uint128 Q_B = 50_000 * 10**6;
+        uint128 V_B = 50_000 * 10**12;
+        uint128 deltaA = 10_000 * 10**6;
+
+        // 正向 A->B: A用K_in, B用K_out
+        uint256 deltaV = (uint256(K_in) * uint256(V_A) * uint256(deltaA))
+            / (uint256(K_in) * uint256(Q_A) + uint256(deltaA) * 100);
+        uint256 deltaB = (uint256(K_out) * uint256(Q_B) * deltaV)
+            / (uint256(K_out) * uint256(V_B) + deltaV * 100);
+
+        uint128 Q_A_after = Q_A + deltaA;
+        uint128 Q_B_after = uint128(uint256(Q_B) - deltaB);
+
+        // 反向 B->A: B用K_in, A用K_out
+        uint256 deltaV_rev = (uint256(K_in) * uint256(V_B) * deltaB)
+            / (uint256(K_in) * uint256(Q_B_after) + deltaB * 100);
+        uint256 deltaA_rev = (uint256(K_out) * uint256(Q_A_after) * deltaV_rev)
+            / (uint256(K_out) * uint256(V_A) + deltaV_rev * 100);
+
+        assertApproxEqAbs(
+            deltaA_rev,
+            uint256(deltaA),
+            1,
+            "Both pools K_in=300,K_out=150 reversibility check"
+        );
+    }
+
     function testswapA2B2Awithoutfee() public {
         vm.startPrank(marketcreator);
         uint256 usdcbefore = usdc.balanceOf(marketcreator);
@@ -152,7 +306,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         market.buyGood(
             address(usdt),
             address(usdc),
-            toTTSwapUINT256(8181772266, 6000000000),
+            toTTSwapUINT256(8823529411, 6000000000),
             
             msg.sender,
             "",

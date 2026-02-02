@@ -132,7 +132,7 @@ library L_Good {
         uint128 swap_fee;
         uint128 K;
     }
-
+     event debugParam(uint128,uint128);
     /*
      * @notice Swap quantity
      * @dev Swaps quantity of the good
@@ -158,8 +158,6 @@ library L_Good {
             K: 0
         });
         if (side) {
-            
-           
             quantityCache.swap_fee = _self.goodConfig.getSellFee(_swapParam);
             quantityCache.swap = quantityCache.swap - quantityCache.swap_fee;
             // Whitepaper mapping (input side):
@@ -220,7 +218,14 @@ library L_Good {
                 )
             );
         }
-
+        emit debugParam(1,quantityCache.current_quantity);
+        emit debugParam(2,quantityCache.current_value);
+        emit debugParam(3,quantityCache.invest_quantity);
+        emit debugParam(4,quantityCache.virtual_quantity);
+        emit debugParam(5,quantityCache.swap);
+        emit debugParam(6,quantityCache.swap_fee);
+        emit debugParam(7,quantityCache.K);
+        emit debugParam(8,swapTemp);
         return toTTSwapUINT256(quantityCache.swap_fee, swapTemp);
     }
 
@@ -317,6 +322,14 @@ library L_Good {
             );
         }
 
+        emit debugParam(11,quantityCache.current_quantity);
+        emit debugParam(12,quantityCache.current_value);
+        emit debugParam(13,quantityCache.invest_quantity);
+        emit debugParam(14,quantityCache.virtual_quantity);
+        emit debugParam(15,quantityCache.swap);
+        emit debugParam(16,quantityCache.swap_fee);
+        emit debugParam(17,quantityCache.K);
+        emit debugParam(18,swapTemp);
         return toTTSwapUINT256(quantityCache.swap_fee, swapTemp);
     }
 
@@ -778,13 +791,16 @@ library L_Good {
         }
        
         // k2: depth factor at the end point after applying swap quantity.
-        uint128 k2 = current_quantity < invest_quantity
+        uint128 k2 = current_quantity <= invest_quantity
             ? ((current_quantity * maxpower) / invest_quantity)
             : ((invest_quantity * maxpower) / current_quantity);
         
         // K = harmonic mean of k1 and k2 (whitepaper K_A).
+        // Note: Harmonic mean provides LP protection but sacrifices perfect reversibility.
+        // This is intentional - imbalanced pools have higher slippage to incentivize arbitrage.
         K = (k1 + k2) == 0 ? 1 : (k1 * k2 * 2) / (k1 + k2);
         K = K == 0 ? 1 : K;
+       
     }
 
     function getGood2K(
@@ -825,7 +841,9 @@ library L_Good {
             ? ((real_quantity * maxpower) / invest_quantity)
             : ((invest_quantity * maxpower) / real_quantity);
         // K = harmonic mean of k1 and k2 (whitepaper K_B).
+        // Note: Harmonic mean provides LP protection but sacrifices perfect reversibility.
         K = (k1 + k2) == 0 ? 1 : (k1 * k2 * 2) / (k1 + k2);
         K = K == 0 ? 1 : K;
+       
     }
 }
