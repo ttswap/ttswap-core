@@ -152,7 +152,7 @@ contract payNativeETHByERC20 is BaseSetup {
         snapLastCall("pay_NativeETH_by_erc20_to_self_first");
         assertEq(
             usdt.balanceOf(address(market)),
-            113635731568,
+            113635681142,
             "after pay NativeETH_normalgood:usdt address(market) account  balance error"
         );
         assertEq(
@@ -163,13 +163,13 @@ contract payNativeETHByERC20 is BaseSetup {
         metagoodkeystate = market.getGoodState(metagood);
         assertEq(
             metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113000444700, 113635731568).amount0(),
+            toTTSwapUINT256(113000444665, 113635681142).amount0(),
             "after  pay NativeETH  normalgood:metagoodkey currentState error"
         );
 
         assertEq(
             metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113000444700, 113635731568).amount1(),
+            toTTSwapUINT256(113000444665, 113635681142).amount1(),
             "after  pay NativeETH  normalgood:metagoodkey currentState amount1 error"
         );
         
@@ -265,7 +265,7 @@ contract payNativeETHByERC20 is BaseSetup {
         snapLastCall("pay_NativeETH_by_erc20_to_other_user_first");
         assertEq(
             usdt.balanceOf(address(market)),
-            113635731568,
+            113635681142,
             "after pay NativeETH_normalgood:usdt address(market) account  balance error"
         );
         assertEq(
@@ -276,13 +276,13 @@ contract payNativeETHByERC20 is BaseSetup {
         metagoodkeystate = market.getGoodState(metagood);
         assertEq(
             metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113000444700, 113635731568).amount0(),
+            toTTSwapUINT256(113000444665, 113635681142).amount0(),
             "after  pay NativeETH  normalgood:metagoodkey currentState error"
         );
 
         assertEq(
             metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113000444700, 113635731568).amount1(),
+            toTTSwapUINT256(113000444665, 113635681142).amount1(),
             "after  pay NativeETH  normalgood:metagoodkey currentState amount1 error"
         );
         

@@ -19,19 +19,19 @@ library L_Transient {
     bytes32 constant LOCK_SLOT =
         0xe2afc7ec4dbb9bfdb1b8e8bcf21a055747c25bf2faaea9cb5a134005381f4843;
 
-    /// @notice Sets the reentrancy lock status.
-    /// @param locker The address holding the lock (usually address(1) or similar sentinel).
-    function set(address locker) internal {
+    /// @notice Sets the reentrancy lock level.
+    /// @param lock 0 = unlocked, 1 = multicall context, 2 = fully locked.
+    function set(uint256 lock) internal {
         assembly {
-            tstore(LOCK_SLOT, locker)
+            tstore(LOCK_SLOT, lock)
         }
     }
 
-    /// @notice Gets the current reentrancy lock status.
-    /// @return locker The address currently holding the lock.
-    function get() internal view returns (address locker) {
+    /// @notice Gets the current reentrancy lock level.
+    /// @return lock The current lock level (0 / 1 / 2).
+    function get() internal view returns (uint256 lock) {
         assembly {
-            locker := tload(LOCK_SLOT)
+            lock := tload(LOCK_SLOT)
         }
     }
 

@@ -14,10 +14,18 @@ using L_TTSwapUINT256Library for uint256;
 /// @param _amount1 The second 128-bit amount
 /// @return balanceDelta The resulting T_BalanceUINT256
 
-function toTTSwapUINT256(uint128 _amount0, uint128 _amount1) pure returns (uint256 balanceDelta) {
+function toTTSwapUINT256(
+    uint128 _amount0,
+    uint128 _amount1
+) pure returns (uint256 balanceDelta) {
     assembly ("memory-safe") {
-        balanceDelta :=
-            or(shl(128, _amount0), and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, _amount1))
+        balanceDelta := or(
+            shl(128, _amount0),
+            and(
+                0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff,
+                _amount1
+            )
+        )
     }
 }
 
@@ -33,18 +41,27 @@ function add(uint256 a, uint256 b) pure returns (uint256) {
     uint256 b0;
     uint256 b1;
     assembly ("memory-safe") {
-         a0 := shr(128, a)
-         a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
-         b0 := shr(128, b)
-         b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
+        a0 := shr(128, a)
+        a1 := and(
+            0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff,
+            a
+        )
+        b0 := shr(128, b)
+        b1 := and(
+            0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff,
+            b
+        )
         res0 := add(a0, b0)
         res1 := add(a1, b1)
     }
-    if (res0 < a0 || res1 < a1 || res0 >= type(uint128).max || res1 >= type(uint128).max) 
-        revert TTSwapUINT256AddOverflow();
+    if (
+        res0 < a0 ||
+        res1 < a1 ||
+        res0 >= type(uint128).max-1 ||
+        res1 >= type(uint128).max-1
+    ) revert TTSwapUINT256AddOverflow();
     return (res0 << 128) + res1;
 }
-
 
 /// @notice Subtracts two T_BalanceUINT256 values
 /// @param a The first T_BalanceUINT256
@@ -58,14 +75,21 @@ function sub(uint256 a, uint256 b) pure returns (uint256) {
     uint256 b0;
     uint256 b1;
     unchecked {
-    assembly ("memory-safe") {
-         a0 := shr(128, a)
-         a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
-         b0 := shr(128, b)
-         b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
-        res0 := sub(a0, b0)
-        res1 := sub(a1, b1)
-    }}
+        assembly ("memory-safe") {
+            a0 := shr(128, a)
+            a1 := and(
+                0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff,
+                a
+            )
+            b0 := shr(128, b)
+            b1 := and(
+                0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff,
+                b
+            )
+            res0 := sub(a0, b0)
+            res1 := sub(a1, b1)
+        }
+    }
     if (a0 < b0 || a1 < b1) revert TTSwapUINT256SubOverflow();
     return (res0 << 128) + res1;
 }
@@ -82,15 +106,23 @@ function addsub(uint256 a, uint256 b) pure returns (uint256) {
     uint256 b0;
     uint256 b1;
     unchecked {
-    assembly ("memory-safe") {
-         a0 := shr(128, a)
-         a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
-         b0 := shr(128, b)
-         b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
-        res0 := add(a0, b0)
-        res1 := sub(a1, b1)
-    }}
-    if (res0 < a0 || a1 < b1 || res0 >= type(uint128).max) revert TTSwapUINT256AddSubOverflow();
+        assembly ("memory-safe") {
+            a0 := shr(128, a)
+            a1 := and(
+                0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff,
+                a
+            )
+            b0 := shr(128, b)
+            b1 := and(
+                0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff,
+                b
+            )
+            res0 := add(a0, b0)
+            res1 := sub(a1, b1)
+        }
+    }
+    if (res0 < a0 || a1 < b1 || res0 >= type(uint128).max)
+        revert TTSwapUINT256AddSubOverflow();
     return (res0 << 128) + res1;
 }
 
@@ -106,15 +138,23 @@ function subadd(uint256 a, uint256 b) pure returns (uint256) {
     uint256 b0;
     uint256 b1;
     unchecked {
-    assembly ("memory-safe") {
-        a0 := shr(128, a)
-        a1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, a)
-        b0 := shr(128, b)
-        b1 := and(0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff, b)
-        res0 := sub(a0, b0)
-        res1 := add(a1, b1)
-    }}
-    if (a0 < b0 || res1 < a1 || res1 >= type(uint128).max) revert TTSwapUINT256SubAddOverflow();
+        assembly ("memory-safe") {
+            a0 := shr(128, a)
+            a1 := and(
+                0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff,
+                a
+            )
+            b0 := shr(128, b)
+            b1 := and(
+                0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff,
+                b
+            )
+            res0 := sub(a0, b0)
+            res1 := add(a1, b1)
+        }
+    }
+    if (a0 < b0 || res1 < a1 || res1 >= type(uint128).max)
+        revert TTSwapUINT256SubAddOverflow();
     return (res0 << 128) + res1;
 }
 
@@ -126,14 +166,44 @@ function toUint128(uint256 a) pure returns (uint128 b) {
     if (a != uint256(b)) revert TTSwapUINT256ToUint128Overflow();
 }
 
-/// @notice Compares the prices of three T_BalanceUINT256 values
+/// @notice Compares the prices of three T_BalanceUINT256 values using 512-bit arithmetic
+/// @dev Avoids overflow: three uint128 multiplied can reach 2^384, exceeding uint256.
+///      Uses mulmod trick to compute full 512-bit products for safe comparison.
 /// @param a The first T_BalanceUINT256
 /// @param b The second T_BalanceUINT256
 /// @param c The third T_BalanceUINT256
-/// @return True if the price of a is lower than the prices of b and c, false otherwise
-function lowerprice(uint256 a, uint256 b, uint256 c) pure returns (bool) {
-    return uint256(a.amount0()) * uint256(b.amount1()) * uint256(c.amount1())
-        > uint256(a.amount1()) * uint256(b.amount0()) * uint256(c.amount0()) ? true : false;
+/// @return result True if a0*b1*c1 > a1*b0*c0, false otherwise
+function lowerprice(
+    uint256 a,
+    uint256 b,
+    uint256 c
+) pure returns (bool result) {
+    assembly {
+        let mask := 0xffffffffffffffffffffffffffffffff
+        let a0 := shr(128, a)
+        let a1 := and(a, mask)
+        let b0 := shr(128, b)
+        let b1 := and(b, mask)
+        let c0 := shr(128, c)
+        let c1 := and(c, mask)
+
+        // L = a0 * b1, R = a1 * b0 (each fits in uint256: uint128 * uint128 <= 2^256 - 2^129 + 1)
+        let L := mul(a0, b1)
+        let R := mul(a1, b0)
+
+        // Full 512-bit multiplication: L * c1 = lHi:lLo
+        let lLo := mul(L, c1)
+        let mm := mulmod(L, c1, not(0))
+        let lHi := sub(sub(mm, lLo), lt(mm, lLo))
+
+        // Full 512-bit multiplication: R * c0 = rHi:rLo
+        let rLo := mul(R, c0)
+        mm := mulmod(R, c0, not(0))
+        let rHi := sub(sub(mm, rLo), lt(mm, rLo))
+
+        // Compare 512-bit: lHi:lLo > rHi:rLo
+        result := or(gt(lHi, rHi), and(eq(lHi, rHi), gt(lLo, rLo)))
+    }
 }
 
 /// @notice Performs a multiplication followed by a division (full precision)
@@ -142,13 +212,16 @@ function lowerprice(uint256 a, uint256 b, uint256 c) pure returns (bool) {
 /// @param amount The multiplier
 /// @param domitor The divisor
 /// @return a The result as a uint128
-function mulDiv(uint256 config, uint256 amount, uint256 domitor) pure returns (uint128 a) {
+function mulDiv(
+    uint256 config,
+    uint256 amount,
+    uint256 domitor
+) pure returns (uint128 a) {
     uint256 result;
-    unchecked {
-        assembly {
-            config := mul(config, amount)
-            result := div(config, domitor)
-        }
+    if (domitor == 0) revert();
+    assembly {
+        config := mul(config, amount)
+        result := div(config, domitor)
     }
     return toUint128(result);
 }
@@ -159,7 +232,9 @@ library L_TTSwapUINT256Library {
     /// @notice Extracts the first 128-bit amount from a T_BalanceUINT256
     /// @param balanceDelta The T_BalanceUINT256 to extract from
     /// @return _amount0 The extracted first 128-bit amount
-    function amount0(uint256 balanceDelta) internal pure returns (uint128 _amount0) {
+    function amount0(
+        uint256 balanceDelta
+    ) internal pure returns (uint128 _amount0) {
         assembly {
             _amount0 := shr(128, balanceDelta)
         }
@@ -168,7 +243,9 @@ library L_TTSwapUINT256Library {
     /// @notice Extracts the second 128-bit amount from a T_BalanceUINT256
     /// @param balanceDelta The T_BalanceUINT256 to extract from
     /// @return _amount1 The extracted second 128-bit amount
-    function amount1(uint256 balanceDelta) internal pure returns (uint128 _amount1) {
+    function amount1(
+        uint256 balanceDelta
+    ) internal pure returns (uint128 _amount1) {
         assembly {
             _amount1 := balanceDelta
         }
@@ -178,7 +255,9 @@ library L_TTSwapUINT256Library {
     /// @param balanceDelta The T_BalanceUINT256 to extract from
     /// @return _amount0 The extracted first 128-bit amount
     /// @return _amount1 The extracted second 128-bit amount
-    function amount01(uint256 balanceDelta) internal pure returns (uint128 _amount0,uint128 _amount1) {
+    function amount01(
+        uint256 balanceDelta
+    ) internal pure returns (uint128 _amount0, uint128 _amount1) {
         assembly {
             _amount0 := shr(128, balanceDelta)
             _amount1 := balanceDelta
@@ -189,23 +268,31 @@ library L_TTSwapUINT256Library {
     /// @param balanceDelta The T_BalanceUINT256 containing the ratio
     /// @param amount1delta The amount1 to base the calculation on
     /// @return _amount0 The calculated amount0
-    function getamount0fromamount1(uint256 balanceDelta, uint128 amount1delta)
-        internal
-        pure
-        returns (uint128 _amount0)
-    {
-        return mulDiv(balanceDelta.amount0(), amount1delta, balanceDelta.amount1());
+    function getamount0fromamount1(
+        uint256 balanceDelta,
+        uint128 amount1delta
+    ) internal pure returns (uint128 _amount0) {
+        return
+            mulDiv(
+                balanceDelta.amount0(),
+                amount1delta,
+                balanceDelta.amount1()
+            );
     }
 
     /// @notice Calculates amount1 based on a given amount0 and the ratio in balanceDelta
     /// @param balanceDelta The T_BalanceUINT256 containing the ratio
     /// @param amount0delta The amount0 to base the calculation on
     /// @return _amount1 The calculated amount1
-    function getamount1fromamount0(uint256 balanceDelta, uint128 amount0delta)
-        internal
-        pure
-        returns (uint128 _amount1)
-    {
-        return mulDiv(balanceDelta.amount1(), amount0delta, balanceDelta.amount0());
+    function getamount1fromamount0(
+        uint256 balanceDelta,
+        uint128 amount0delta
+    ) internal pure returns (uint128 _amount1) {
+        return
+            mulDiv(
+                balanceDelta.amount1(),
+                amount0delta,
+                balanceDelta.amount0()
+            );
     }
 }

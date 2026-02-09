@@ -24,9 +24,9 @@ library L_Good {
     using L_GoodConfigLibrary for uint256;
     using L_TTSwapUINT256Library for uint256;
     using L_Proof for S_ProofState;
-    //(2**256-1)-(2**223-1)+(2**177-1)
+    //(2**256-1)-(2**223-1)+(2**161-1)
     uint256 internal constant feeConfigMask =
-        0xffffffff800000000001ffffffffffffffffffffffffffffffffffffffffffff;
+        0xffffffff8000000000000001ffffffffffffffffffffffffffffffffffffffff;
     //        0xffffffff800000000000000000000000ffffffffffffffffffffffffffffffff;
     //2**223-1
     uint256 internal constant commissionConfigMask =
@@ -50,6 +50,17 @@ library L_Good {
     ) internal {
         if (_self.goodConfig.getLimitPower() < _goodConfig.getPower())
             revert TTSwapError(23);
+        if (_self.goodConfig.getK1() != 0) {
+            if (
+                _self.goodConfig.getK1() - 100 > _goodConfig.getK1() ||
+                _self.goodConfig.getK1() + 100 < _goodConfig.getK1()
+            ) {
+                revert TTSwapError(43);
+            }
+        }
+        if (_goodConfig.getK1() <= 10000) {
+            revert TTSwapError(44);
+        }
         uint256 tmpconfig = _self.goodConfig;
         assembly {
             _goodConfig := and(not(feeConfigMask), _goodConfig)
@@ -127,12 +138,11 @@ library L_Good {
         uint128 current_quantity;
         uint128 current_value;
         uint128 invest_quantity;
-        uint128 virtual_quantity;
         uint128 swap;
         uint128 swap_fee;
         uint128 K;
     }
-     event debugParam(uint128,uint128);
+
     /*
      * @notice Swap quantity
      * @dev Swaps quantity of the good
@@ -152,7 +162,6 @@ library L_Good {
             current_quantity: _self.currentState.amount1(),
             current_value: _self.investState.amount1(),
             invest_quantity: _self.currentState.amount0(),
-            virtual_quantity: _self.goodConfig.amount1(),
             swap: _swapParam,
             swap_fee: 0,
             K: 0
@@ -163,14 +172,7 @@ library L_Good {
             // Whitepaper mapping (input side):
             // Q = current_quantity, V = current_value, R = Q - virtual_quantity, I = invest_quantity.
             // K_A is derived from R/I before and after the input, then used in the harmonic-mean formula.
-            quantityCache.K = getGood1K(
-                quantityCache.current_quantity,
-                quantityCache.invest_quantity,
-                quantityCache.virtual_quantity,
-                quantityCache.swap,
-                _self.goodConfig,
-                side
-            );
+            quantityCache.K = _self.goodConfig.getK1();
 
             // ΔV = (K_A * V_A * Δa) / (K_A * Q_A + Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
@@ -180,8 +182,9 @@ library L_Good {
                     (uint256(quantityCache.K) *
                         uint256(quantityCache.current_quantity) +
                         uint256(quantityCache.swap) *
-                        100)
+                        10000)
             );
+
             _self.currentState = add(
                 _self.currentState,
                 toTTSwapUINT256(quantityCache.swap_fee, _swapParam)
@@ -189,15 +192,7 @@ library L_Good {
         } else {
             // waiting for eip 7954
             // Output-side (exact-out for value): use K_B from value-shifted R_B.
-            quantityCache.K = getGood2K(
-                quantityCache.current_quantity,
-                quantityCache.invest_quantity,
-                quantityCache.virtual_quantity,
-                _self.goodConfig,
-                quantityCache.swap,
-                _self.investState.amount1(),
-                side
-            );
+            quantityCache.K = _self.goodConfig.getK2();
 
             // Δb = (K_B * Q_B * ΔV) / (K_B * V_B - ΔV), scaled by 100 for fee precision.
             swapTemp = uint128(
@@ -207,7 +202,7 @@ library L_Good {
                     (uint256(quantityCache.K) *
                         uint256(quantityCache.current_value) -
                         uint256(quantityCache.swap) *
-                        100)
+                        10000)
             );
             quantityCache.swap_fee = _self.goodConfig.getSellFee(swapTemp);
             _self.currentState = add(
@@ -218,14 +213,7 @@ library L_Good {
                 )
             );
         }
-        emit debugParam(1,quantityCache.current_quantity);
-        emit debugParam(2,quantityCache.current_value);
-        emit debugParam(3,quantityCache.invest_quantity);
-        emit debugParam(4,quantityCache.virtual_quantity);
-        emit debugParam(5,quantityCache.swap);
-        emit debugParam(6,quantityCache.swap_fee);
-        emit debugParam(7,quantityCache.K);
-        emit debugParam(8,swapTemp);
+
         return toTTSwapUINT256(quantityCache.swap_fee, swapTemp);
     }
 
@@ -248,7 +236,6 @@ library L_Good {
             current_quantity: _self.currentState.amount1(),
             current_value: _self.investState.amount1(),
             invest_quantity: _self.currentState.amount0(),
-            virtual_quantity: _self.goodConfig.amount1(),
             swap: _swapParam,
             swap_fee: 0,
             K: 0
@@ -256,15 +243,7 @@ library L_Good {
 
         if (side) {
             // Input-side (exact-in for value): K_B uses value-shifted R_B to update depth.
-            quantityCache.K = getGood2K(
-                quantityCache.current_quantity,
-                quantityCache.invest_quantity,
-                quantityCache.virtual_quantity,
-                _self.goodConfig,
-                quantityCache.swap,
-                _self.investState.amount1(),
-                side
-            );
+            quantityCache.K = _self.goodConfig.getK2();
 
             // Δb = (K_B * Q_B * ΔV) / (K_B * V_B + ΔV), scaled by 100 for fee precision.
             swapTemp = uint128(
@@ -274,7 +253,7 @@ library L_Good {
                     (uint256(quantityCache.K) *
                         uint256(quantityCache.current_value) +
                         uint256(quantityCache.swap) *
-                        100)
+                        10000)
             );
 
             quantityCache.swap_fee = _self.goodConfig.getBuyFee(swapTemp);
@@ -290,14 +269,7 @@ library L_Good {
             );
             quantityCache.swap = quantityCache.swap + quantityCache.swap_fee;
             // Quantity-view exact-out: solve for ΔV using K_A derived from quantity shift.
-            quantityCache.K = getGood1K(
-                quantityCache.current_quantity,
-                quantityCache.invest_quantity,
-                quantityCache.virtual_quantity,
-                quantityCache.swap,
-                _self.goodConfig,
-                side
-            );
+            quantityCache.K = _self.goodConfig.getK1();
             // ΔV = (K_A * V_A * Δa) / (K_A * Q_A - Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
                 (uint256(quantityCache.K) *
@@ -306,7 +278,7 @@ library L_Good {
                     (uint256(quantityCache.K) *
                         uint256(quantityCache.current_quantity) -
                         uint256(quantityCache.swap) *
-                        100)
+                        10000)
             );
             if (quantityCache.swap_fee > 0)
                 _self.currentState = add(
@@ -322,17 +294,8 @@ library L_Good {
             );
         }
 
-        emit debugParam(11,quantityCache.current_quantity);
-        emit debugParam(12,quantityCache.current_value);
-        emit debugParam(13,quantityCache.invest_quantity);
-        emit debugParam(14,quantityCache.virtual_quantity);
-        emit debugParam(15,quantityCache.swap);
-        emit debugParam(16,quantityCache.swap_fee);
-        emit debugParam(17,quantityCache.K);
-        emit debugParam(18,swapTemp);
         return toTTSwapUINT256(quantityCache.swap_fee, swapTemp);
     }
-
 
     function getGoodState(
         S_GoodState storage _self
@@ -766,84 +729,5 @@ library L_Good {
             limitpower_ = ((invest_quantity * maxpower) / current_quantity);
             limitpower_ = limitpower_ < 100 ? 100 : limitpower_;
         }
-    }
-
-    function getGood1K(
-        uint128 current_quantity,
-        uint128 invest_quantity,
-        uint128 virtual_quantity,
-        uint128 swap_quantity,
-        uint256 good1config,
-        bool side
-    ) internal  pure returns (uint128 K) {
-        uint128 maxpower = good1config.getPower();
-        maxpower += 100;
-        // R = Q - P (actual quantity), with P as virtual liquidity.
-        current_quantity = current_quantity - virtual_quantity;
-        // k1: depth factor at the start point based on R/I deviation.
-        uint128 k1 = current_quantity <= invest_quantity
-            ? ((current_quantity * maxpower) / invest_quantity)
-            : ((invest_quantity * maxpower) / current_quantity);
-        if (side) {
-            current_quantity = current_quantity + swap_quantity;
-        } else {
-            current_quantity = current_quantity - swap_quantity;
-        }
-       
-        // k2: depth factor at the end point after applying swap quantity.
-        uint128 k2 = current_quantity <= invest_quantity
-            ? ((current_quantity * maxpower) / invest_quantity)
-            : ((invest_quantity * maxpower) / current_quantity);
-        
-        // K = harmonic mean of k1 and k2 (whitepaper K_A).
-        // Note: Harmonic mean provides LP protection but sacrifices perfect reversibility.
-        // This is intentional - imbalanced pools have higher slippage to incentivize arbitrage.
-        K = (k1 + k2) == 0 ? 1 : (k1 * k2 * 2) / (k1 + k2);
-        K = K == 0 ? 1 : K;
-       
-    }
-
-    function getGood2K(
-        uint128 current_quantity,
-        uint128 invest_quantity,
-        uint128 virtual_quantity,
-        uint256 good2config,
-        uint128 swap_value,
-        uint128 good2value,
-        bool side
-    ) internal pure returns (uint128 K) {
-        uint128 maxpower = good2config.getPower();
-        maxpower += 100;
-        // R = Q - P (actual quantity), with P as virtual liquidity.
-        current_quantity = current_quantity - virtual_quantity;
-        uint128 k1 = current_quantity <= invest_quantity
-            ? ((current_quantity * maxpower) / invest_quantity)
-            : ((invest_quantity * maxpower) / current_quantity);
-        
-        uint128 real_quantity;
-        if (side) {
-            // Value decreases by swap_value on input, compute value-adjusted R' (tilde R).
-            real_quantity = uint128(
-                (uint256(current_quantity + virtual_quantity) *
-                    uint256(good2value - swap_value)) / uint256(good2value)
-            );
-        } else {
-            // Value increases by swap_value on output, compute value-adjusted R' (tilde R).
-            real_quantity = uint128(
-                (uint256(current_quantity + virtual_quantity) *
-                    uint256(good2value + swap_value)) / uint256(good2value)
-            );
-        }
-        real_quantity = real_quantity - virtual_quantity;
-
-        // k2: depth factor at the value-shifted end point.
-        uint128 k2 = real_quantity <= invest_quantity
-            ? ((real_quantity * maxpower) / invest_quantity)
-            : ((invest_quantity * maxpower) / real_quantity);
-        // K = harmonic mean of k1 and k2 (whitepaper K_B).
-        // Note: Harmonic mean provides LP protection but sacrifices perfect reversibility.
-        K = (k1 + k2) == 0 ? 1 : (k1 * k2 * 2) / (k1 + k2);
-        K = K == 0 ? 1 : K;
-       
     }
 }

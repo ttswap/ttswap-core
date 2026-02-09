@@ -287,37 +287,51 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         usdt.approve(address(market), 50000 * 10 ** 6 + 1);
         S_GoodTmpState memory beforeusdc = market.getGoodState(address(usdc));
         S_GoodTmpState memory beforeusdt = market.getGoodState(address(usdt));
+        
+        // 第一次交换：USDC -> USDT
+        uint128 inputAmount = 10000 * 10 ** 6;
         market.buyGood(
             address(usdc),
             address(usdt),
-            toTTSwapUINT256(10000 * 10 ** 6, 1000 * 10 ** 6),
-            
+            toTTSwapUINT256(inputAmount, 1000 * 10 ** 6),
             address(0),
             "",
             marketcreator,""
         );
         snapLastCall("testswapwithoutfee1");
+        
         uint256 usdcafter = usdc.balanceOf(address(marketcreator));
         uint256 usdtafter = usdt.balanceOf(address(marketcreator));
+        uint128 usdtReceived = uint128(usdtafter - usdtbefore);
+        
         console2.log("usdcbefore1:", usdcbefore);
         console2.log("usdcafter1:", usdcafter);
         console2.log("usdtbefore1:", usdtbefore);
         console2.log("usdtafter1:", usdtafter);
+        console2.log("usdtReceived:", usdtReceived);
+        
+        // 第二次交换：用第一次获得的全部USDT换回USDC
         market.buyGood(
             address(usdt),
             address(usdc),
-            toTTSwapUINT256(8823529411, 6000000000),
-            
+            toTTSwapUINT256(usdtReceived, 0),
             msg.sender,
             "",
             marketcreator,""
         );
 
-        snapLastCall("testswapwithoutfee1");
-        usdcafter = usdc.balanceOf(address(marketcreator));
-        usdtafter = usdt.balanceOf(address(marketcreator));
-        console2.log("usdcafter:", usdcafter);
-        console2.log("usdtafter:", usdtafter);
+        snapLastCall("testswapwithoutfee2");
+        
+        uint256 usdcfinal = usdc.balanceOf(address(marketcreator));
+        uint256 usdtfinal = usdt.balanceOf(address(marketcreator));
+        
+        console2.log("usdcfinal:", usdcfinal);
+        console2.log("usdtfinal:", usdtfinal);
+        
+        // 验证可逆性：最终USDC应接近初始值（允许舍入误差）
+        uint256 usdcDiff = usdcfinal > usdcbefore ? usdcfinal - usdcbefore : usdcbefore - usdcfinal;
+        console2.log("USDC difference:", usdcDiff);
+        console2.log("Expected ~0 for reversibility");
         S_GoodTmpState memory afterusdc = market.getGoodState(address(usdc));
         S_GoodTmpState memory afterusdt = market.getGoodState(address(usdt));
         console2.log(
@@ -336,22 +350,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             "afterusdc_currentStateamount1:",
             afterusdc.currentState.amount1()
         );
-        console2.log(
-            "beforeusdc_investStateamount0:",
-            beforeusdc.investState.amount0()
-        );
-        console2.log(
-            "afterusdc_investStateamount0:",
-            afterusdc.investState.amount0()
-        );
-        console2.log(
-            "beforeusdc_investStateamount1:",
-            beforeusdc.investState.amount1()
-        );
-        console2.log(
-            "afterusdc_investStateamount1:",
-            afterusdc.investState.amount1()
-        );
+    
        
         console2.log(
             "beforeusdt_currentStateamount0:",
@@ -369,23 +368,91 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             "afterusdt_currentStateamount1:",
             afterusdt.currentState.amount1()
         );
-        console2.log(
-            "beforeusdt_investStateamount0:",
-            beforeusdt.investState.amount0()
-        );
-        console2.log(
-            "afterusdt_investStateamount0:",
-            afterusdt.investState.amount0()
-        );
-        console2.log(
-            "beforeusdt_investStateamount1:",
-            beforeusdt.investState.amount1()
-        );
-        console2.log(
-            "afterusdt_investStateamount1:",
-            afterusdt.investState.amount1()
-        );
+
+       afterusdc = market.getGoodState(address(usdc));
+       beforeusdt = market.getGoodState(address(usdt));
         
+        // 第一次交换：USDC -> USDT
+         inputAmount = 10000 * 10 ** 6;
+        market.buyGood(
+            address(usdc),
+            address(usdt),
+            toTTSwapUINT256(inputAmount, 1000 * 10 ** 6),
+            address(0),
+            "",
+            marketcreator,""
+        );
+        snapLastCall("testswapwithoutfee1");
+        
+         usdcafter = usdc.balanceOf(address(marketcreator));
+         usdtafter = usdt.balanceOf(address(marketcreator));
+         usdtReceived = uint128(usdtafter - usdtbefore);
+        
+        console2.log("usdcbefore1:", usdcbefore);
+        console2.log("usdcafter1:", usdcafter);
+        console2.log("usdtbefore1:", usdtbefore);
+        console2.log("usdtafter1:", usdtafter);
+        console2.log("usdtReceived:", usdtReceived);
+        
+        // 第二次交换：用第一次获得的全部USDT换回USDC
+        market.buyGood(
+            address(usdt),
+            address(usdc),
+            toTTSwapUINT256(usdtReceived, 0),
+            msg.sender,
+            "",
+            marketcreator,""
+        );
+
+        snapLastCall("testswapwithoutfee2");
+        
+         usdcfinal = usdc.balanceOf(address(marketcreator));
+         usdtfinal = usdt.balanceOf(address(marketcreator));
+        
+        console2.log("usdcfinal:", usdcfinal);
+        console2.log("usdtfinal:", usdtfinal);
+        
+        // 验证可逆性：最终USDC应接近初始值（允许舍入误差）
+         usdcDiff = usdcfinal > usdcbefore ? usdcfinal - usdcbefore : usdcbefore - usdcfinal;
+        console2.log("USDC difference:", usdcDiff);
+        console2.log("Expected ~0 for reversibility");
+        afterusdc = market.getGoodState(address(usdc));
+         afterusdt = market.getGoodState(address(usdt));
+        console2.log(
+            "beforeusdc_currentStateamount0:",
+            beforeusdc.currentState.amount0()
+        );
+        console2.log(
+            "afterusdc_currentStateamount0:",
+            afterusdc.currentState.amount0()
+        );
+        console2.log(
+            "beforeusdc_currentStateamount1:",
+            beforeusdc.currentState.amount1()
+        );
+        console2.log(
+            "afterusdc_currentStateamount1:",
+            afterusdc.currentState.amount1()
+        );
+    
+       
+        console2.log(
+            "beforeusdt_currentStateamount0:",
+            beforeusdt.currentState.amount0()
+        );
+        console2.log(
+            "afterusdt_currentStateamount0:",
+            afterusdt.currentState.amount0()
+        );
+        console2.log(
+            "beforeusdt_currentStateamount1:",
+            beforeusdt.currentState.amount1()
+        );
+        console2.log(
+            "afterusdt_currentStateamount1:",
+            afterusdt.currentState.amount1()
+        );
+    
         vm.stopPrank();
     }
 

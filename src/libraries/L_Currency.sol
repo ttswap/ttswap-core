@@ -42,7 +42,7 @@ library L_CurrencyLibrary {
         bytes32 s;
     }
 
-    bytes constant defualtvalue = bytes("");
+    bytes constant defaultvalue = bytes("");
 
     /// @dev Structure to decode user-supplied transfer data.
     /// @param transfertype The type of transfer mechanism to use.

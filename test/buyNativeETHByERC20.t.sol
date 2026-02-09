@@ -154,7 +154,7 @@ contract buyNativeETHByERC20 is BaseSetup {
         );
         assertEq(
             address(market).balance,
-            90765065,
+            90732765,
             "after buy NativeETH_normalgood:btc address(market) account  balance error"
         );
         metagoodkeystate = market.getGoodState(metagood);
@@ -173,13 +173,13 @@ contract buyNativeETHByERC20 is BaseSetup {
         normalgoodkeystate = market.getGoodState(normalgoodbtc);
         assertEq(
             normalgoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(100004619, 90765065).amount0(),
+            toTTSwapUINT256(100004635, 90732765).amount0(),
             "after buy NativeETH normalgood:normalgoodkey currentState error"
         );
 
         assertEq(
             normalgoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(100004619, 90765065).amount1(),
+            toTTSwapUINT256(100004635, 90732765).amount1(),
             "after  buy NativeETH  normalgood:normalgoodkey currentState amount1 error"
         );
 
@@ -266,7 +266,7 @@ contract buyNativeETHByERC20 is BaseSetup {
         );
         assertEq(
             address(market).balance,
-            90765065,
+            90732765,
             "after buy NativeETH_normalgood:btc address(market) account  balance error"
         );
         metagoodkeystate = market.getGoodState(metagood);
@@ -285,13 +285,13 @@ contract buyNativeETHByERC20 is BaseSetup {
         normalgoodkeystate = market.getGoodState(normalgoodbtc);
         assertEq(
             normalgoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(100004619, 90765065).amount0(),
+            toTTSwapUINT256(100004635, 90732765).amount0(),
             "after buy NativeETH normalgood:normalgoodkey currentState error"
         );
 
         assertEq(
             normalgoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(100004619, 90765065).amount1(),
+            toTTSwapUINT256(100004635, 90732765).amount1(),
             "after  buy NativeETH  normalgood:normalgoodkey currentState amount1 error"
         );
 

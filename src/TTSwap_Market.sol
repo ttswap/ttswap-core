@@ -118,12 +118,23 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         L_Transient.checkafter();
     }
 
-    /// @notice This will revert if the contract is locked
+    /// @notice Top-level reentrancy guard (used by multicall only).
+    /// Sets lock to 1 (multicall context) so inner functions can enter via guardedEntry.
     modifier noReentrant() {
-        if (L_Transient.get() != address(0)) revert TTSwapError(3);
-        L_Transient.set(msg.sender);
+        if (L_Transient.get() != 0) revert TTSwapError(3);
+        L_Transient.set(1);
         _;
-        L_Transient.set(address(0));
+        L_Transient.set(0);
+    }
+
+    /// @notice Guarded entry: works standalone (lock 0→2) and inside multicall (lock 1→2).
+    /// Reverts on reentrancy (lock == 2). Restores previous lock level on exit.
+    modifier guardedEntry() {
+        uint256 lock = L_Transient.get();
+        if (lock > 1) revert TTSwapError(3);
+        L_Transient.set(2);
+        _;
+        L_Transient.set(lock);
     }
 
     /// @dev Internal function to validate trader matches msg.sender
@@ -260,7 +271,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata _valuedata,
         address _trader,
         bytes calldata signature
-    ) external payable override noReentrant msgValue returns (bool) {
+    ) external payable override guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
         if (_initial.amount0() < 500000 || _initial.amount0() > 2 ** 109)
             revert TTSwapError(36);
@@ -385,7 +396,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         external
         payable
         override
-        noReentrant
+        guardedEntry
         msgValue
         returns (uint256 good1change, uint256 good2change)
     {
@@ -404,7 +415,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                                 _goodid2,
                                 _swapQuantity,
                                 nonces[_trader]++,
-                                data
+                                keccak256(data)
                             )
                         )
                     )
@@ -445,7 +456,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             uint128 feeQuanity = goods[_goodid2]
                 .getGoodState()
                 .getamount1fromamount0(excuteFee);
-
+            if(feeQuanity > good2change.amount1()) revert TTSwapError(46);
             goods[_goodid2].commission[msg.sender] += feeQuanity;
             _goodid2.safeTransfer(
                 _recipient,
@@ -507,7 +518,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         external
         payable
         override
-        noReentrant
+        guardedEntry
         msgValue
         returns (uint256 good1change, uint256 good2change)
     {
@@ -523,13 +534,14 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         DOMAIN_SEPARATOR(),
                         keccak256(
                             abi.encode(
-                                keccak256("payGood(address _trader,address recipent,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 data_hash,uint256 nonce)"),
+                                keccak256("payGood(address _trader,address recipent,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 data_hash,bytes data,uint256 nonce)"),
                                 _trader,
                                 _recipient,
                                 _goodid1,
                                 _goodid2,
                                 _swapQuantity,
                                 data_hash,
+                                keccak256(data),
                                 nonces[_trader]++
                             )
                         )
@@ -564,7 +576,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 feeQuanity = goods[_goodid2]
                     .getGoodState()
                     .getamount0fromamount1(excuteFee);
-            
+                if(feeQuanity > good2change.amount1()) revert TTSwapError(46);
                 goods[_goodid2].commission[msg.sender] += feeQuanity;
                 _goodid2.safeTransfer(_recipient, _swapQuantity.amount1()-feeQuanity);
             }
@@ -587,15 +599,17 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 _swapQuantity.amount0(),
                 data
             );
+            good1change = toTTSwapUINT256(
+                    goods[_goodid1].currentState.amount1(),
+                    goods[_goodid1].investState.amount1()
+                );
             if (msg.sender == _trader) {
                 _goodid1.safeTransfer(_recipient, _swapQuantity.amount0());
             } else {
                 // Relayer commission calculation.
-                good1change = toTTSwapUINT256(
-                    goods[_goodid1].currentState.amount1(),
-                    goods[_goodid1].investState.amount1()
-                );
+                
                 feeQuanity = good1change.getamount0fromamount1(excuteFee);
+                if(feeQuanity > good2change.amount1()) revert TTSwapError(46);
                 good2change = _swapQuantity.amount0() - feeQuanity;
                 goods[_goodid1].commission[msg.sender] += feeQuanity;
                 _goodid1.safeTransfer(_recipient, good2change);
@@ -642,7 +656,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata data2,
         address _trader,
         bytes calldata signature
-    ) external payable override noReentrant msgValue returns (bool) {
+    ) external payable override guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
         L_Good.S_GoodInvestReturn memory normalInvest_;
         L_Good.S_GoodInvestReturn memory valueInvest_;
@@ -797,7 +811,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address _gate,
         address _trader,
         bytes calldata signature
-    ) external override noReentrant returns (uint128, uint128) {
+    ) external override guardedEntry returns (uint128, uint128) {
         _checkTrader(_trader);
         if (
             S_ProofKey(
@@ -1105,7 +1119,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address[] calldata _goodid,
         address _trader,
         bytes calldata signature
-    ) external override noReentrant {
+    ) external override guardedEntry {
         _checkTrader(_trader);
         address recipent = TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin()
             ? address(0)
@@ -1114,7 +1128,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         uint256[] memory commissionamount = new uint256[](_goodid.length);
         for (uint256 i = 0; i < _goodid.length; i++) {
             commissionamount[i] = goods[_goodid[i]].commission[recipent];
-            if (commissionamount[i] > 2) {
+            if (commissionamount[i] > 1) {
                 commissionamount[i] = commissionamount[i] - 1;
                 goods[_goodid[i]].commission[recipent] = 1;
                 _goodid[i].safeTransfer(msg.sender, commissionamount[i]);
@@ -1169,7 +1183,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata data,
         address _trader,
         bytes calldata signature
-    ) external payable override noReentrant msgValue {
+    ) external payable override guardedEntry msgValue {
         _checkTrader(_trader);
         if (goods[goodid].currentState.amount0() + welfare > 2 ** 109) {
             revert TTSwapError(18);

@@ -300,6 +300,21 @@ library L_GoodConfigLibrary {
         return (amount / a);
     }
 
+    function getK1(uint256 config) internal pure returns (uint128 a) {
+        assembly {
+            a := shr(240, shl(79, config))
+        }
+        return a == 0 ? 20000 : a * 10;
+    }
+
+    function getK2(uint256 config) internal pure returns (uint128 a) {
+        assembly {
+            a := shr(240, shl(79, config))
+        }
+        a = a == 0 ? 20000 : a * 10;
+        a = (a * 10000) / (a - 10000);
+        return a;
+    }
     /// @notice Validates if a configuration value is well-formed and consistent.
     /// @dev Checks that the sum of all fee components (liquidity, operator, gate, referal, customer, platform) equals 100%.
     /// Each component is extracted from specific bit ranges and normalized.
@@ -320,11 +335,11 @@ library L_GoodConfigLibrary {
         uint256 referal;
         uint256 cust;
         uint256 platform;
-        
+
         assembly {
             // liquid = ((config >> 251) & 0x7) * 10
             liquid := mul(and(shr(251, config), 0x7), 10)
-            // operator = ((config >> 247) & 0x7) * 2  
+            // operator = ((config >> 247) & 0x7) * 2
             operator := mul(and(shr(247, config), 0x7), 2)
             // gate = ((config >> 244) & 0x7) * 4
             gate := mul(and(shr(244, config), 0x7), 4)
@@ -335,7 +350,7 @@ library L_GoodConfigLibrary {
             // platform = (config >> 229) & 0x1F
             platform := and(shr(229, config), 0x1F)
         }
-        
+
         // Check all components are non-zero and sum equals 100
         if (
             liquid == 0 ||
@@ -345,7 +360,7 @@ library L_GoodConfigLibrary {
             cust == 0 ||
             platform == 0
         ) return false;
-        
+
         return (liquid + operator + gate + referal + cust + platform == 100);
     }
 }
