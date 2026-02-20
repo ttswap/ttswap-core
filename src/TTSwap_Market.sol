@@ -148,8 +148,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         uint8 freezeErr,
         uint8 emptyErr
     ) private view {
-        if (goods[_goodid].goodConfig.isFreeze()) revert TTSwapError(freezeErr);
-        if (goods[_goodid].currentState == 0) revert TTSwapError(emptyErr);
+        // Storage pointer avoids recomputing the mapping key hash twice
+        S_GoodState storage g = goods[_goodid];
+        if (g.goodConfig.isFreeze()) revert TTSwapError(freezeErr);
+        if (g.currentState == 0) revert TTSwapError(emptyErr);
     }
 
     /// @notice Enables calling multiple methods in a single call to the contract
@@ -157,8 +159,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     function multicall(
         bytes[] calldata data
     ) external payable msgValue noReentrant returns (bytes[] memory results) {
-        results = new bytes[](data.length);
-        for (uint256 i = 0; i < data.length; i++) {
+        uint256 len = data.length;
+        results = new bytes[](len);
+        for (uint256 i = 0; i < len; ) {
             (bool success, bytes memory result) = address(this).delegatecall(
                 data[i]
             );
@@ -171,6 +174,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             }
 
             results[i] = result;
+            unchecked { ++i; }
         }
     }
 
@@ -715,13 +719,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
         if (_valuegood != address(0)) {
             _checkGoodActive(_valuegood, 11, 13);
-            (valueInvest_.goodShares, valueInvest_.goodValues) = goods[
-                _valuegood
-            ].investState.amount01();
+            S_GoodState storage vGood = goods[_valuegood];
+            (valueInvest_.goodShares, valueInvest_.goodValues) = vGood.investState.amount01();
             (
                 valueInvest_.goodInvestQuantity,
                 valueInvest_.goodCurrentQuantity
-            ) = goods[_valuegood].currentState.amount01();
+            ) = vGood.currentState.amount01();
 
             // Calculate required value good quantity based on the value of the normal good investment.
             // Ensures the investment maintains the current price ratio between the two goods.
@@ -730,13 +733,13 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 valueInvest_.goodValues
             ).getamount0fromamount1(normalInvest_.investValue);
 
-            // Adjust for investment fees to determine the gross amount needed from the user.
-            valueInvest_.investQuantity = goods[_valuegood]
-                .goodConfig
-                .getInvestFullFee(valueInvest_.investQuantity);
+            // Cache goodConfig once: getInvestFullFee + investGood both read it internally
+            valueInvest_.investQuantity = vGood.goodConfig.getInvestFullFee(
+                valueInvest_.investQuantity
+            );
 
             // Process investment for value good.
-            goods[_valuegood].investGood(
+            vGood.investGood(
                 valueInvest_.investQuantity,
                 valueInvest_,
                 enpower
@@ -933,21 +936,17 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     }
 
     function refreshPromise(uint256 _proofid) external override {
-        if (
-            S_ProofKey(
-                msg.sender,
-                proofs[_proofid].currentgood,
-                proofs[_proofid].valuegood
-            ).toId() != _proofid
-        ) {
+        // Cache proof storage pointer + fields: avoids 4+ repeated SLOAD on proofs[_proofid]
+        S_ProofState storage proof = proofs[_proofid];
+        address currentgood = proof.currentgood;
+        address valuegood = proof.valuegood;
+        if (S_ProofKey(msg.sender, currentgood, valuegood).toId() != _proofid) {
             revert TTSwapError(19);
         }
-        if (
-            goods[proofs[_proofid].currentgood].goodConfig.getApply() &&
-            goods[proofs[_proofid].currentgood].owner == msg.sender
-        ) {
+        S_GoodState storage g = goods[currentgood];
+        if (g.goodConfig.getApply() && g.owner == msg.sender) {
             // Emits a claimable-proof signal for applied goods (creator-owned).
-            emit e_getPromiseProof(proofs[_proofid].currentgood, _proofid);
+            emit e_getPromiseProof(currentgood, _proofid);
         }
     }
 
@@ -1140,15 +1139,17 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address recipent = TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin()
             ? address(0)
             : msg.sender;
-        if (_goodid.length > 100) revert TTSwapError(21);
-        uint256[] memory commissionamount = new uint256[](_goodid.length);
-        for (uint256 i = 0; i < _goodid.length; i++) {
+        uint256 len = _goodid.length;
+        if (len > 100) revert TTSwapError(21);
+        uint256[] memory commissionamount = new uint256[](len);
+        for (uint256 i = 0; i < len; ) {
             commissionamount[i] = goods[_goodid[i]].commission[recipent];
             if (commissionamount[i] > 1) {
                 commissionamount[i] = commissionamount[i] - 1;
                 goods[_goodid[i]].commission[recipent] = 1;
                 _goodid[i].safeTransfer(msg.sender, commissionamount[i]);
             }
+            unchecked { ++i; }
         }
         emit e_collectcommission(_goodid, commissionamount, _trader);
     }
@@ -1171,10 +1172,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address[] calldata _goodid,
         address _recipient
     ) external view override returns (uint256[] memory) {
-        if (_goodid.length > 100) revert TTSwapError(21);
-        uint256[] memory feeamount = new uint256[](_goodid.length);
-        for (uint256 i = 0; i < _goodid.length; i++) {
+        uint256 len = _goodid.length;
+        if (len > 100) revert TTSwapError(21);
+        uint256[] memory feeamount = new uint256[](len);
+        for (uint256 i = 0; i < len; ) {
             feeamount[i] = goods[_goodid[i]].commission[_recipient];
+            unchecked { ++i; }
         }
         return feeamount;
     }

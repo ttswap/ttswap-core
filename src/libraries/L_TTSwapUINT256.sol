@@ -60,7 +60,7 @@ function add(uint256 a, uint256 b) pure returns (uint256) {
         res0 >= type(uint128).max-1 ||
         res1 >= type(uint128).max-1
     ) revert TTSwapUINT256AddOverflow();
-    return (res0 << 128) + res1;
+    return (res0 << 128) | res1;
 }
 
 /// @notice Subtracts two T_BalanceUINT256 values
@@ -91,7 +91,7 @@ function sub(uint256 a, uint256 b) pure returns (uint256) {
         }
     }
     if (a0 < b0 || a1 < b1) revert TTSwapUINT256SubOverflow();
-    return (res0 << 128) + res1;
+    return (res0 << 128) | res1;
 }
 
 /// @notice Adds the first components and subtracts the second components of two T_BalanceUINT256 values
@@ -123,7 +123,7 @@ function addsub(uint256 a, uint256 b) pure returns (uint256) {
     }
     if (res0 < a0 || a1 < b1 || res0 >= type(uint128).max)
         revert TTSwapUINT256AddSubOverflow();
-    return (res0 << 128) + res1;
+    return (res0 << 128) | res1;
 }
 
 /// @notice Subtracts the first components and adds the second components of two T_BalanceUINT256 values
@@ -155,7 +155,7 @@ function subadd(uint256 a, uint256 b) pure returns (uint256) {
     }
     if (a0 < b0 || res1 < a1 || res1 >= type(uint128).max)
         revert TTSwapUINT256SubAddOverflow();
-    return (res0 << 128) + res1;
+    return (res0 << 128) | res1;
 }
 
 /// @notice Safely converts a uint256 to a uint128

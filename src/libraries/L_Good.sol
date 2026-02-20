@@ -137,15 +137,6 @@ library L_Good {
         self.owner = msg.sender;
     }
 
-    struct S_swapCache {
-        uint128 current_quantity;
-        uint128 current_value;
-        uint128 invest_quantity;
-        uint128 swap;
-        uint128 swap_fee;
-        uint128 K;
-    }
-
     /*
      * @notice Swap quantity
      * @dev Swaps quantity of the good
@@ -160,64 +151,45 @@ library L_Good {
         uint128 _swapParam,
         bool side // true: input, false: output
     ) internal returns (uint256) {
-        uint128 swapTemp; //when side is true, swapTemp is the quantity of the swap, when side is false, swapTemp is the value of the swap
-        S_swapCache memory quantityCache = S_swapCache({
-            current_quantity: _self.currentState.amount1(),
-            current_value: _self.investState.amount1(),
-            invest_quantity: _self.currentState.amount0(),
-            swap: _swapParam,
-            swap_fee: 0,
-            K: 0
-        });
-        if (side) {
-            quantityCache.swap_fee = _self.goodConfig.getSellFee(_swapParam);
-            quantityCache.swap = quantityCache.swap - quantityCache.swap_fee;
-            // Whitepaper mapping (input side):
-            // Q = current_quantity, V = current_value, R = Q - virtual_quantity, I = invest_quantity.
-            // K_A is derived from R/I before and after the input, then used in the harmonic-mean formula.
-            quantityCache.K = _self.goodConfig.getK1();
+        // Cache storage reads: currentState (1 SLOAD), investState (1 SLOAD), goodConfig (1 SLOAD)
+        // Previously a S_swapCache memory struct caused extra memory allocation and a dead
+        // invest_quantity read (_self.currentState.amount0()) that was never used in calculations.
+        uint128 current_quantity = _self.currentState.amount1();
+        uint128 current_value = _self.investState.amount1();
+        uint256 config = _self.goodConfig;
+        uint128 swap_fee;
+        uint128 swapTemp;
 
+        if (side) {
+            swap_fee = config.getSellFee(_swapParam);
+            uint128 swap = _swapParam - swap_fee;
+            uint128 K = config.getK1();
             // ΔV = (K_A * V_A * Δa) / (K_A * Q_A + Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
-                (uint256(quantityCache.K) *
-                    uint256(quantityCache.swap) *
-                    uint256(quantityCache.current_value)) /
-                    (uint256(quantityCache.K) *
-                        uint256(quantityCache.current_quantity) +
-                        uint256(quantityCache.swap) *
-                        10000)
+                (uint256(K) * uint256(swap) * uint256(current_value)) /
+                    (uint256(K) * uint256(current_quantity) + uint256(swap) * 10000)
             );
-
             _self.currentState = add(
                 _self.currentState,
-                toTTSwapUINT256(quantityCache.swap_fee, _swapParam)
+                toTTSwapUINT256(swap_fee, _swapParam)
             );
         } else {
             // waiting for eip 7954
             // Output-side (exact-out for value): use K_B from value-shifted R_B.
-            quantityCache.K = _self.goodConfig.getK2();
-
+            uint128 K = config.getK2();
             // Δb = (K_B * Q_B * ΔV) / (K_B * V_B - ΔV), scaled by 100 for fee precision.
             swapTemp = uint128(
-                (uint256(quantityCache.K) *
-                    uint256(quantityCache.swap) *
-                    uint256(quantityCache.current_quantity)) /
-                    (uint256(quantityCache.K) *
-                        uint256(quantityCache.current_value) -
-                        uint256(quantityCache.swap) *
-                        10000)
+                (uint256(K) * uint256(_swapParam) * uint256(current_quantity)) /
+                    (uint256(K) * uint256(current_value) - uint256(_swapParam) * 10000)
             );
-            quantityCache.swap_fee = _self.goodConfig.getSellFee(swapTemp);
+            swap_fee = config.getSellFee(swapTemp);
             _self.currentState = add(
                 _self.currentState,
-                toTTSwapUINT256(
-                    quantityCache.swap_fee,
-                    quantityCache.swap_fee + swapTemp
-                )
+                toTTSwapUINT256(swap_fee, swap_fee + swapTemp)
             );
         }
 
-        return toTTSwapUINT256(quantityCache.swap_fee, swapTemp);
+        return toTTSwapUINT256(swap_fee, swapTemp);
     }
 
     /*
@@ -234,70 +206,49 @@ library L_Good {
         uint128 _swapParam,
         bool side // true: input, false: output
     ) internal returns (uint256) {
+        // Cache storage reads: currentState (1 SLOAD), investState (1 SLOAD), goodConfig (1 SLOAD)
+        uint128 current_quantity = _self.currentState.amount1();
+        uint128 current_value = _self.investState.amount1();
+        uint256 config = _self.goodConfig;
+        uint128 swap_fee;
         uint128 swapTemp;
-        S_swapCache memory quantityCache = S_swapCache({
-            current_quantity: _self.currentState.amount1(),
-            current_value: _self.investState.amount1(),
-            invest_quantity: _self.currentState.amount0(),
-            swap: _swapParam,
-            swap_fee: 0,
-            K: 0
-        });
 
         if (side) {
             // Input-side (exact-in for value): K_B uses value-shifted R_B to update depth.
-            quantityCache.K = _self.goodConfig.getK2();
-
+            uint128 K = config.getK2();
             // Δb = (K_B * Q_B * ΔV) / (K_B * V_B + ΔV), scaled by 100 for fee precision.
             swapTemp = uint128(
-                (uint256(quantityCache.K) *
-                    uint256(quantityCache.swap) *
-                    uint256(quantityCache.current_quantity)) /
-                    (uint256(quantityCache.K) *
-                        uint256(quantityCache.current_value) +
-                        uint256(quantityCache.swap) *
-                        10000)
+                (uint256(K) * uint256(_swapParam) * uint256(current_quantity)) /
+                    (uint256(K) * uint256(current_value) + uint256(_swapParam) * 10000)
             );
-
-            quantityCache.swap_fee = _self.goodConfig.getBuyFee(swapTemp);
-            swapTemp = swapTemp - quantityCache.swap_fee;
-
+            swap_fee = config.getBuyFee(swapTemp);
+            swapTemp = swapTemp - swap_fee;
             _self.currentState = addsub(
                 _self.currentState,
-                toTTSwapUINT256(quantityCache.swap_fee, swapTemp)
+                toTTSwapUINT256(swap_fee, swapTemp)
             );
         } else {
-            quantityCache.swap_fee = _self.goodConfig.getBuyFee(
-                quantityCache.swap
-            );
-            quantityCache.swap = quantityCache.swap + quantityCache.swap_fee;
+            swap_fee = config.getBuyFee(_swapParam);
+            uint128 swap = _swapParam + swap_fee;
             // Quantity-view exact-out: solve for ΔV using K_A derived from quantity shift.
-            quantityCache.K = _self.goodConfig.getK1();
+            uint128 K = config.getK1();
             // ΔV = (K_A * V_A * Δa) / (K_A * Q_A - Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
-                (uint256(quantityCache.K) *
-                    uint256(quantityCache.swap) *
-                    uint256(quantityCache.current_value)) /
-                    (uint256(quantityCache.K) *
-                        uint256(quantityCache.current_quantity) -
-                        uint256(quantityCache.swap) *
-                        10000)
+                (uint256(K) * uint256(swap) * uint256(current_value)) /
+                    (uint256(K) * uint256(current_quantity) - uint256(swap) * 10000)
             );
-            if (quantityCache.swap_fee > 0)
+            if (swap_fee > 0)
                 _self.currentState = add(
                     _self.currentState,
-                    toTTSwapUINT256(
-                        quantityCache.swap_fee,
-                        quantityCache.swap_fee
-                    )
+                    toTTSwapUINT256(swap_fee, swap_fee)
                 );
             _self.currentState = sub(
                 _self.currentState,
-                toTTSwapUINT256(0, quantityCache.swap)
+                toTTSwapUINT256(0, swap)
             );
         }
 
-        return toTTSwapUINT256(quantityCache.swap_fee, swapTemp);
+        return toTTSwapUINT256(swap_fee, swapTemp);
     }
 
     function getGoodState(
@@ -437,7 +388,14 @@ library L_Good {
             uint256 disinvestvalue
         )
     {
-        if (_params._goodshares > _investProof.shares.amount0()) {
+        // Cache proof fields to avoid repeated SLOADs on the same storage slots
+        uint128 proofShares0 = _investProof.shares.amount0();
+        uint128 proofInvest0 = _investProof.invest.amount0();
+        uint128 proofInvest1 = _investProof.invest.amount1();
+        uint128 proofState0 = _investProof.state.amount0();
+        uint128 proofState1 = _investProof.state.amount1();
+
+        if (_params._goodshares > proofShares0) {
             revert TTSwapError(41);
         }
         // Calculate the disinvestment value based on the investment proof and requested quantity
@@ -446,28 +404,18 @@ library L_Good {
             0,
             0,
             _params._goodshares, //divest shares
-            toTTSwapUINT256(
-                _investProof.invest.amount0(),
-                _investProof.shares.amount0()
-            ).getamount0fromamount1(_params._goodshares), // Virtual quantity to divest (normal good)
-            toTTSwapUINT256(
-                _investProof.invest.amount1(),
-                _investProof.shares.amount0()
-            ).getamount0fromamount1(_params._goodshares) // Actual quantity to divest (normal good)
+            toTTSwapUINT256(proofInvest0, proofShares0).getamount0fromamount1(_params._goodshares), // Virtual quantity to divest (normal good)
+            toTTSwapUINT256(proofInvest1, proofShares0).getamount0fromamount1(_params._goodshares) // Actual quantity to divest (normal good)
         );
         // Calculate the total value (in terms of the value good) corresponding to the divested portion.
         // Uses proof-time value ratios to preserve value accounting across virtual/actual quantities.
         disinvestvalue = toTTSwapUINT256(
-            toTTSwapUINT256(
-                _investProof.state.amount0(),
-                _investProof.invest.amount0()
-            ).getamount0fromamount1(
-                    normalGoodResult1_.virtualDisinvestQuantity
-                ),
-            toTTSwapUINT256(
-                _investProof.state.amount1(),
-                _investProof.invest.amount0()
-            ).getamount0fromamount1(normalGoodResult1_.virtualDisinvestQuantity)
+            toTTSwapUINT256(proofState0, proofInvest0).getamount0fromamount1(
+                normalGoodResult1_.virtualDisinvestQuantity
+            ),
+            toTTSwapUINT256(proofState1, proofInvest0).getamount0fromamount1(
+                normalGoodResult1_.virtualDisinvestQuantity
+            )
         );
 
         // Ensure disinvestment conditions are met
@@ -547,21 +495,16 @@ library L_Good {
         // Handle value good disinvestment if applicable
         if (_investProof.valuegood != address(0)) {
             // Calculate disinvestment results for value good
+            // proofShares0 already cached above; cache remaining proof fields
+            uint128 proofShares1 = _investProof.shares.amount1();
+            uint128 proofValueInvest0 = _investProof.valueinvest.amount0();
+            uint128 proofValueInvest1 = _investProof.valueinvest.amount1();
             valueGoodResult2_ = S_GoodDisinvestReturn(
                 0,
                 0,
-                toTTSwapUINT256(
-                    _investProof.shares.amount1(),
-                    _investProof.shares.amount0()
-                ).getamount0fromamount1(_params._goodshares), //divest shares
-                toTTSwapUINT256(
-                    _investProof.valueinvest.amount0(),
-                    _investProof.shares.amount0()
-                ).getamount0fromamount1(_params._goodshares),
-                toTTSwapUINT256(
-                    _investProof.valueinvest.amount1(),
-                    _investProof.shares.amount0()
-                ).getamount0fromamount1(_params._goodshares)
+                toTTSwapUINT256(proofShares1, proofShares0).getamount0fromamount1(_params._goodshares), //divest shares
+                toTTSwapUINT256(proofValueInvest0, proofShares0).getamount0fromamount1(_params._goodshares),
+                toTTSwapUINT256(proofValueInvest1, proofShares0).getamount0fromamount1(_params._goodshares)
             );
             // Ensure value good disinvestment conditions are met
             if (
@@ -723,10 +666,11 @@ library L_Good {
     function getInvestPower(
         S_GoodState storage _self
     ) internal view returns (uint128 limitpower_) {
-        uint128 maxpower = _self.goodConfig.getPower();
-        uint128 virtual_quantity = _self.goodConfig.amount1();
-        uint128 current_quantity = _self.currentState.amount1() -
-            virtual_quantity;
+        // Cache goodConfig: saves 1 SLOAD vs calling getPower() + amount1() separately
+        uint256 config = _self.goodConfig;
+        uint128 maxpower = config.getPower();
+        uint128 virtual_quantity = config.amount1();
+        uint128 current_quantity = _self.currentState.amount1() - virtual_quantity;
         uint128 invest_quantity = _self.currentState.amount0();
         if (current_quantity < invest_quantity) {
             limitpower_ = ((current_quantity * maxpower) / invest_quantity);
