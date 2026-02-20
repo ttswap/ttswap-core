@@ -210,18 +210,18 @@ function lowerprice(
 /// @dev Optimized to prevent intermediate overflow during multiplication
 /// @param config The multiplicand
 /// @param amount The multiplier
-/// @param domitor The divisor
+/// @param divisor The divisor
 /// @return a The result as a uint128
 function mulDiv(
     uint256 config,
     uint256 amount,
-    uint256 domitor
+    uint256 divisor
 ) pure returns (uint128 a) {
     uint256 result;
-    if (domitor == 0) revert();
+    if (divisor == 0) revert();
     assembly {
         config := mul(config, amount)
-        result := div(config, domitor)
+        result := div(config, divisor)
     }
     return toUint128(result);
 }

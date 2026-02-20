@@ -213,8 +213,7 @@ library L_GoodConfigLibrary {
         unchecked {
             assembly {
                 config := shr(250, shl(33, config))
-                amount := div(amount, sub(10000, config))
-                a := mul(amount, 10000)
+                a := div(mul(amount, 10000), sub(10000, config))
             }
         }
     }

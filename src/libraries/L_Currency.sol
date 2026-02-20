@@ -13,7 +13,7 @@ address constant NATIVE = address(1);
 // // mainnet
 address constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
 address constant _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-// testnet  
+// //testnet  
 // address constant dai = 0xCaFBbAd55eb09efe7bec8408Cff9932Be7D9A7fA;
 // address constant _permit2 = 0xa50eb0d081E986c280efF32dae089939Ea07bd22;
 
@@ -348,7 +348,8 @@ library L_CurrencyLibrary {
     }
 
     function to_uint160(uint256 amount) internal pure returns (uint160) {
-        return amount == uint160(amount) ? uint160(amount) : 0;
+        if (amount != uint160(amount)) revert TTSwapError(46);
+return uint160(amount);
     }
 
     function to_uint256(address amount) internal pure returns (uint256 a) {

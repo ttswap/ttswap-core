@@ -105,7 +105,6 @@ library L_Transient {
     function checkbefore() internal {
         if (getDepth() == 0) {
             setValue(msg.value);
-            clearDepth();
         }
         addDepth();
     }

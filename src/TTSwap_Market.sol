@@ -84,7 +84,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      */
     mapping(uint256 proofid => S_ProofState) private proofs;
     uint256 internal immutable INITIAL_CHAIN_ID;
-    uint128 internal constant excuteFee = 50_000_000_000; //10**12
+    uint128 internal constant executeFee = 50_000_000_000; //5*10**10
     bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
 
     /**
@@ -143,7 +143,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     }
 
     /// @dev Internal function to check if a good is active (not frozen and has state)
-    function _checkGoodActive(address _goodid, uint8 freezeErr, uint8 emptyErr) private view {
+    function _checkGoodActive(
+        address _goodid,
+        uint8 freezeErr,
+        uint8 emptyErr
+    ) private view {
         if (goods[_goodid].goodConfig.isFreeze()) revert TTSwapError(freezeErr);
         if (goods[_goodid].currentState == 0) revert TTSwapError(emptyErr);
     }
@@ -358,7 +362,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         );
         return true;
     }
-   
+
     /**
      * @dev Executes a swap (buy) between two goods.
      * @param _goodid1 The address of the input good (selling).
@@ -408,7 +412,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         DOMAIN_SEPARATOR(),
                         keccak256(
                             abi.encode(
-                                keccak256("buyGood(address _trader,address referal,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 nonce,bytes data)"),
+                                keccak256(
+                                    "buyGood(address _trader,address referal,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 nonce,bytes data)"
+                                ),
                                 _trader,
                                 _recipient,
                                 _goodid1,
@@ -429,10 +435,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             TTS_CONTRACT.setReferral(_trader, _recipient);
         }
         // Step 1: map input quantity to transferred value (ΔV) on good1 side.
-        good1change = goods[_goodid1].good1Swap(
-            _swapQuantity.amount0(),
-            true
-        );
+        good1change = goods[_goodid1].good1Swap(_swapQuantity.amount0(), true);
         // Step 2: map transferred value (ΔV) to output quantity on good2 side.
         good2change = goods[_goodid2].good2Swap(good1change.amount1(), true);
 
@@ -453,14 +456,14 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             _goodid2.safeTransfer(_trader, good2change.amount1());
         } else {
             // Fee is denominated in output good units to keep payout consistent.
-            uint128 feeQuanity = goods[_goodid2]
+            uint128 feeQuantity = goods[_goodid2]
                 .getGoodState()
-                .getamount1fromamount0(excuteFee);
-            if(feeQuanity > good2change.amount1()) revert TTSwapError(46);
-            goods[_goodid2].commission[msg.sender] += feeQuanity;
+                .getamount1fromamount0(executeFee);
+            if (feeQuantity > good2change.amount1()) revert TTSwapError(46);
+            goods[_goodid2].commission[msg.sender] += feeQuantity;
             _goodid2.safeTransfer(
                 _recipient,
-                (good2change.amount1() - feeQuanity)
+                (good2change.amount1() - feeQuantity)
             );
         }
 
@@ -522,7 +525,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         msgValue
         returns (uint256 good1change, uint256 good2change)
     {
-        uint128 feeQuanity;
+        uint128 feeQuantity;
         _checkGoodActive(_goodid1, 10, 12);
         _checkGoodActive(_goodid2, 11, 13);
         if (_recipient == address(0)) revert TTSwapError(32);
@@ -534,7 +537,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         DOMAIN_SEPARATOR(),
                         keccak256(
                             abi.encode(
-                                keccak256("payGood(address _trader,address recipent,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 data_hash,bytes data,uint256 nonce)"),
+                                keccak256(
+                                    "payGood(address _trader,address recipent,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 data_hash,bytes data,uint256 nonce)"
+                                ),
                                 _trader,
                                 _recipient,
                                 _goodid1,
@@ -560,11 +565,15 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 good2change.amount1(),
                 false
             );
-
+            if (
+                good1change.amount1() + good1change.amount0() >
+                _swapQuantity.amount0() &&
+                _swapQuantity.amount0() > 0
+            ) revert TTSwapError(15);
             _goodid1.transferFrom(
                 _trader,
                 msg.sender,
-                good1change.amount1() + good1change.amount0() ,
+                good1change.amount1() + good1change.amount0(),
                 data
             );
             // Transfer output tokens.
@@ -573,19 +582,25 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             } else {
                 // Commission logic for relayer.
 
-                feeQuanity = goods[_goodid2]
+                feeQuantity = goods[_goodid2]
                     .getGoodState()
-                    .getamount0fromamount1(excuteFee);
-                if(feeQuanity > good2change.amount1()) revert TTSwapError(46);
-                goods[_goodid2].commission[msg.sender] += feeQuanity;
-                _goodid2.safeTransfer(_recipient, _swapQuantity.amount1()-feeQuanity);
+                    .getamount1fromamount0(executeFee);
+                if (feeQuantity > good2change.amount1()) revert TTSwapError(46);
+                goods[_goodid2].commission[msg.sender] += feeQuantity;
+                _goodid2.safeTransfer(
+                    _recipient,
+                    _swapQuantity.amount1() - feeQuantity
+                );
             }
             emit e_payGood(
                 _goodid1,
                 _goodid2,
                 good2change.amount1(),
                 toTTSwapUINT256(good1change.amount0(), good1change.amount1()),
-                toTTSwapUINT256(good2change.amount0(), _swapQuantity.amount1()-good2change.amount0()),
+                toTTSwapUINT256(
+                    good2change.amount0(),
+                    _swapQuantity.amount1() - good2change.amount0()
+                ),
                 _trader,
                 _recipient,
                 data_hash
@@ -600,20 +615,21 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 data
             );
             good1change = toTTSwapUINT256(
-                    goods[_goodid1].currentState.amount1(),
-                    goods[_goodid1].investState.amount1()
-                );
+                goods[_goodid1].currentState.amount1(),
+                goods[_goodid1].investState.amount1()
+            );
             if (msg.sender == _trader) {
                 _goodid1.safeTransfer(_recipient, _swapQuantity.amount0());
             } else {
                 // Relayer commission calculation.
-                
-                feeQuanity = good1change.getamount0fromamount1(excuteFee);
-                if(feeQuanity > good2change.amount1()) revert TTSwapError(46);
-                good2change = _swapQuantity.amount0() - feeQuanity;
-                goods[_goodid1].commission[msg.sender] += feeQuanity;
+
+                feeQuantity = good1change.getamount0fromamount1(executeFee);
+                if (feeQuantity > _swapQuantity.amount0())
+                    revert TTSwapError(46);
+                good2change = _swapQuantity.amount0() - feeQuantity;
+                goods[_goodid1].commission[msg.sender] += feeQuantity;
                 _goodid1.safeTransfer(_recipient, good2change);
-                good2change = (good2change << 128) + feeQuanity;
+                good2change = (good2change << 128) + feeQuantity;
             }
             emit e_payGood(
                 _goodid1,
@@ -897,7 +913,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             divestvalue,
             toTTSwapUINT256(
                 disinvestNormalResult1_.profit,
-                disinvestNormalResult1_.vitualDisinvestQuantity
+                disinvestNormalResult1_.virtualDisinvestQuantity
             ),
             toTTSwapUINT256(
                 disinvestNormalResult1_.actual_fee,
@@ -905,7 +921,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             ),
             toTTSwapUINT256(
                 disinvestValueResult2_.profit,
-                disinvestValueResult2_.vitualDisinvestQuantity
+                disinvestValueResult2_.virtualDisinvestQuantity
             ),
             toTTSwapUINT256(
                 disinvestValueResult2_.actual_fee,

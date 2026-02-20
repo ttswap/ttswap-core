@@ -50,17 +50,16 @@ library L_Good {
     ) internal {
         if (_self.goodConfig.getLimitPower() < _goodConfig.getPower())
             revert TTSwapError(23);
-        if (_self.goodConfig.getK1() != 0) {
-            if (
-                _self.goodConfig.getK1() - 100 > _goodConfig.getK1() ||
-                _self.goodConfig.getK1() + 100 < _goodConfig.getK1()
-            ) {
-                revert TTSwapError(43);
-            }
-        }
         if (_goodConfig.getK1() <= 10000) {
             revert TTSwapError(44);
         }
+        if (
+            _self.goodConfig.getK1() - 100 > _goodConfig.getK1() ||
+            _self.goodConfig.getK1() + 100 < _goodConfig.getK1()
+        ) {
+            revert TTSwapError(43);
+        }
+        
         uint256 tmpconfig = _self.goodConfig;
         assembly {
             _goodConfig := and(not(feeConfigMask), _goodConfig)
@@ -123,6 +122,9 @@ library L_Good {
         uint256 _init,
         uint256 _goodConfig
     ) internal {
+        if (_goodConfig.getK1() <= 10000) {
+            revert TTSwapError(44);
+        }
         self.currentState = toTTSwapUINT256(_init.amount1(), _init.amount1());
         self.investState = toTTSwapUINT256(_init.amount1(), _init.amount0());
         assembly {
@@ -130,6 +132,7 @@ library L_Good {
             _goodConfig := add(_goodConfig, initialConfig)
         }
         if (_goodConfig.getPower() > 100) revert TTSwapError(25);
+        if (_goodConfig.getPower() < 100) revert TTSwapError(25);
         self.goodConfig = _goodConfig;
         self.owner = msg.sender;
     }
@@ -395,7 +398,7 @@ library L_Good {
         uint128 profit; // The profit earned from disinvestment
         uint128 actual_fee; // The actual fee charged for disinvestment
         uint128 shares;
-        uint128 vitualDisinvestQuantity; // The vitual quantity of goods disinvested
+        uint128 virtualDisinvestQuantity; // The vitual quantity of goods disinvested
         uint128 actualDisinvestQuantity;
     }
 
@@ -434,6 +437,9 @@ library L_Good {
             uint256 disinvestvalue
         )
     {
+        if (_params._goodshares > _investProof.shares.amount0()) {
+            revert TTSwapError(41);
+        }
         // Calculate the disinvestment value based on the investment proof and requested quantity
         // Determines the proportional share of the user's investment being withdrawn.
         normalGoodResult1_ = S_GoodDisinvestReturn(
@@ -455,15 +461,15 @@ library L_Good {
             toTTSwapUINT256(
                 _investProof.state.amount0(),
                 _investProof.invest.amount0()
-            ).getamount0fromamount1(normalGoodResult1_.vitualDisinvestQuantity),
+            ).getamount0fromamount1(
+                    normalGoodResult1_.virtualDisinvestQuantity
+                ),
             toTTSwapUINT256(
                 _investProof.state.amount1(),
                 _investProof.invest.amount0()
-            ).getamount0fromamount1(normalGoodResult1_.vitualDisinvestQuantity)
+            ).getamount0fromamount1(normalGoodResult1_.virtualDisinvestQuantity)
         );
-        if (_params._goodshares > _investProof.shares.amount0()) {
-            revert TTSwapError(41);
-        }
+
         // Ensure disinvestment conditions are met
         // Check limits on how much value can be withdrawn at once to prevent manipulation.
         if (
@@ -474,13 +480,13 @@ library L_Good {
             revert TTSwapError(26);
         }
         if (
-            normalGoodResult1_.vitualDisinvestQuantity >
+            normalGoodResult1_.virtualDisinvestQuantity >
             _self.goodConfig.getDisinvestChips(_self.currentState.amount1())
         ) revert TTSwapError(27);
 
         // Calculate the fee for disinvesting.
         normalGoodResult1_.actual_fee = _self.goodConfig.getDisinvestFee(
-            normalGoodResult1_.vitualDisinvestQuantity
+            normalGoodResult1_.virtualDisinvestQuantity
         );
         // Calculate the current value of the user's shares based on the *current* state of the pool.
         // This includes any profits or losses accumulated since investment.
@@ -517,7 +523,7 @@ library L_Good {
 
         _self.goodConfig = sub(
             _self.goodConfig,
-            normalGoodResult1_.vitualDisinvestQuantity -
+            normalGoodResult1_.virtualDisinvestQuantity -
                 normalGoodResult1_.actualDisinvestQuantity
         );
 
@@ -565,7 +571,7 @@ library L_Good {
                 )
             ) revert TTSwapError(28);
             if (
-                valueGoodResult2_.vitualDisinvestQuantity >
+                valueGoodResult2_.virtualDisinvestQuantity >
                 _valueGoodState.goodConfig.getDisinvestChips(
                     _valueGoodState.currentState.amount1()
                 )
@@ -586,7 +592,7 @@ library L_Good {
                 _valueGoodState.currentState,
                 toTTSwapUINT256(
                     valueGoodResult2_.actualDisinvestQuantity,
-                    valueGoodResult2_.vitualDisinvestQuantity
+                    valueGoodResult2_.virtualDisinvestQuantity
                 )
             );
 
@@ -607,13 +613,13 @@ library L_Good {
             );
             _valueGoodState.goodConfig = sub(
                 _valueGoodState.goodConfig,
-                valueGoodResult2_.vitualDisinvestQuantity -
+                valueGoodResult2_.virtualDisinvestQuantity -
                     valueGoodResult2_.actualDisinvestQuantity
             );
 
             valueGoodResult2_.profit =
                 valueGoodResult2_.profit -
-                valueGoodResult2_.vitualDisinvestQuantity;
+                valueGoodResult2_.virtualDisinvestQuantity;
 
             allocateFee(
                 _valueGoodState,
@@ -634,11 +640,11 @@ library L_Good {
             ),
             disinvestvalue,
             toTTSwapUINT256(
-                normalGoodResult1_.vitualDisinvestQuantity,
+                normalGoodResult1_.virtualDisinvestQuantity,
                 normalGoodResult1_.actualDisinvestQuantity
             ),
             toTTSwapUINT256(
-                valueGoodResult2_.vitualDisinvestQuantity,
+                valueGoodResult2_.virtualDisinvestQuantity,
                 valueGoodResult2_.actualDisinvestQuantity
             )
         );

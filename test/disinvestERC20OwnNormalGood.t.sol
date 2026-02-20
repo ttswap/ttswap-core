@@ -90,7 +90,7 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
         );
         assertEq(
             _proof1.shares.amount1(),
-            125981098396,
+            125981100629,
             "before invest:proof value shares error"
         );
         assertEq(_proof1.state.amount0(), 125981100630000000, "before invest:proof value error");
@@ -107,12 +107,12 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
         );
         assertEq(
             _proof1.valueinvest.amount1(),
-            125984610279,
+            125984612512,
             "before invest:proof quantity error"
         );
         assertEq(
             _proof1.valueinvest.amount0(),
-            125984610279,
+            125984612512,
             "before invest:proof quantity error"
         );
 
@@ -171,7 +171,7 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
         );
         assertEq(
             _proof1.shares.amount1(),
-            62987399514,
+            62987400630,
             "before invest:proof value shares error"
         );
         assertEq(_proof1.state.amount0(), 62987400630000000, "before invest:proof value error");
@@ -188,12 +188,12 @@ contract disinvestERC20OwnNormalGood is BaseSetup {
         );
         assertEq(
             _proof1.valueinvest.amount1(),
-            62989155367,
+            62989156484,
             "before invest:proof quantity error"
         );
         assertEq(
             _proof1.valueinvest.amount0(),
-            62989155367,
+            62989156484,
             "before invest:proof quantity error"
         );
 
