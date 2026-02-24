@@ -257,7 +257,6 @@ contract payERC20ByERC20 is BaseSetup {
             metagood,
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1 * 10 ** 6),
-            
             address(100),
             defaultdata,
             users[1],

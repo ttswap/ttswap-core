@@ -123,9 +123,9 @@ contract testGoodConfig is Test {
         uint256 a_min = 1 * 2 ** 224;
         uint256 a_mid = 15 * 2 ** 224;
         uint256 a_max = 31 * 2 ** 224;
-        assertEq(a_min.getLimitPower(), 1);
-        assertEq(a_mid.getLimitPower(), 15);
-        assertEq(a_max.getLimitPower(), 31);
+        assertEq(a_min.getLimitPower(), 100);
+        assertEq(a_mid.getLimitPower(), 1500);
+        assertEq(a_max.getLimitPower(), 3100);
     }
 
     function test_getApply()public pure{
@@ -195,11 +195,13 @@ contract testGoodConfig is Test {
         uint256 a_mid = 15 * 2 ** 187;
         uint256 a_max = 31 * 2 ** 187;
         uint256 a_max2 = 127 * 2 ** 187;
-        assertEq(a_min.getPower(), 1);
-        assertEq(a_mid.getPower(), 15);
-        assertEq(a_max.getPower(), 31);
-        assertEq(a_max2.getPower(), 31);
+        assertEq(a_min.getPower(), 100);
+        assertEq(a_mid.getPower(), 1500);
+        assertEq(a_max.getPower(), 3100);
+        assertEq(a_max2.getPower(), 3100);
     }
+
+
 
     function test_getDisinvestChips() public pure {
         uint256 a_min = 1 * 2 ** 177;
@@ -213,4 +215,14 @@ contract testGoodConfig is Test {
         assertEq(a_max.getDisinvestChips(10000), 9);
     }
 
+        function test_getK1() public pure {
+        uint256 a_min = 1*2**161;
+        uint256 a_mid = 2 * 2 ** 161;
+        uint256 a_max = 1023 * 2 ** 161;
+        uint256 a_max2 = (2**16-1)*2**161;
+        assertEq(a_min.getK1(), 10);
+        assertEq(a_mid.getK1(), 20);
+        assertEq(a_max.getK1(), 10230);
+        assertEq(a_max2.getK1(), (2**16-1)*10);
+    }
 }

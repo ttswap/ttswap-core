@@ -44,5 +44,7 @@ library L_SignatureVerification {
         address signer = ecrecover(hash, v, r, s);
         if (signer == address(0)) revert InvalidSignature();
         if (signer != claimedSigner) revert InvalidSigner();
+        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0)
+    revert InvalidSignature();
     }
 }

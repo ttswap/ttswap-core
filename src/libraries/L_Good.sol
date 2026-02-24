@@ -6,7 +6,14 @@ import {TTSwapError} from "./L_Error.sol";
 import {L_GoodConfigLibrary} from "./L_GoodConfig.sol";
 
 import {S_GoodState, S_ProofState} from "../interfaces/I_TTSwap_Market.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, toUint128, add, sub} from "./L_TTSwapUINT256.sol";
+import {
+    L_TTSwapUINT256Library,
+    toTTSwapUINT256,
+    toUint128,
+    add,
+    sub,
+    addsub
+} from "./L_TTSwapUINT256.sol";
 
 /**
  * @title L_Good Library
@@ -17,9 +24,10 @@ library L_Good {
     using L_GoodConfigLibrary for uint256;
     using L_TTSwapUINT256Library for uint256;
     using L_Proof for S_ProofState;
-    //(2**256-1)-(2**223-1)+(2**177-1)
-    uint256 internal constant feeConfigMask =0xffffffff800000000001ffffffffffffffffffffffffffffffffffffffffffff;
-//        0xffffffff800000000000000000000000ffffffffffffffffffffffffffffffff;
+    //(2**256-1)-(2**223-1)+(2**161-1)
+    uint256 internal constant feeConfigMask =
+        0xffffffff8000000000000001ffffffffffffffffffffffffffffffffffffffff;
+    //        0xffffffff800000000000000000000000ffffffffffffffffffffffffffffffff;
     //2**223-1
     uint256 internal constant commissionConfigMask =
         0x3fffffff80000000000000000000000000000000000000000000000000000000;
@@ -40,19 +48,25 @@ library L_Good {
         S_GoodState storage _self,
         uint256 _goodConfig
     ) internal {
-      
         if (_self.goodConfig.getLimitPower() < _goodConfig.getPower())
             revert TTSwapError(23);
+        if (_goodConfig.getK1() <= 10000) {
+            revert TTSwapError(44);
+        }
+        if (
+            _self.goodConfig.getK1() - 100 > _goodConfig.getK1() ||
+            _self.goodConfig.getK1() + 100 < _goodConfig.getK1()
+        ) {
+            revert TTSwapError(43);
+        }
+        
         uint256 tmpconfig = _self.goodConfig;
         assembly {
             _goodConfig := and(not(feeConfigMask), _goodConfig)
             tmpconfig := add(and(tmpconfig, feeConfigMask), _goodConfig)
         }
         _self.goodConfig = tmpconfig;
-
-
     }
-
 
     /**
      * @notice Modify the good configuration
@@ -64,9 +78,6 @@ library L_Good {
         S_GoodState storage _self,
         uint256 _goodconfig
     ) internal {
-        
-      
-         
         if (!_goodconfig.checkGoodConfig()) revert TTSwapError(24);
         uint256 tmpconfig = _self.goodConfig;
         assembly {
@@ -77,8 +88,6 @@ library L_Good {
             )
         }
         _self.goodConfig = tmpconfig;
-     
-
     }
 
     function modifyGoodCoreConfig(
@@ -94,10 +103,10 @@ library L_Good {
     }
 
     function lockGood(S_GoodState storage _self) internal {
-         uint256 tmpconfig = _self.goodConfig;
-         uint256 lockConfig = 0x4000000000000000000000000000000000000000000000000000000000000000;
+        uint256 tmpconfig = _self.goodConfig;
+        uint256 lockConfig = 0x4000000000000000000000000000000000000000000000000000000000000000;
         assembly {
-            tmpconfig := add(and(tmpconfig, not(lockConfig)),lockConfig)
+            tmpconfig := add(and(tmpconfig, not(lockConfig)), lockConfig)
         }
         _self.goodConfig = tmpconfig;
     }
@@ -113,181 +122,143 @@ library L_Good {
         uint256 _init,
         uint256 _goodConfig
     ) internal {
+        if (_goodConfig.getK1() <= 10000) {
+            revert TTSwapError(44);
+        }
         self.currentState = toTTSwapUINT256(_init.amount1(), _init.amount1());
         self.investState = toTTSwapUINT256(_init.amount1(), _init.amount0());
         assembly {
             _goodConfig := and(not(feeConfigMask), _goodConfig)
             _goodConfig := add(_goodConfig, initialConfig)
         }
-        if (_goodConfig.getPower() > 1) revert TTSwapError(25);
+        if (_goodConfig.getPower() > 100) revert TTSwapError(25);
+        if (_goodConfig.getPower() < 100) revert TTSwapError(25);
         self.goodConfig = _goodConfig;
         self.owner = msg.sender;
     }
 
-    /**
-     * @dev Struct to cache swap-related data for AMM calculations.
-     * @param remainQuantity The remaining input quantity to be swapped after fees.
-     * @param outputQuantity The calculated output quantity received from the swap.
-     * @param feeQuantity The calculated fee amount deducted from the input.
-     * @param swapvalue The calculated effective swap price/value.
-     * @param good1value The investment value/price of the input good.
-     * @param good2value The investment value/price of the output good.
-     * @param good1currentState The current state (liquidity/reserves) of the input good.
-     * @param good1config The configuration of the input good.
-     * @param good2currentState The current state (liquidity/reserves) of the output good.
-     * @param good2config The configuration of the output good.
-     */
-    struct swapCache {
-        uint128 remainQuantity;
-        uint128 outputQuantity;
-        uint128 feeQuantity;
-        uint128 swapvalue;
-        uint128 good1value;
-        uint128 good2value;
-        uint256 good1currentState;
-        uint256 good1config;
-        uint256 good2currentState;
-        uint256 good2config;
-    }
-
-    /**
-     * @notice Compute the swap result from good1 (input) to good2 (output).
-     * @dev Implements the AMM swap logic for selling good1 for good2.
-     * The formula considers price impact based on the ratio of input value to pool reserves.
-     * 
-     * Formula derivation:
-     * Δv = (Va * Δa) / (Qa + Δa/2)
-     * Δb = (Qb * Δv) / (Vb + Δv/2)
-     * 
-     * Where:
-     * - Va: Value of input good
-     * - Vb: Value of output good
-     * - Qa: Current quantity of input good
-     * - Qb: Current quantity of output good
-     * - Δa: Input amount (after fees)
-     * - Δb: Output amount
-     * - Δv: Virtual swap value
-     * 
-     * @param _stepCache A cache structure containing swap state and configurations. Modified in place.
-     */
-    function swapCompute1(swapCache memory _stepCache) internal pure {
-        // compute Token1 fee quantity
-        _stepCache.feeQuantity = _stepCache.good1config.getSellFee(
-            _stepCache.remainQuantity
-        );
-        // minus fee quantity
-        _stepCache.remainQuantity =
-            _stepCache.remainQuantity -
-            _stepCache.feeQuantity;
-        //  Δv=(Va*Δa)/(Qa+Δa/2)
-        //  =(2*Va*Δa)/(2*Qa+Δa)
-        // Calculate the virtual swap value based on the input amount and current pool reserves.
-        // This value represents the "economic weight" of the input in terms of the output good's pricing model.
-        uint256 a = uint256(_stepCache.good1value) *
-            uint256(_stepCache.remainQuantity) *
-            2;
-        uint256 b = uint256(_stepCache.good1currentState.amount1()) *
-            2 +
-            uint256(_stepCache.remainQuantity);
-        // Calculate swap value
-        _stepCache.swapvalue = toUint128(a / b);
-        // calclulate Token2 output quantity
-        //  Δb=(Qb*Δv)/(Vb+Δv/2)
-        //  =(2*Qb*Δv)/(2*Vb+Δv)
-        // Calculate the output amount of Token2 using the derived virtual swap value.
-        a =
-            uint256(_stepCache.good2currentState.amount1()) *
-            uint256(_stepCache.swapvalue) *
-            2;
-        b = uint256(_stepCache.good2value) * 2 + uint256(_stepCache.swapvalue);
-        _stepCache.outputQuantity = toUint128(a / b);
-        _stepCache.good2currentState = sub(
-            _stepCache.good2currentState,
-            toTTSwapUINT256(0, _stepCache.outputQuantity)
-        );
-    }
-
-    /**
-     * @notice Compute the swap result from good2 (input) to good1 (output).
-     * @dev Implements the AMM swap logic for buying good1 with good2.
-     * This is the inverse operation of swapCompute1, calculating how much good1 can be bought.
-     * 
-     * Formula derivation (inverse of swapCompute1):
-     * Δb = (2*Qb*Va*Δa)/(2*Vb*Qa+Vb*Δa+Va*Δa)
-     * Solving for Δa (outputQuantity) given Δb (remainQuantity of good2).
-     * 
-     * @param _stepCache A cache structure containing swap state and configurations. Modified in place.
-     */
-    function swapCompute2(swapCache memory _stepCache) internal pure {
-        // compute Token2 fee quantity
-        _stepCache.feeQuantity = _stepCache.good2config.getBuyFee(
-            _stepCache.remainQuantity
-        );
-        // plus fee quantity
-        _stepCache.remainQuantity =
-            _stepCache.remainQuantity +
-            _stepCache.feeQuantity;
-        // according to the swapCompute1
-        // Δb=(2*Qb*Va*Δa)/(2*Vb*Qa+Vb*Δa+Va*Δa)
-        // Δa=(2*Δb*Vb*Qa)/(2*Qb*Va-Δb*Vb-Δb*Va)
-        // Calculate the numerator for determining the input quantity (Δa).
-        // Based on the target output (Δb), current reserves, and token values.
-        uint256 a = uint256(_stepCache.good1currentState.amount1()) *
-            uint256(_stepCache.good2value) *
-            uint256(_stepCache.remainQuantity) *
-            2;
-        // Calculate the denominator for determining the input quantity (Δa).
-        // This involves subtraction, so we must ensure the result is positive (handled by requirement checks in caller).
-        uint256 b = uint256(_stepCache.good1value) *
-            uint256(_stepCache.good2currentState.amount1()) *
-            2 -
-            uint256(_stepCache.good1value) *
-            uint256(_stepCache.remainQuantity) -
-            uint256(_stepCache.good2value) *
-            uint256(_stepCache.remainQuantity);
-        require(b > 1000, "b is 0");
-        // calclulate Token1 output quantity
-        // Perform the division to find the exact input amount required.
-        _stepCache.outputQuantity = toUint128(a / b);
-
-        // Δv=(Va*Δa)/(Qa+Δa/2)
-        // Calculate the virtual swap value using the newly computed input amount.
-        // This ensures the pricing is consistent with the forward swap direction.
-        _stepCache.swapvalue = toTTSwapUINT256(
-            _stepCache.good1value,
-            _stepCache.good1currentState.amount1() +
-                _stepCache.outputQuantity /
-                2
-        ).getamount0fromamount1(_stepCache.outputQuantity);
-
-        // add input quantity to token1 pool
-        _stepCache.good1currentState = add(
-            _stepCache.good1currentState,
-            toTTSwapUINT256(0, _stepCache.outputQuantity)
-        );
-        // minus output quantity from token2 pool
-        _stepCache.good2currentState = sub(
-            _stepCache.good2currentState,
-            toTTSwapUINT256(0, _stepCache.remainQuantity)
-        );
-        // add fee quantity to token2 pool
-        _stepCache.good2currentState = add(
-            _stepCache.good2currentState,
-            toTTSwapUINT256(_stepCache.feeQuantity, _stepCache.feeQuantity)
-        );
-    }
-
-    /**
-     * @notice Commit the result of a swap operation to the good's state
-     * @dev Updates the current state and fee state of the good after a swap
+    /*
+     * @notice Swap quantity
+     * @dev Swaps quantity of the good
      * @param _self Storage pointer to the good state
-     * @param _swapstate The new state of the good after the swap
+     * @param _swapQuantity The quantity to swap
+     * @param side true: input, false: output
+     * @return amount0 The fee of the swap
+     * @return amount1 swapvalue The value of the swap
      */
-    function swapCommit(
+    function good1Swap(
         S_GoodState storage _self,
-        uint256 _swapstate
-    ) internal {
-        _self.currentState = _swapstate;
+        uint128 _swapParam,
+        bool side // true: input, false: output
+    ) internal returns (uint256) {
+        // Cache storage reads: currentState (1 SLOAD), investState (1 SLOAD), goodConfig (1 SLOAD)
+        // Previously a S_swapCache memory struct caused extra memory allocation and a dead
+        // invest_quantity read (_self.currentState.amount0()) that was never used in calculations.
+        uint128 current_quantity = _self.currentState.amount1();
+        uint128 current_value = _self.investState.amount1();
+        uint256 config = _self.goodConfig;
+        uint128 swap_fee;
+        uint128 swapTemp;
+
+        if (side) {
+            swap_fee = config.getSellFee(_swapParam);
+            uint128 swap = _swapParam - swap_fee;
+            uint128 K = config.getK1();
+            // ΔV = (K_A * V_A * Δa) / (K_A * Q_A + Δa), scaled by 100 for fee precision.
+            swapTemp = uint128(
+                (uint256(K) * uint256(swap) * uint256(current_value)) /
+                    (uint256(K) * uint256(current_quantity) + uint256(swap) * 10000)
+            );
+            _self.currentState = add(
+                _self.currentState,
+                toTTSwapUINT256(swap_fee, _swapParam)
+            );
+        } else {
+            // waiting for eip 7954
+            // Output-side (exact-out for value): use K_B from value-shifted R_B.
+            uint128 K = config.getK2();
+            // Δb = (K_B * Q_B * ΔV) / (K_B * V_B - ΔV), scaled by 100 for fee precision.
+            swapTemp = uint128(
+                (uint256(K) * uint256(_swapParam) * uint256(current_quantity)) /
+                    (uint256(K) * uint256(current_value) - uint256(_swapParam) * 10000)
+            );
+            swap_fee = config.getSellFee(swapTemp);
+            _self.currentState = add(
+                _self.currentState,
+                toTTSwapUINT256(swap_fee, swap_fee + swapTemp)
+            );
+        }
+
+        return toTTSwapUINT256(swap_fee, swapTemp);
+    }
+
+    /*
+     * @notice Swap value
+     * @dev Swaps value of the good
+     * @param _self Storage pointer to the good state
+     * @param _swapValue The value to swap
+     * @param side true: input, false: output
+     * @return amount0 The fee of the swap
+     * @return amount1 swapquantity The quantity of the swap
+     */
+    function good2Swap(
+        S_GoodState storage _self,
+        uint128 _swapParam,
+        bool side // true: input, false: output
+    ) internal returns (uint256) {
+        // Cache storage reads: currentState (1 SLOAD), investState (1 SLOAD), goodConfig (1 SLOAD)
+        uint128 current_quantity = _self.currentState.amount1();
+        uint128 current_value = _self.investState.amount1();
+        uint256 config = _self.goodConfig;
+        uint128 swap_fee;
+        uint128 swapTemp;
+
+        if (side) {
+            // Input-side (exact-in for value): K_B uses value-shifted R_B to update depth.
+            uint128 K = config.getK2();
+            // Δb = (K_B * Q_B * ΔV) / (K_B * V_B + ΔV), scaled by 100 for fee precision.
+            swapTemp = uint128(
+                (uint256(K) * uint256(_swapParam) * uint256(current_quantity)) /
+                    (uint256(K) * uint256(current_value) + uint256(_swapParam) * 10000)
+            );
+            swap_fee = config.getBuyFee(swapTemp);
+            swapTemp = swapTemp - swap_fee;
+            _self.currentState = addsub(
+                _self.currentState,
+                toTTSwapUINT256(swap_fee, swapTemp)
+            );
+        } else {
+            swap_fee = config.getBuyFee(_swapParam);
+            uint128 swap = _swapParam + swap_fee;
+            // Quantity-view exact-out: solve for ΔV using K_A derived from quantity shift.
+            uint128 K = config.getK1();
+            // ΔV = (K_A * V_A * Δa) / (K_A * Q_A - Δa), scaled by 100 for fee precision.
+            swapTemp = uint128(
+                (uint256(K) * uint256(swap) * uint256(current_value)) /
+                    (uint256(K) * uint256(current_quantity) - uint256(swap) * 10000)
+            );
+            if (swap_fee > 0)
+                _self.currentState = add(
+                    _self.currentState,
+                    toTTSwapUINT256(swap_fee, swap_fee)
+                );
+            _self.currentState = sub(
+                _self.currentState,
+                toTTSwapUINT256(0, swap)
+            );
+        }
+
+        return toTTSwapUINT256(swap_fee, swapTemp);
+    }
+
+    function getGoodState(
+        S_GoodState storage _self
+    ) internal view returns (uint256 currentstate) {
+        return
+            toTTSwapUINT256(
+                _self.investState.amount1(),
+                _self.currentState.amount1()
+            );
     }
 
     /**
@@ -304,7 +275,6 @@ library L_Good {
         uint128 goodInvestQuantity;
         uint128 goodCurrentQuantity;
     }
-
     /**
      * @notice Invest in a good
      * @dev Calculates fees, updates states, and returns investment results
@@ -319,17 +289,15 @@ library L_Good {
     ) internal {
         // Calculate the invest virtual quantity
         // The user receives virtual shares magnified by the power/leverage factor.
-        investResult_.investQuantity = _invest * enpower;
+
         // calculate the fee quantity
         // Calculate investment fee based on the virtual quantity.
         investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
-            investResult_.investQuantity
+            _invest
         );
-        // before inpower,minus the fee quantity
-        // Deduct the fee from the *actual* invest amount, then re-apply leverage to get the final virtual quantity.
-        investResult_.investQuantity =
-            (_invest - investResult_.investFeeQuantity) *
-            enpower;
+        _invest = _invest - investResult_.investFeeQuantity;
+        // Virtual quantity = actual input * leverage (enpower in basis points).
+        investResult_.investQuantity = (_invest * enpower) / 100;
 
         // Calculate the actual investment value based from investQuantity on the current state
         // Determines the monetary value (virtual USD/ETH) of the new shares relative to the pool's total value.
@@ -343,26 +311,18 @@ library L_Good {
         investResult_.investShare = toTTSwapUINT256(
             investResult_.goodShares,
             investResult_.goodInvestQuantity
-        ).getamount0fromamount1(investResult_.investQuantity);
+        ).getamount0fromamount1(_invest);
 
         // add invest quantity to token1 pool
         // Update the pool's total virtual quantity.
         _self.currentState = add(
             _self.currentState,
             toTTSwapUINT256(
-                investResult_.investQuantity,
-                investResult_.investQuantity
+                _invest + investResult_.investFeeQuantity,
+                investResult_.investQuantity + investResult_.investFeeQuantity
             )
         );
-        // add fee quantity to token1 pool
-        // Add the fee (in actual tokens) to the pool reserves.
-        _self.currentState = add(
-            _self.currentState,
-            toTTSwapUINT256(
-                investResult_.investFeeQuantity,
-                investResult_.investFeeQuantity
-            )
-        );
+
         // Update the invest state with the new investment
         // Add newly minted shares and the calculated value to the global investment state.
         _self.investState = add(
@@ -376,12 +336,7 @@ library L_Good {
         // Updates a tracking counter in the config (likely for fee/limit calculations), accounting for the leverage.
         _self.goodConfig = add(
             _self.goodConfig,
-            toTTSwapUINT256(
-                0,
-                investResult_.investQuantity -
-                    investResult_.investQuantity /
-                    enpower
-            )
+            toTTSwapUINT256(0, investResult_.investQuantity - _invest)
         );
     }
 
@@ -394,7 +349,7 @@ library L_Good {
         uint128 profit; // The profit earned from disinvestment
         uint128 actual_fee; // The actual fee charged for disinvestment
         uint128 shares;
-        uint128 vitualDisinvestQuantity; // The vitual quantity of goods disinvested
+        uint128 virtualDisinvestQuantity; // The vitual quantity of goods disinvested
         uint128 actualDisinvestQuantity;
     }
 
@@ -433,51 +388,53 @@ library L_Good {
             uint256 disinvestvalue
         )
     {
+        // Cache proof fields to avoid repeated SLOADs on the same storage slots
+        uint128 proofShares0 = _investProof.shares.amount0();
+        uint128 proofInvest0 = _investProof.invest.amount0();
+        uint128 proofInvest1 = _investProof.invest.amount1();
+        uint128 proofState0 = _investProof.state.amount0();
+        uint128 proofState1 = _investProof.state.amount1();
+
+        if (_params._goodshares > proofShares0) {
+            revert TTSwapError(41);
+        }
         // Calculate the disinvestment value based on the investment proof and requested quantity
         // Determines the proportional share of the user's investment being withdrawn.
         normalGoodResult1_ = S_GoodDisinvestReturn(
             0,
             0,
             _params._goodshares, //divest shares
-            toTTSwapUINT256(
-                _investProof.invest.amount0(),
-                _investProof.shares.amount0()
-            ).getamount0fromamount1(_params._goodshares), // Virtual quantity to divest (normal good)
-            toTTSwapUINT256(
-                _investProof.invest.amount1(),
-                _investProof.shares.amount0()
-            ).getamount0fromamount1(_params._goodshares)  // Actual quantity to divest (normal good)
+            toTTSwapUINT256(proofInvest0, proofShares0).getamount0fromamount1(_params._goodshares), // Virtual quantity to divest (normal good)
+            toTTSwapUINT256(proofInvest1, proofShares0).getamount0fromamount1(_params._goodshares) // Actual quantity to divest (normal good)
         );
         // Calculate the total value (in terms of the value good) corresponding to the divested portion.
+        // Uses proof-time value ratios to preserve value accounting across virtual/actual quantities.
         disinvestvalue = toTTSwapUINT256(
-            toTTSwapUINT256(
-                _investProof.state.amount0(),
-                _investProof.invest.amount0()
-            ).getamount0fromamount1(normalGoodResult1_.vitualDisinvestQuantity),
-            toTTSwapUINT256(
-                _investProof.state.amount1(),
-                _investProof.invest.amount0()
-            ).getamount0fromamount1(normalGoodResult1_.vitualDisinvestQuantity)
+            toTTSwapUINT256(proofState0, proofInvest0).getamount0fromamount1(
+                normalGoodResult1_.virtualDisinvestQuantity
+            ),
+            toTTSwapUINT256(proofState1, proofInvest0).getamount0fromamount1(
+                normalGoodResult1_.virtualDisinvestQuantity
+            )
         );
-        if(_params._goodshares>_investProof.shares.amount0() ){
-            revert TTSwapError(41);
-        }
+
         // Ensure disinvestment conditions are met
         // Check limits on how much value can be withdrawn at once to prevent manipulation.
         if (
             disinvestvalue.amount0() >
-            _self.goodConfig.getDisinvestChips(_self.investState.amount1() )||disinvestvalue.amount0()<10000)
-         {
+            _self.goodConfig.getDisinvestChips(_self.investState.amount1()) ||
+            disinvestvalue.amount0() < 10000
+        ) {
             revert TTSwapError(26);
         }
         if (
-            normalGoodResult1_.vitualDisinvestQuantity >
+            normalGoodResult1_.virtualDisinvestQuantity >
             _self.goodConfig.getDisinvestChips(_self.currentState.amount1())
         ) revert TTSwapError(27);
 
         // Calculate the fee for disinvesting.
         normalGoodResult1_.actual_fee = _self.goodConfig.getDisinvestFee(
-            normalGoodResult1_.vitualDisinvestQuantity
+            normalGoodResult1_.virtualDisinvestQuantity
         );
         // Calculate the current value of the user's shares based on the *current* state of the pool.
         // This includes any profits or losses accumulated since investment.
@@ -514,7 +471,7 @@ library L_Good {
 
         _self.goodConfig = sub(
             _self.goodConfig,
-            normalGoodResult1_.vitualDisinvestQuantity -
+            normalGoodResult1_.virtualDisinvestQuantity -
                 normalGoodResult1_.actualDisinvestQuantity
         );
 
@@ -523,7 +480,7 @@ library L_Good {
         // (This calculation assumes profit is the excess value above the principal).
         normalGoodResult1_.profit =
             normalGoodResult1_.profit -
-            normalGoodResult1_.vitualDisinvestQuantity;
+            normalGoodResult1_.actualDisinvestQuantity;
 
         // Allocate fees for main good
         allocateFee(
@@ -533,26 +490,21 @@ library L_Good {
             _params._referral,
             normalGoodResult1_.actualDisinvestQuantity -
                 normalGoodResult1_.actual_fee,
-                _params._sender
+            _params._sender
         );
         // Handle value good disinvestment if applicable
         if (_investProof.valuegood != address(0)) {
             // Calculate disinvestment results for value good
+            // proofShares0 already cached above; cache remaining proof fields
+            uint128 proofShares1 = _investProof.shares.amount1();
+            uint128 proofValueInvest0 = _investProof.valueinvest.amount0();
+            uint128 proofValueInvest1 = _investProof.valueinvest.amount1();
             valueGoodResult2_ = S_GoodDisinvestReturn(
                 0,
                 0,
-                toTTSwapUINT256(
-                    _investProof.shares.amount1(),
-                    _investProof.shares.amount0()
-                ).getamount0fromamount1(_params._goodshares), //divest shares
-                toTTSwapUINT256(
-                    _investProof.valueinvest.amount0(),
-                    _investProof.shares.amount0()
-                ).getamount0fromamount1(_params._goodshares),
-                toTTSwapUINT256(
-                    _investProof.valueinvest.amount1(),
-                    _investProof.shares.amount0()
-                ).getamount0fromamount1(_params._goodshares)
+                toTTSwapUINT256(proofShares1, proofShares0).getamount0fromamount1(_params._goodshares), //divest shares
+                toTTSwapUINT256(proofValueInvest0, proofShares0).getamount0fromamount1(_params._goodshares),
+                toTTSwapUINT256(proofValueInvest1, proofShares0).getamount0fromamount1(_params._goodshares)
             );
             // Ensure value good disinvestment conditions are met
             if (
@@ -562,7 +514,7 @@ library L_Good {
                 )
             ) revert TTSwapError(28);
             if (
-                valueGoodResult2_.vitualDisinvestQuantity >
+                valueGoodResult2_.virtualDisinvestQuantity >
                 _valueGoodState.goodConfig.getDisinvestChips(
                     _valueGoodState.currentState.amount1()
                 )
@@ -574,7 +526,7 @@ library L_Good {
             ).getamount0fromamount1(valueGoodResult2_.shares);
             valueGoodResult2_.actual_fee = _valueGoodState
                 .goodConfig
-                .getDisinvestFee(valueGoodResult2_.vitualDisinvestQuantity);
+                .getDisinvestFee(valueGoodResult2_.actualDisinvestQuantity);
             if (valueGoodResult2_.profit < valueGoodResult2_.actual_fee)
                 revert TTSwapError(34);
 
@@ -582,8 +534,8 @@ library L_Good {
             _valueGoodState.currentState = sub(
                 _valueGoodState.currentState,
                 toTTSwapUINT256(
-                    valueGoodResult2_.vitualDisinvestQuantity,
-                    valueGoodResult2_.vitualDisinvestQuantity
+                    valueGoodResult2_.actualDisinvestQuantity,
+                    valueGoodResult2_.virtualDisinvestQuantity
                 )
             );
 
@@ -604,13 +556,13 @@ library L_Good {
             );
             _valueGoodState.goodConfig = sub(
                 _valueGoodState.goodConfig,
-                valueGoodResult2_.vitualDisinvestQuantity -
+                valueGoodResult2_.virtualDisinvestQuantity -
                     valueGoodResult2_.actualDisinvestQuantity
             );
 
             valueGoodResult2_.profit =
                 valueGoodResult2_.profit -
-                valueGoodResult2_.vitualDisinvestQuantity;
+                valueGoodResult2_.virtualDisinvestQuantity;
 
             allocateFee(
                 _valueGoodState,
@@ -618,7 +570,7 @@ library L_Good {
                 _params._gater,
                 _params._referral,
                 valueGoodResult2_.actualDisinvestQuantity -
-                    valueGoodResult2_.actual_fee,  
+                    valueGoodResult2_.actual_fee,
                 _params._sender
             );
         }
@@ -631,11 +583,11 @@ library L_Good {
             ),
             disinvestvalue,
             toTTSwapUINT256(
-                normalGoodResult1_.vitualDisinvestQuantity,
+                normalGoodResult1_.virtualDisinvestQuantity,
                 normalGoodResult1_.actualDisinvestQuantity
             ),
             toTTSwapUINT256(
-                valueGoodResult2_.vitualDisinvestQuantity,
+                valueGoodResult2_.virtualDisinvestQuantity,
                 valueGoodResult2_.actualDisinvestQuantity
             )
         );
@@ -671,6 +623,10 @@ library L_Good {
         uint128 customerFee = _goodconfig.getCustomerFee(_profit);
 
         if (_referral == address(0)) {
+            // No referrer path:
+            // - sender receives LP share + divested principal
+            // - gate receives operator + customer portions (if gate exists)
+            // - remaining + platform fee accrues to protocol (address(0))
             // If no referrer, distribute fees differently
             _self.commission[_sender] += (liquidFee + _divestQuantity);
             _self.commission[_gater] += sellerFee + customerFee;
@@ -680,6 +636,11 @@ library L_Good {
                 customerFee +
                 marketfee);
         } else {
+            // Referrer path:
+            // - operator fee goes to owner (or protocol if owner is zero)
+            // - gate fee goes to gate (or protocol if gate is zero)
+            // - referral fee always to referrer
+            // - sender receives LP share + customer fee + divested principal
             // If referrer exists, distribute fees according to roles
             if (_self.owner != address(0)) {
                 _self.commission[_self.owner] += sellerFee;
@@ -693,15 +654,30 @@ library L_Good {
                 marketfee += gaterFee;
             }
 
-            if (_referral != address(0)) {
-                _self.commission[_referral] += referFee;
-            } else {
-                marketfee += referFee;
-            }
+            _self.commission[_referral] += referFee;
+
             _self.commission[address(0)] += marketfee;
             _self.commission[_sender] += (liquidFee +
                 customerFee +
                 _divestQuantity);
+        }
+    }
+
+    function getInvestPower(
+        S_GoodState storage _self
+    ) internal view returns (uint128 limitpower_) {
+        // Cache goodConfig: saves 1 SLOAD vs calling getPower() + amount1() separately
+        uint256 config = _self.goodConfig;
+        uint128 maxpower = config.getPower();
+        uint128 virtual_quantity = config.amount1();
+        uint128 current_quantity = _self.currentState.amount1() - virtual_quantity;
+        uint128 invest_quantity = _self.currentState.amount0();
+        if (current_quantity < invest_quantity) {
+            limitpower_ = ((current_quantity * maxpower) / invest_quantity);
+            limitpower_ = limitpower_ < 100 ? 100 : limitpower_;
+        } else {
+            limitpower_ = ((invest_quantity * maxpower) / current_quantity);
+            limitpower_ = limitpower_ < 100 ? 100 : limitpower_;
         }
     }
 }

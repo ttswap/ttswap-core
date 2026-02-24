@@ -5,7 +5,7 @@ pragma solidity 0.8.29;
 /// @notice A library for managing and retrieving configuration data for goods.
 /// @dev This library uses bitwise operations and assembly for efficient storage and retrieval of configuration data.
 /// The configuration is packed into a single `uint256` slot to save gas.
-/// 
+///
 /// Configuration Layout (Bit ranges are approximate and illustrative based on bitwise shifts):
 /// - Bit 255: isValueGood (1 = Value Good, 0 = Normal Good)
 /// - Bit 254: isFreeze (1 = Frozen, 0 = Active)
@@ -39,7 +39,10 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value.
     /// @param amount The transaction amount.
     /// @return a The calculated liquidity fee.
-    function getLiquidFee(uint256 config, uint256 amount)internal pure returns(uint128 a){
+    function getLiquidFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(253, shl(2, config))
@@ -54,7 +57,10 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value.
     /// @param amount The transaction amount.
     /// @return a The calculated operator fee.
-    function getOperatorFee(uint256 config, uint256 amount)internal pure returns(uint128 a){
+    function getOperatorFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(252, shl(5, config))
@@ -69,7 +75,10 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value.
     /// @param amount The transaction amount.
     /// @return a The calculated gate fee.
-    function getGateFee(uint256 config, uint256 amount)internal pure returns(uint128 a){
+    function getGateFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(253, shl(9, config))
@@ -84,7 +93,10 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value.
     /// @param amount The transaction amount.
     /// @return a The calculated referral fee.
-    function getReferFee(uint256 config, uint256 amount)internal pure returns(uint128 a){
+    function getReferFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(251, shl(12, config))
@@ -99,7 +111,10 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value.
     /// @param amount The transaction amount.
     /// @return a The calculated customer fee.
-    function getCustomerFee(uint256 config, uint256 amount)internal pure returns(uint128 a){
+    function getCustomerFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(251, shl(17, config))
@@ -114,7 +129,10 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value.
     /// @param amount The transaction amount.
     /// @return a The calculated platform fee (uint128).
-    function getPlatformFee128(uint256 config, uint256 amount)internal pure returns(uint128 a){
+    function getPlatformFee128(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(251, shl(22, config))
@@ -129,7 +147,10 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value.
     /// @param amount The transaction amount.
     /// @return a The calculated platform fee (uint256).
-    function getPlatformFee256(uint256 config, uint256 amount)internal pure returns(uint256 a){
+    function getPlatformFee256(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint256 a) {
         unchecked {
             assembly {
                 config := shr(251, shl(22, config))
@@ -143,20 +164,23 @@ library L_GoodConfigLibrary {
     /// @dev Extracts the power value from config bits [251...]. Defaults to 1 if 0.
     /// @param config The configuration value.
     /// @return a The power factor.
-    function getLimitPower(uint256 config) internal pure returns(uint128 a){
+    function getLimitPower(uint256 config) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 a := shr(251, shl(27, config))
             }
-            if(a==0) a=1;
+            if (a == 0) {
+                a = 100;
+            } else {
+                a = a * 100;
+            }
         }
     }
-
 
     /// @notice Checks if the configuration has the "Apply" flag set.
     /// @param config The configuration value.
     /// @return a True if the apply flag is set, false otherwise.
-    function getApply(uint256 config)internal pure returns(bool a){
+    function getApply(uint256 config) internal pure returns (bool a) {
         return (config & (1 << 223)) > 0;
     }
 
@@ -164,7 +188,10 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value
     /// @param amount The investment amount
     /// @return a The calculated investment fee
-    function getInvestFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
+    function getInvestFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(250, shl(33, config))
@@ -179,12 +206,14 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value.
     /// @param amount The target investment amount (net of fees).
     /// @return a The gross investment amount required.
-    function getInvestFullFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
+    function getInvestFullFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(250, shl(33, config))
-                amount := div(amount, sub(10000, config))
-                a := mul(amount, 10000)
+                a := div(mul(amount, 10000), sub(10000, config))
             }
         }
     }
@@ -193,7 +222,10 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value
     /// @param amount The disinvestment amount
     /// @return a The calculated disinvestment fee
-    function getDisinvestFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
+    function getDisinvestFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(250, shl(39, config))
@@ -207,7 +239,10 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value
     /// @param amount The buying amount
     /// @return a The calculated buying fee
-    function getBuyFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
+    function getBuyFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(249, shl(45, config))
@@ -221,7 +256,10 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value
     /// @param amount The selling amount
     /// @return a The calculated selling fee
-    function getSellFee(uint256 config, uint256 amount) internal pure returns (uint128 a) {
+    function getSellFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
                 config := shr(249, shl(52, config))
@@ -231,24 +269,28 @@ library L_GoodConfigLibrary {
         }
     }
 
-
     /// @notice Get the swap chips for a given amount
     /// @param config The configuration value
-    /// @return The swap chips for the given amount
-    function getPower(uint256 config) internal pure returns (uint128) {
-        uint128 a;
-        assembly {
-            a := shr(251, shl(64, config))
+    /// @return a The swap chips for the given amount
+    function getPower(uint256 config) internal pure returns (uint128 a) {
+        unchecked {
+            assembly {
+                a := shr(251, shl(64, config))
+            }
         }
-        if (a == 0) return 1;
-        return (a);
+        return a == 0 ? 100 : 100 * a;
     }
+
+    /// @notice Get the swap chips for a given amount
 
     /// @notice Get the disinvestment chips for a given amount
     /// @param config The configuration value
     /// @param amount The amount
     /// @return The disinvestment chips for the given amount
-    function getDisinvestChips(uint256 config, uint128 amount) internal pure returns (uint128) {
+    function getDisinvestChips(
+        uint256 config,
+        uint128 amount
+    ) internal pure returns (uint128) {
         uint128 a;
         assembly {
             a := shr(246, shl(69, config))
@@ -257,6 +299,21 @@ library L_GoodConfigLibrary {
         return (amount / a);
     }
 
+    function getK1(uint256 config) internal pure returns (uint128 a) {
+        assembly {
+            a := shr(240, shl(79, config))
+        }
+        return a == 0 ? 20000 : a * 10;
+    }
+
+    function getK2(uint256 config) internal pure returns (uint128 a) {
+        assembly {
+            a := shr(240, shl(79, config))
+        }
+        a = a == 0 ? 20000 : a * 10;
+        a = (a * 10000) / (a - 10000);
+        return a;
+    }
     /// @notice Validates if a configuration value is well-formed and consistent.
     /// @dev Checks that the sum of all fee components (liquidity, operator, gate, referal, customer, platform) equals 100%.
     /// Each component is extracted from specific bit ranges and normalized.
@@ -268,15 +325,41 @@ library L_GoodConfigLibrary {
     /// - Platform: [229..233]
     /// @param config The configuration value to check.
     /// @return result True if the configuration is valid (sum == 100 and no component is 0), false otherwise.
-    function checkGoodConfig(uint256 config) internal pure returns(bool result){
-        result=false;
-        uint256 liquid=((config/(2**251))%(2**3))*10;
-        uint256 operator=((config/(2**247))%(2**3))*2;
-        uint256 gate=((config/(2**244))%(2**3))*4;
-        uint256 referal=((config/(2**239))%(2**5));
-        uint256 cust=((config/(2**234))%(2**5));
-        uint256 platform=((config/(2**229))%(2**5));
-        if(liquid==0||operator==0||gate==0||referal==0||cust==0||platform==0) result=false;
-        if(liquid+operator+gate+referal+cust+platform==100) result=true;
+    function checkGoodConfig(
+        uint256 config
+    ) internal pure returns (bool result) {
+        uint256 liquid;
+        uint256 operator;
+        uint256 gate;
+        uint256 referal;
+        uint256 cust;
+        uint256 platform;
+
+        assembly {
+            // liquid = ((config >> 251) & 0x7) * 10
+            liquid := mul(and(shr(251, config), 0x7), 10)
+            // operator = ((config >> 247) & 0x7) * 2
+            operator := mul(and(shr(247, config), 0x7), 2)
+            // gate = ((config >> 244) & 0x7) * 4
+            gate := mul(and(shr(244, config), 0x7), 4)
+            // referal = (config >> 239) & 0x1F
+            referal := and(shr(239, config), 0x1F)
+            // cust = (config >> 234) & 0x1F
+            cust := and(shr(234, config), 0x1F)
+            // platform = (config >> 229) & 0x1F
+            platform := and(shr(229, config), 0x1F)
+        }
+
+        // Check all components are non-zero and sum equals 100
+        if (
+            liquid == 0 ||
+            operator == 0 ||
+            gate == 0 ||
+            referal == 0 ||
+            cust == 0 ||
+            platform == 0
+        ) return false;
+
+        return (liquid + operator + gate + referal + cust + platform == 100);
     }
 }

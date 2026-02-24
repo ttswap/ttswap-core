@@ -143,7 +143,7 @@ contract investValueGoodWithPowerWithoutFee is BaseSetup {
         );
         assertEq(
             good_.currentState.amount0(),
-            300000000000,
+            100000000000,
             "after invest metagood:metagood currentState amount0 error"
         );
         assertEq(
@@ -153,7 +153,7 @@ contract investValueGoodWithPowerWithoutFee is BaseSetup {
         );
         assertEq(
             good_.investState.amount0(),
-            300000000000,
+            100000000000,
             "after invest metagood:metagood investState amount0 error"
         );
         assertEq(
@@ -164,7 +164,7 @@ contract investValueGoodWithPowerWithoutFee is BaseSetup {
         _proof = market.getProofState(normalproof);
         assertEq(
             _proof.shares.amount0(),
-            300000000000,
+            100000000000,
             "after invest:proof normal shares error"
         );
         assertEq(
@@ -283,33 +283,33 @@ contract investValueGoodWithPowerWithoutFee is BaseSetup {
         );
         assertEq(
             good_.goodConfig.amount1(),
-            199200000000,   
+            199840000000,   
             "after invest metagood:metagood goodConfig amount1 error"
         );
         assertEq(
             good_.currentState.amount0(),
-            299200000000,
+            100000000000,
             "after invest metagood:metagood currentState amount0 error"
         );
         assertEq(
             good_.currentState.amount1(),
-            299200000000,
+            299840000000,
             "after invest metagood:metagood currentState amount1 error"
         );
         assertEq(
             good_.investState.amount0(),
-            299000000000,
+            99960000000,
             "after invest metagood:metagood investState amount0 error"
         );
         assertEq(
             good_.investState.amount1(),
-            299000000000,
+            299800000000,
             "after invest metagood:metagood investState amount1 error"
         );
         _proof = market.getProofState(normalproof);
         assertEq(
             _proof.shares.amount0(),
-            299000000000,
+            99960000000,
             "after invest:proof normal shares error"
         );
         assertEq(
@@ -319,22 +319,22 @@ contract investValueGoodWithPowerWithoutFee is BaseSetup {
         );
         assertEq(
             _proof.state.amount0(),
-            299000000000,
+            299800000000,
             "after invest:proof value error"
         );
         assertEq(
             _proof.state.amount1(),
-            99800000000,
+            99960000000,
             "after invest:proof value error"
         );
         assertEq(
             _proof.invest.amount0(),
-            299000000000,
+            299800000000,
             "after invest:proof share error"
         );
         assertEq(
             _proof.invest.amount1(),
-            99800000000,
+            99960000000,
             "after invest:proof quantity error"
         );
         vm.stopPrank();
