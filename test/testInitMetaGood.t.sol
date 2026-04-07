@@ -1,26 +1,27 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.26;
+pragma solidity 0.8.29;
 
-import {Test, console2} from "forge-std/Test.sol";
-import {MyToken} from "../src/ERC20.sol";
+import {Test, console2} from "forge-std/src/Test.sol";
+import {MyToken} from "../src/test/MyToken.sol";
 import "../src/TTSwap_Market.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_GoodKey, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
+import {S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
 
-import {L_ProofKeyLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
-import {L_GoodIdLibrary, L_Good} from "../src/libraries/L_Good.sol";
+import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
+import {L_Good} from "../src/libraries/L_Good.sol";
 import {L_TTSwapUINT256Library, toTTSwapUINT256} from "../src/libraries/L_TTSwapUINT256.sol";
 
 contract testInitMetaGood is BaseSetup {
-    using L_ProofKeyLibrary for S_ProofKey;
-    using L_GoodIdLibrary for S_GoodKey;
+    using L_ProofIdLibrary for S_ProofKey;
+
     using L_TTSwapUINT256Library for uint256;
 
-    uint256 metagood;
+    address metagood;
 
     function setUp() public override {
         BaseSetup.setUp();
     }
+
     function testinitMetaGood() public {
         vm.startPrank(marketcreator);
         uint256 goodconfig = 2 ** 255;
@@ -40,11 +41,12 @@ contract testInitMetaGood is BaseSetup {
 
         market.initMetaGood(
             address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            goodconfig
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
+            goodconfig,
+            defaultdata
         );
-        snapLastCall("init_erc20_metagood");
-        metagood = S_GoodKey(marketcreator, address(usdt)).toId();
+        snapLastCall("init_ERC20_metagood");
+        metagood = address(usdt);
         assertEq(
             usdt.balanceOf(marketcreator),
             100000 * 10 ** 6 - 50000 * 10 ** 6,
@@ -57,24 +59,30 @@ contract testInitMetaGood is BaseSetup {
         );
 
         assertEq(
+            market.getGoodState(metagood).goodConfig.amount0(),
+            235045548299864294854689680129989279744,
+            "after initial metagood:goodConfig error"
+        );
+        assertEq(
+            market.getGoodState(metagood).goodConfig.amount1(),
+            0,
+            "after initial metagood:goodConfig amount1error"
+        );
+
+        assertEq(
             market.getGoodState(metagood).currentState,
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
             "after initial metagood:metagood currentState error"
         );
         assertEq(
             market.getGoodState(metagood).investState,
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            "after initial metagood:metagood investState error"
-        );
-        assertEq(
-            market.getGoodState(metagood).feeQuantityState,
-            0,
-            "after initial metagood:metagood feequnitity error"
+            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 12),
+            "after initial metagood:metagood investState error1"
         );
 
         assertEq(
             market.getGoodState(metagood).goodConfig,
-            2 ** 255,
+            79981855509707585827258856034506993808549382592029871491215273511520529547264,
             "after initial metagood:metagood goodConfig error"
         );
 
@@ -84,36 +92,48 @@ contract testInitMetaGood is BaseSetup {
             "after initial metagood:metagood marketcreator error"
         );
 
-        uint256 metaproof = market.proofmapping(
-            S_ProofKey(marketcreator, metagood, 0).toKey()
-        );
+        uint256 metaproof = S_ProofKey(marketcreator, metagood, address(0))
+            .toId();
         S_ProofState memory _proof1 = market.getProofState(metaproof);
         assertEq(
             _proof1.state.amount0(),
+            50000000000000000,
+            "after initial:virtual value error"
+        );
+        assertEq(
+            _proof1.state.amount1(),
+            50000000000000000,
+            "after initial:actual value error"
+        );
+        assertEq(
+            _proof1.shares.amount0(),
             50000 * 10 ** 6,
-            "after initial:proof value error"
+            "after initial:normal shares error"
+        );
+        assertEq(
+            _proof1.shares.amount1(),
+            0,
+            "after initial:value shares error"
+        );
+        assertEq(
+            _proof1.invest.amount0(),
+            50000 * 10 ** 6,
+            "after initial:normal virtual quantity error"
         );
         assertEq(
             _proof1.invest.amount1(),
             50000 * 10 ** 6,
-            "after initial:proof quantity error"
+            "after initial:normal real quantity error"
+        );
+        assertEq(
+            _proof1.valueinvest.amount0(),
+            0,
+            "after initial:valuegood  virtual quantity error"
         );
         assertEq(
             _proof1.valueinvest.amount1(),
             0,
-            "after initial:proof quantity error"
-        );
-
-        assertEq(
-            tts_nft.balanceOf(marketcreator),
-            1,
-            "erc721 market balance error"
-        );
-
-        assertEq(
-            tts_nft.ownerOf(metaproof),
-            marketcreator,
-            "erc721 proof owner error"
+            "after initial:valuegood real quantity error"
         );
 
         vm.stopPrank();
@@ -121,7 +141,7 @@ contract testInitMetaGood is BaseSetup {
 
     function testinitNativeMetaGood() public {
         vm.startPrank(marketcreator);
-        address nativeCurrency = address(0);
+        address nativeCurrency = address(1);
         uint256 goodconfig = 2 ** 255;
         vm.deal(marketcreator, 100000 * 10 ** 6);
         assertEq(
@@ -138,10 +158,11 @@ contract testInitMetaGood is BaseSetup {
         market.initMetaGood{value: 50000 * 10 ** 6}(
             nativeCurrency,
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            goodconfig
+            goodconfig,
+            defaultdata
         );
-        snapLastCall("init_nativeerc20_metagood");
-        metagood = S_GoodKey(marketcreator, nativeCurrency).toId();
+        snapLastCall("init_NativeETH_metagood");
+        metagood = nativeCurrency;
         assertEq(
             marketcreator.balance,
             100000 * 10 ** 6 - 50000 * 10 ** 6,
@@ -155,6 +176,16 @@ contract testInitMetaGood is BaseSetup {
 
         S_GoodTmpState memory good_ = market.getGoodState(metagood);
         assertEq(
+            good_.goodConfig.amount0(),
+            235045548299864294854689680129989279744,
+            "after initial metagood:goodConfig error"
+        );
+        assertEq(
+            good_.goodConfig.amount1(),
+            0,
+            "after initial metagood:goodConfig amount1error"
+        );
+        assertEq(
             good_.currentState,
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
             "after initial metagood:metagood currentState error"
@@ -162,17 +193,12 @@ contract testInitMetaGood is BaseSetup {
         assertEq(
             good_.investState,
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            "after initial metagood:metagood investState error"
-        );
-        assertEq(
-            good_.feeQuantityState,
-            0,
-            "after initial metagood:metagood feequnitity error"
+            "after initial metagood:metagood investState error2"
         );
 
         assertEq(
             good_.goodConfig,
-            2 ** 255,
+            79981855509707585827258856034506993808549382592029871491215273511520529547264,
             "after initial metagood:metagood goodConfig error"
         );
 
@@ -182,35 +208,48 @@ contract testInitMetaGood is BaseSetup {
             "after initial metagood:metagood marketcreator error"
         );
 
-        uint256 metaproof = market.proofmapping(
-            S_ProofKey(marketcreator, metagood, 0).toKey()
-        );
+        uint256 metaproof = S_ProofKey(marketcreator, metagood, address(0))
+            .toId();
         S_ProofState memory _proof1 = market.getProofState(metaproof);
         assertEq(
             _proof1.state.amount0(),
             50000 * 10 ** 6,
-            "after initial:proof value error"
+            "after initial:virtual value error"
+        );
+        assertEq(
+            _proof1.state.amount1(),
+            50000 * 10 ** 6,
+            "after initial:actual value error"
+        );
+        assertEq(
+            _proof1.shares.amount0(),
+            50000 * 10 ** 6,
+            "after initial:normal shares error"
+        );
+        assertEq(
+            _proof1.shares.amount1(),
+            0,
+            "after initial:value shares error"
+        );
+        assertEq(
+            _proof1.invest.amount0(),
+            50000 * 10 ** 6,
+            "after initial:normal virtual quantity error"
         );
         assertEq(
             _proof1.invest.amount1(),
             50000 * 10 ** 6,
-            "after initial:proof quantity error"
+            "after initial:normal real quantity error"
+        );
+        assertEq(
+            _proof1.valueinvest.amount0(),
+            0,
+            "after initial:valuegood  virtual quantity error"
         );
         assertEq(
             _proof1.valueinvest.amount1(),
             0,
-            "after initial:proof quantity error"
-        );
-        assertEq(
-            tts_nft.balanceOf(marketcreator),
-            1,
-            "erc721 market balance error"
-        );
-
-        assertEq(
-            tts_nft.ownerOf(metaproof),
-            marketcreator,
-            "erc721 proof owner error"
+            "after initial:valuegood real quantity error"
         );
         vm.stopPrank();
     }

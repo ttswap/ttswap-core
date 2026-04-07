@@ -1,28 +1,35 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.26;
+pragma solidity 0.8.29;
 
-import {Test, console2} from "forge-std/Test.sol";
-import {MyToken} from "../src/ERC20.sol";
+import {Test, console2} from "forge-std/src/Test.sol";
+import {MyToken} from "../src/test/MyToken.sol";
 import "../src/TTSwap_Market.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_GoodKey, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
-import {L_ProofKeyLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
-import {L_GoodIdLibrary, L_Good} from "../src/libraries/L_Good.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toInt128} from "../src/libraries/L_TTSwapUINT256.sol";
+import { S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
+import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
+import {L_Good} from "../src/libraries/L_Good.sol";
+import {
+    L_TTSwapUINT256Library,
+    toTTSwapUINT256,
+    addsub,
+    subadd,
+    lowerprice,
+    toUint128
+} from "../src/libraries/L_TTSwapUINT256.sol";
 
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
-import {L_MarketConfigLibrary} from "../src/libraries/L_MarketConfig.sol";
+
 
 contract investERC20NormalGood is BaseSetup {
-    using L_MarketConfigLibrary for uint256;
+   
     using L_GoodConfigLibrary for uint256;
-    using L_GoodIdLibrary for S_GoodKey;
-    using L_ProofKeyLibrary for S_ProofKey;
+
+    using L_ProofIdLibrary for S_ProofKey;
     using L_TTSwapUINT256Library for uint256;
 
-    uint256 metagood;
-    uint256 normalgoodusdt;
-    uint256 normalgoodbtc;
+    address metagood;
+    address normalgoodusdt;
+    address normalgoodbtc;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -35,21 +42,9 @@ contract investERC20NormalGood is BaseSetup {
         vm.startPrank(marketcreator);
         deal(address(usdt), marketcreator, 1000000 * 10 ** 6, false);
         usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-        uint256 _goodconfig = (2 ** 255) +
-            1 *
-            2 ** 217 +
-            3 *
-            2 ** 211 +
-            5 *
-            2 ** 204 +
-            7 *
-            2 ** 197;
-        market.initMetaGood(
-            address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            _goodconfig
-        );
-        metagood = S_GoodKey(marketcreator, address(usdt)).toId();
+        uint256 _goodconfig = (2 ** 255) + 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197;
+        market.initMetaGood(address(usdt), toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6), _goodconfig, defaultdata);
+        metagood = address(usdt);
         vm.stopPrank();
     }
 
@@ -59,26 +54,17 @@ contract investERC20NormalGood is BaseSetup {
         btc.approve(address(market), 1 * 10 ** 8 + 1);
         deal(address(usdt), users[1], 50000000 * 10 ** 6, false);
         usdt.approve(address(market), 50000000 * 10 ** 6 + 1);
-        assertEq(
-            usdt.balanceOf(address(market)),
-            50000 * 10 ** 6,
-            "befor init erc20 good, balance of market error"
-        );
-        uint256 normalgoodconfig = 1 *
-            2 ** 217 +
-            3 *
-            2 ** 211 +
-            5 *
-            2 ** 204 +
-            7 *
-            2 ** 197;
+        assertEq(usdt.balanceOf(address(market)), 50000 * 10 ** 6, "befor init erc20 good, balance of market error");
+        uint256 normalgoodconfig = 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197;
         market.initGood(
             metagood,
             toTTSwapUINT256(1 * 10 ** 8, 63000 * 10 ** 6),
             address(btc),
-            normalgoodconfig
+            normalgoodconfig,
+            defaultdata,
+            defaultdata,users[1],defaultdata
         );
-        normalgoodbtc = S_GoodKey(users[1], address(btc)).toId();
+        normalgoodbtc = address(btc);
         vm.stopPrank();
     }
 
@@ -88,9 +74,7 @@ contract investERC20NormalGood is BaseSetup {
         btc.approve(address(market), 10 * 10 ** 8 + 1);
 
         uint256 normalproof;
-        normalproof = market.proofmapping(
-            S_ProofKey(users[1], normalgoodbtc, metagood).toKey()
-        );
+        normalproof = S_ProofKey(users[1], normalgoodbtc, metagood).toId();
         S_ProofState memory _proof1 = market.getProofState(normalproof);
 
         assertEq(
@@ -113,23 +97,16 @@ contract investERC20NormalGood is BaseSetup {
             100000000,
             "before invest erc20_normalgood:btc address(market) account invest balance error"
         );
-        assertEq(
-            _proof1.state.amount0(),
-            62993700000,
-            "before invest:proof value error"
-        );
-        assertEq(
-            _proof1.invest.amount1(),
-            100000000,
-            "before invest:proof quantity error"
-        );
-        assertEq(
-            _proof1.valueinvest.amount1(),
-            62993700000,
-            "before invest:proof quantity error"
-        );
+        assertEq(_proof1.shares.amount0(), 100000000, "before invest:proof normal shares error");
+        assertEq(_proof1.shares.amount1(), 62993700000, "before invest:proof value shares error");
+        assertEq(_proof1.state.amount0(), 62993700000000000, "before invest:proof value error");
+        assertEq(_proof1.state.amount1(), 62993700000000000, "before invest:proof value error");
+        assertEq(_proof1.invest.amount1(), 100000000, "before invest:proof quantity error");
+        assertEq(_proof1.invest.amount0(), 100000000, "before invest:proof quantity error");
+        assertEq(_proof1.valueinvest.amount1(), 62993700000, "before invest:proof quantity error");
+        assertEq(_proof1.valueinvest.amount0(), 62993700000, "before invest:proof quantity error");
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[1],defaultdata);
         snapLastCall("invest_own_erc20_normalgood_first");
         assertEq(
             btc.balanceOf(users[1]),
@@ -143,109 +120,66 @@ contract investERC20NormalGood is BaseSetup {
         );
         assertEq(
             usdt.balanceOf(address(market)),
-            175993700000,
+            175997212233,
             "after invest erc20_normalgood:usdt market account invest balance error"
         );
 
         assertEq(
             usdt.balanceOf(users[1]),
-            49874006300000,
+            49874002787767,
             "after invest erc20_normalgood:usdt users[1] account invest balance error"
         );
 
         S_GoodTmpState memory good_ = market.getGoodState(metagood);
         assertEq(
             good_.currentState.amount0(),
-            175981100630,
+            175997212233,
             "after invest erc20_normalgood:metagood currentState amount0 error"
         );
         assertEq(
             good_.currentState.amount1(),
-            175981100630,
+            175997212233,
             "after invest erc20_normalgood:metagood currentState amount1 error"
         );
         assertEq(
             good_.investState.amount0(),
-            175981100630,
+            175981100629,
             "after invest erc20_normalgood:metagood investState amount0 error"
         );
         assertEq(
             good_.investState.amount1(),
-            175981100630,
+            175981100629267030,
             "after invest erc20_normalgood:metagood investState amount1 error"
         );
-        assertEq(
-            good_.feeQuantityState.amount0(),
-            16111252,
-            "after invest erc20_normalgood:metagood feeQuantityState amount0 error"
-        );
-        assertEq(
-            good_.feeQuantityState.amount1(),
-            3511882,
-            "after invest erc20_normalgood:metagood feeQuantityState amount1 error"
-        );
+       
 
         assertEq(
             good_.goodConfig,
-            (2 ** 255) +
-                1 *
-                2 ** 217 +
-                3 *
-                2 ** 211 +
-                5 *
-                2 ** 204 +
-                7 *
-                2 ** 197,
+             uint256(1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197 + 92709122 *2** 229),
             "after invest erc20_normalgood:metagood goodConfig error"
         );
 
-        assertEq(
-            good_.owner,
-            marketcreator,
-            "after invest erc20_normalgood:metagood marketcreator error"
-        );
-
-        assertEq(
-            good_.erc20address,
-            address(usdt),
-            "after invest erc20_normalgood:metagood erc20 error"
-        );
+        assertEq(good_.owner, marketcreator, "after invest erc20_normalgood:metagood marketcreator error");
 
         _proof1 = market.getProofState(normalproof);
-        assertEq(
-            _proof1.state.amount0(),
-            125981100630,
-            "after invest:proof value error"
-        );
-        assertEq(
-            _proof1.invest.amount0(),
-            0,
-            "after invest:cur contruct fee error"
-        );
-        assertEq(
-            _proof1.invest.amount1(),
-            199990000,
-            "after invest:cur quantity error"
-        );
-        assertEq(
-            _proof1.valueinvest.amount0(),
-            3511882,
-            "after invest:value contrunt fee quantity error"
-        );
-        assertEq(
-            _proof1.valueinvest.amount1(),
-            125981100630,
-            "after invest:value  quantity error"
-        );
+        assertEq(_proof1.shares.amount0(), 199990000, "after invest:proof normal shares error");
+        assertEq(_proof1.shares.amount1(), 125981100629, "after invest:proof value shares error");
+        assertEq(_proof1.state.amount0(), 125981100630000000, "after invest:proof value error");
+        assertEq(_proof1.state.amount1(), 125981100630000000, "after invest:proof value error");
+        assertEq(_proof1.invest.amount1(), 199990000, "after invest:proof quantity error");
+        assertEq(_proof1.invest.amount0(), 199990000, "after invest:proof quantity error");
+        assertEq(_proof1.valueinvest.amount1(), 125984612512, "after invest:proof quantity error");
+        assertEq(_proof1.valueinvest.amount0(), 125984612512, "after invest:proof quantity error");
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[1],defaultdata);
         snapLastCall("invest_own_erc20_normalgood_second");
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[1],defaultdata);
         snapLastCall("invest_own_erc20_normalgood_three");
 
         vm.stopPrank();
     }
+
     function testinvestotherERC20NormalGood() public {
         vm.startPrank(users[4]);
         deal(address(usdt), users[4], 800000 * 10 ** 6, false);
@@ -253,9 +187,7 @@ contract investERC20NormalGood is BaseSetup {
         usdt.approve(address(market), 800000 * 10 ** 6);
         btc.approve(address(market), 10 * 10 ** 8);
 
-        uint256 normalproof = market.proofmapping(
-            S_ProofKey(users[4], normalgoodbtc, metagood).toKey()
-        );
+        uint256 normalproof = S_ProofKey(users[4], normalgoodbtc, metagood).toId();
         S_ProofState memory _proof1 = market.getProofState(normalproof);
 
         assertEq(
@@ -278,19 +210,17 @@ contract investERC20NormalGood is BaseSetup {
             100000000,
             "before invest erc20_normalgood:btc address(market) account invest balance error"
         );
+        assertEq(_proof1.shares.amount0(), 0, "before invest:proof normal shares error");
+        assertEq(_proof1.shares.amount1(), 0, "before invest:proof value shares error");
         assertEq(_proof1.state.amount0(), 0, "before invest:proof value error");
-        assertEq(
-            _proof1.invest.amount1(),
-            0,
-            "before invest:proof quantity error"
-        );
-        assertEq(
-            _proof1.valueinvest.amount1(),
-            0,
-            "before invest:proof quantity error"
-        );
+        assertEq(_proof1.state.amount1(), 0, "before invest:proof value error");
+        assertEq(_proof1.invest.amount1(), 0, "before invest:proof quantity error");
+        assertEq(_proof1.invest.amount0(), 0, "before invest:proof quantity error");
+        assertEq(_proof1.valueinvest.amount1(), 0, "before invest:proof quantity error");
+        assertEq(_proof1.valueinvest.amount0(), 0, "before invest:proof quantity error");
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8);
+
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[4],defaultdata);
         snapLastCall("invest_other_erc20_normalgood_first");
         normalproof = 3;
         assertEq(
@@ -305,108 +235,63 @@ contract investERC20NormalGood is BaseSetup {
         );
         assertEq(
             usdt.balanceOf(address(market)),
-            175993700000,
-            "after invest erc20_normalgood:usdt market account invest balance error"
+            175997212233,
+            "after invest erc20_normalgood:usdt market account invest balance error1"
         );
 
         assertEq(
             usdt.balanceOf(users[4]),
-            737006300000,
+            737002787767,
             "after invest erc20_normalgood:usdt users[4] account invest balance error"
         );
 
         S_GoodTmpState memory good_ = market.getGoodState(metagood);
         assertEq(
             good_.currentState.amount0(),
-            175981100630,
+            175997212233,
             "after invest erc20_normalgood:metagood currentState amount0 error"
         );
         assertEq(
             good_.currentState.amount1(),
-            175981100630,
+            175997212233,
             "after invest erc20_normalgood:metagood currentState amount1 error"
         );
         assertEq(
             good_.investState.amount0(),
-            175981100630,
+            175981100629,
             "after invest erc20_normalgood:metagood investState amount0 error"
         );
         assertEq(
             good_.investState.amount1(),
-            175981100630,
+            175981100629267030,
             "after invest erc20_normalgood:metagood investState amount1 error"
         );
-        assertEq(
-            good_.feeQuantityState.amount0(),
-            16111252,
-            "after invest erc20_normalgood:metagood feeQuantityState amount0 error"
-        );
-        assertEq(
-            good_.feeQuantityState.amount1(),
-            3511882,
-            "after invest erc20_normalgood:metagood feeQuantityState amount1 error"
-        );
+       
 
         assertEq(
             good_.goodConfig,
-            (2 ** 255) +
-                1 *
-                2 ** 217 +
-                3 *
-                2 ** 211 +
-                5 *
-                2 ** 204 +
-                7 *
-                2 ** 197,
+             uint256(1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197 + 92709122 *2** 229),
             "after invest erc20_normalgood:metagood goodConfig error"
         );
 
-        assertEq(
-            good_.owner,
-            marketcreator,
-            "after invest erc20_normalgood:metagood marketcreator error"
-        );
+        assertEq(good_.owner, marketcreator, "after invest erc20_normalgood:metagood marketcreator error");
 
-        assertEq(
-            good_.erc20address,
-            address(usdt),
-            "after invest erc20_normalgood:metagood erc20 error"
-        );
-        normalproof = market.proofmapping(
-            S_ProofKey(users[4], normalgoodbtc, metagood).toKey()
-        );
+        normalproof = S_ProofKey(users[4], normalgoodbtc, metagood).toId();
         console2.log("111111", normalproof);
         _proof1 = market.getProofState(normalproof);
-        assertEq(
-            _proof1.state.amount0(),
-            62987400630,
-            "after invest:proof value error"
-        );
-        assertEq(
-            _proof1.invest.amount0(),
-            0,
-            "after invest:cur contruct fee error"
-        );
-        assertEq(
-            _proof1.invest.amount1(),
-            99990000,
-            "after invest:cur quantity error"
-        );
-        assertEq(
-            _proof1.valueinvest.amount0(),
-            3511882,
-            "after invest:value contrunt fee quantity error"
-        );
-        assertEq(
-            _proof1.valueinvest.amount1(),
-            62987400630,
-            "after invest:value  quantity error"
-        );
+        assertEq(_proof1.shares.amount0(), 99990000, "after invest:proof normal shares error");
+        assertEq(_proof1.shares.amount1(), 62987400629, "after invest:proof value shares error");
+        assertEq(_proof1.state.amount0(), 62987400630000000, "after invest:proof value error");
+        assertEq(_proof1.state.amount1(), 62987400630000000, "after invest:proof value error");
+        assertEq(_proof1.invest.amount1(), 99990000, "after invest:proof quantity error");
+        assertEq(_proof1.invest.amount0(), 99990000, "after invest:proof quantity error");
+        assertEq(_proof1.valueinvest.amount1(), 62990912512, "after invest:proof quantity error");
+        assertEq(_proof1.valueinvest.amount0(), 62990912512, "after invest:proof quantity error");
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[4],defaultdata);
         snapLastCall("invest_other_erc20_normalgood_second");
 
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8);
+        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8, defaultdata, defaultdata,users[4],defaultdata);
         snapLastCall("invest_other_erc20_normalgood_three");
         vm.stopPrank();
     }

@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.26;
+pragma solidity 0.8.29;
 
-import "forge-gas-snapshot/GasSnapshot.sol";
-import {Test} from "forge-std/Test.sol";
-import {MyToken} from "../src/ERC20.sol";
+import "forge-gas-snapshot/src/GasSnapshot.sol";
+import {Test} from "forge-std/src/Test.sol";
+import {MyToken} from "../src/test/MyToken.sol";
+import {L_CurrencyLibrary} from "../src/libraries/L_Currency.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
-import {TTSwap_Market} from "../src/TTSwap_Market.sol";
-import {TTSwap_NFT} from "../src/TTSwap_NFT.sol";
-import {TTSwap_MainTrigger} from "../src/TTSwap_MainTrigger.sol";
+import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
+    import {TTSwap_Market} from "../src/TTSwap_Market.sol";
+    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
+
 
 contract BaseSetup is Test, GasSnapshot {
     address payable[8] internal users;
@@ -16,18 +18,13 @@ contract BaseSetup is Test, GasSnapshot {
     MyToken eth;
     address marketcreator;
     TTSwap_Market market;
+    TTSwap_Market_Proxy market_proxy;
     TTSwap_Token tts_token;
-    TTSwap_NFT tts_nft;
-    TTSwap_MainTrigger tts_trigger;
+    TTSwap_Token_Proxy tts_token_proxy;
+    bytes internal constant defaultdata = bytes("");
+
 
     function setUp() public virtual {
-        uint256 m_marketconfig = (45 << 250) +
-            (5 << 244) +
-            (10 << 238) +
-            (15 << 232) +
-            (25 << 226) +
-            (20 << 220);
-
         users[0] = payable(address(1));
         users[1] = payable(address(2));
         users[2] = payable(address(3));
@@ -41,21 +38,26 @@ contract BaseSetup is Test, GasSnapshot {
         usdt = new MyToken("USDT", "USDT", 6);
         eth = new MyToken("ETH", "ETH", 18);
         vm.startPrank(marketcreator);
-        tts_token = new TTSwap_Token(address(usdt), marketcreator, 2 ** 255);
-        tts_nft = new TTSwap_NFT(address(tts_token));
-        tts_trigger = new TTSwap_MainTrigger(address(tts_token));
+        TTSwap_Token tts_token_logic = new TTSwap_Token(address(usdt));
+        tts_token_proxy=new TTSwap_Token_Proxy( marketcreator, 2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
+        tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
         snapStart("depoly Market Manager");
-        market = new TTSwap_Market(
-            m_marketconfig,
-            address(tts_token),
-            address(tts_nft),
-            address(tts_trigger)
-        );
+        market = new TTSwap_Market(tts_token);
+        market_proxy = new TTSwap_Market_Proxy(tts_token,address(market));
+        market = TTSwap_Market(payable(address(market_proxy)));
         snapEnd();
-
-        tts_token.setMainTriggerMarket(address(tts_trigger), address(market));
-        tts_token.addauths(address(market), 1);
-        tts_token.addauths(marketcreator, 3);
+        tts_token.setTokenAdmin(marketcreator,true);
+        tts_token.setTokenManager(marketcreator,true);
+        tts_token.setCallMintTTS(address(market), true);
+        tts_token.setMarketAdmin(marketcreator,true);
+        tts_token.setMarketManager(marketcreator,true);
+        tts_token.setStakeAdmin(marketcreator,true);
+        tts_token.setStakeManager(marketcreator,true);
         vm.stopPrank();
     }
+
+    function test_market_proxy() public {
+        assertEq(address(market), address(market_proxy));
+    }
+    
 }

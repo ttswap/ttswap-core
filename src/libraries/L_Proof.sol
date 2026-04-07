@@ -1,162 +1,123 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity 0.8.29;
 
-import {toTTSwapUINT256, mulDiv, sub, add, L_TTSwapUINT256Library} from "./L_TTSwapUINT256.sol";
+import {  sub, add, L_TTSwapUINT256Library} from "./L_TTSwapUINT256.sol";
 import {I_TTSwap_Token} from "../interfaces/I_TTSwap_Token.sol";
 import {S_ProofState, S_ProofKey} from "../interfaces/I_TTSwap_Market.sol";
 
+/**
+ * @title L_Proof Library
+ * @notice Library for managing investment proofs and staking operations.
+ * @dev Handles state updates for investment proofs (S_ProofState) and interactions with the TTS Token staking system.
+ */
 library L_Proof {
     using L_TTSwapUINT256Library for uint256;
-    /**
-     * @dev Represents the state of a proof
-     * @member currentgood The current good  associated with the proof
-     * @member valuegood The value good associated with the proof
-     * @member state amount0 (first 128 bits) represents total value
-     * @member invest amount0 (first 128 bits) represents invest normal good quantity, amount1 (last 128 bits) represents normal good constuct fee when investing
-     * @member valueinvest amount0 (first 128 bits) represents invest value good quantity, amount1 (last 128 bits) represents value good constuct fee when investing
-     */
-    // struct S_ProofState {
-    //     uint256 currentgood;
-    //     uint256 valuegood;
-    //     uint256 state;
-    //     uint256 invest;
-    //     uint256 valueinvest;
-    // }
 
     /**
-     * @dev Updates the investment state of a proof
-     * @param _self The proof state to update
-     * @param _currenctgood The current good value
-     * @param _valuegood The value good
-     * @param _state amount0 (first 128 bits) represents total value
-     * @param _invest amount0 (first 128 bits) represents invest normal good quantity, amount1 (last 128 bits) represents normal good constuct fee when investing
-     * @param _valueinvest amount0 (first 128 bits) represents invest value good quantity, amount1 (last 128 bits) represents value good constuct fee when investing
+     * @dev Updates the investment state of a proof after a new investment.
+     * @param _self The storage pointer to the proof state being updated.
+     * @param _currenctgood The address of the normal good being invested in.
+     * @param _valuegood The address of the value good (if applicable).
+     * @param _shares The shares to add (amount0: normal shares, amount1: value shares).
+     * @param _state The value state to add (amount0: total value, amount1: total actual value).
+     * @param _invest The normal good investment to add (amount0: virtual, amount1: actual).
+     * @param _valueinvest The value good investment to add (amount0: virtual, amount1: actual).
+     * @notice Updates the cumulative totals for shares, value, and investment quantities.
+     * If this is the first investment (invest.amount1 == 0), it sets the `currentgood`.
+     * If a value good is provided, it updates the `valuegood` address and amounts.
      */
     function updateInvest(
         S_ProofState storage _self,
-        uint256 _currenctgood,
-        uint256 _valuegood,
+        address _currenctgood,
+        address _valuegood,
+        uint256 _shares,
         uint256 _state,
         uint256 _invest,
         uint256 _valueinvest
     ) internal {
         if (_self.invest.amount1() == 0) _self.currentgood = _currenctgood;
-        if (_valuegood != 0) _self.valuegood = _valuegood;
+        _self.shares = add(_self.shares, _shares);
         _self.state = add(_self.state, _state);
         _self.invest = add(_self.invest, _invest);
-        if (_valuegood != 0)
+        if (_valuegood != address(0)) {
+            if (_self.valuegood == address(0)) _self.valuegood = _valuegood;
             _self.valueinvest = add(_self.valueinvest, _valueinvest);
+        }
     }
 
     /**
-     * @dev Burns a portion of the proof
-     * @param _self The proof state to update
-     * @param _value The amount to burn
+     * @dev Burns a portion of the proof during disinvestment.
+     * @param _self The storage pointer to the proof state being updated.
+     * @param _shares The shares to subtract (amount0: normal shares, amount1: value shares).
+     * @param _state The value state to subtract (amount0: total value, amount1: total actual value).
+     * @param _invest The normal good investment to subtract (amount0: virtual, amount1: actual).
+     * @param _valueinvest The value good investment to subtract (amount0: virtual, amount1: actual).
+     * @notice Reduces the cumulative totals. Used when a user withdraws liquidity.
      */
-    function burnProof(S_ProofState storage _self, uint128 _value) internal {
-        // Calculate the amount of investment to burn based on the proportion of _value to total state
-        uint256 burnResult1_ = toTTSwapUINT256(
-            mulDiv(_self.invest.amount0(), _value, _self.state.amount0()),
-            mulDiv(_self.invest.amount1(), _value, _self.state.amount0())
-        );
-
+    function burnProof(
+        S_ProofState storage _self,
+        uint256 _shares,
+        uint256 _state,
+        uint256 _invest,
+        uint256 _valueinvest
+    ) internal {
         // If there's a value good, calculate and burn the corresponding amount of value investment
-        if (_self.valuegood != 0) {
-            uint256 burnResult2_ = toTTSwapUINT256(
-                mulDiv(
-                    _self.valueinvest.amount0(),
-                    _value,
-                    _self.state.amount0()
-                ),
-                mulDiv(
-                    _self.valueinvest.amount1(),
-                    _value,
-                    _self.state.amount0()
-                )
-            );
-            // Subtract the calculated value investment from the total value investment
-            _self.valueinvest = sub(_self.valueinvest, burnResult2_);
+        if (_self.valuegood != address(0)) {
+            _self.valueinvest = sub(_self.valueinvest, _valueinvest);
         }
 
         // Subtract the calculated investment from the total investment
-        _self.invest = sub(_self.invest, burnResult1_);
-
+        _self.invest = sub(_self.invest, _invest);
         // Reduce the total state by the burned value
-        _self.state = sub(_self.state, toTTSwapUINT256(_value, 0));
+        _self.state = sub(_self.state, _state);
+        _self.shares = sub(_self.shares, _shares);
     }
 
     /**
-     * @dev Collects fees for the proof
-     * @param _self The proof state to update
-     * @param profit The profit to add
-     */
-    function collectProofFee(
-        S_ProofState storage _self,
-        uint256 profit
-    ) internal {
-        _self.invest = add(_self.invest, toTTSwapUINT256(profit.amount0(), 0));
-        if (_self.valuegood != 0) {
-            _self.valueinvest = add(
-                _self.valueinvest,
-                toTTSwapUINT256(profit.amount1(), 0)
-            );
-        }
-    }
-
-    /**
-     * @dev Combines two proof states
-     * @param _self The proof state to update
-     * @param _get The proof state to combine with
-     */
-    function conbine(
-        S_ProofState storage _self,
-        S_ProofState storage _get
-    ) internal {
-        _self.state = add(_self.state, _get.state);
-        _self.invest = add(_self.invest, _get.invest);
-        _self.valueinvest = add(_self.valueinvest, _get.valueinvest);
-    }
-
-    /**
-     * @dev Stakes a certain amount of proof value
-     * @param contractaddress The address of the staking contract
-     * @param to The address to stake for
-     * @param proofvalue The amount of proof value to stake
-     * @return The staked amount
+     * @dev Stakes a certain amount of proof value to the TTS Token contract.
+     * @param contractaddress The interface of the TTS Token contract.
+     * @param to The address of the user staking the value.
+     * @param proofvalue The amount of proof value to stake.
+     * @return The net construction fee or value recorded by the token contract.
+     * @notice Calls the external `stake` function on the TTS Token contract.
      */
     function stake(
-        address contractaddress,
+        I_TTSwap_Token contractaddress,
         address to,
         uint128 proofvalue
     ) internal returns (uint128) {
-        return I_TTSwap_Token(contractaddress).stake(to, proofvalue);
+        return contractaddress.stake(to, proofvalue);
     }
 
     /**
-     * @dev Unstakes a certain amount of proof value
-     * @param contractaddress The address of the staking contract
-     * @param from The address to unstake from
-     * @param divestvalue The amount of proof value to unstake
+     * @dev Unstakes a certain amount of proof value from the TTS Token contract.
+     * @param contractaddress The interface of the TTS Token contract.
+     * @param from The address of the user unstaking.
+     * @param divestvalue The amount of proof value to unstake.
+     * @notice Calls the external `unstake` function on the TTS Token contract.
      */
     function unstake(
-        address contractaddress,
+        I_TTSwap_Token contractaddress,
         address from,
         uint128 divestvalue
     ) internal {
-        I_TTSwap_Token(contractaddress).unstake(from, divestvalue);
+        contractaddress.unstake(from, divestvalue);
     }
 }
 
-library L_ProofKeyLibrary {
-    function toKey(S_ProofKey memory proofKey) internal pure returns (uint256) {
-        return uint256(keccak256(abi.encode(proofKey)));
-    }
-}
+/**
+ * @title L_ProofIdLibrary
+ * @notice Library for calculating unique proof IDs.
+ */
 library L_ProofIdLibrary {
-    function toId(uint256 proofkey) internal view returns (uint256) {
-        return
-            uint256(
-                keccak256(abi.encode(proofkey, address(this), block.timestamp))
-            );
+    /**
+     * @dev Generates a unique ID for a proof key.
+     * @param proofKey The proof key structure containing owner and good addresses.
+     * @return poolId The Keccak-256 hash of the proof key.
+     */
+    function toId(S_ProofKey memory proofKey) internal pure returns (uint256 poolId) {
+        assembly {
+            poolId := keccak256(proofKey,0x60)
+        }
     }
 }

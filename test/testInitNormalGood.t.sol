@@ -1,20 +1,20 @@
-pragma solidity 0.8.26;
+pragma solidity 0.8.29;
 
-import {Test, console2} from "forge-std/Test.sol";
-import {MyToken} from "../src/ERC20.sol";
+import {Test, console2} from "forge-std/src/Test.sol";
+import {MyToken} from "../src/test/MyToken.sol";
 import "../src/TTSwap_Market.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_GoodKey, S_ProofKey, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
-import {L_GoodIdLibrary, L_Good} from "../src/libraries/L_Good.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toInt128} from "../src/libraries/L_TTSwapUINT256.sol";
-import {L_ProofKeyLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
-import {L_GoodIdLibrary, L_Good} from "../src/libraries/L_Good.sol";
+import {S_ProofKey, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
+import {L_Good} from "../src/libraries/L_Good.sol";
+import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toUint128} from "../src/libraries/L_TTSwapUINT256.sol";
+import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
+import {L_Good} from "../src/libraries/L_Good.sol";
 
 contract testInitNormalGood is BaseSetup {
-    using L_GoodIdLibrary for S_GoodKey;
-    using L_ProofKeyLibrary for S_ProofKey;
+    using L_ProofIdLibrary for S_ProofKey;
     using L_TTSwapUINT256Library for uint256;
-    uint256 metagoodkey;
+
+    address metagoodkey;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -32,10 +32,11 @@ contract testInitNormalGood is BaseSetup {
             2 ** 197;
         market.initMetaGood(
             address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            _goodconfig
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
+            _goodconfig,
+            defaultdata
         );
-        metagoodkey = S_GoodKey(marketcreator, address(usdt)).toId();
+        metagoodkey = address(usdt);
         vm.stopPrank();
     }
 
@@ -63,12 +64,16 @@ contract testInitNormalGood is BaseSetup {
             metagoodkey,
             toTTSwapUINT256(1 * 10 ** 8, 63000 * 10 ** 6),
             address(btc),
-            normalgoodconfig
+            normalgoodconfig,
+            defaultdata,
+            defaultdata,
+            users[1],
+            defaultdata
         );
-        snapLastCall("init_erc20_normalgood");
+        snapLastCall("init_ERC20_By_ERC20");
 
         //normal good
-        uint256 normalgoodkey = S_GoodKey(users[1], address(btc)).toId();
+        address normalgoodkey = address(btc);
 
         assertEq(
             usdt.balanceOf(address(market)),
@@ -98,39 +103,75 @@ contract testInitNormalGood is BaseSetup {
             metagoodkey
         );
         assertEq(
-            metagoodkeystate.currentState,
+            metagoodkeystate.goodConfig.amount0(),
+            uint256(
+                1 *
+                    2 ** 217 +
+                    3 *
+                    2 ** 211 +
+                    5 *
+                    2 ** 204 +
+                    7 *
+                    2 ** 197 +
+                    92709122 *
+                    2 ** 229
+            ).amount0(),
+            "1after initial normalgood:metagoodkey goodConfig "
+        );
+
+        assertEq(
+            metagoodkeystate.goodConfig.amount1(),
+            0,
+            "1after initial normalgood:metagoodkey goodConfig amount1 error"
+        );
+
+        assertEq(
+            metagoodkeystate.currentState.amount0(),
+            toTTSwapUINT256(
+                50000 * 10 ** 6 + 63000 * 10 ** 6,
+                50000 * 10 ** 6 + 63000 * 10 ** 6 
+            ).amount0(),
+            "1after initial normalgood:metagoodkey currentState amount0 error"
+        );
+
+        assertEq(
+            metagoodkeystate.currentState.amount1(),
+            toTTSwapUINT256(
+               50000 * 10 ** 6 + 63000 * 10 ** 6,
+                50000 * 10 ** 6 + 63000 * 10 ** 6 
+            ).amount1(),
+            "1after initial normalgood:metagoodkey currentState amount1 error"
+        );
+
+        assertEq(
+            metagoodkeystate.investState.amount0(),
             toTTSwapUINT256(
                 50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
                 50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ),
-            "after initial normalgood:metagoodkey currentState error"
+            ).amount0(),
+            "1after initial normalgood:metagoodkey investState amount0 error"
         );
         assertEq(
-            metagoodkeystate.investState,
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ),
-            "after initial normalgood:metagoodkey investState error"
-        );
-        assertEq(
-            metagoodkeystate.feeQuantityState,
-            toTTSwapUINT256(((63000 * 10 ** 6) / 10000), 0),
-            "after initial normalgood:metagoodkey feequnitity error"
+            metagoodkeystate.investState.amount1(),
+            112993700000000000,
+            "1after initial normalgood:metagoodkey investState amount1 error"
         );
 
         assertEq(
             metagoodkeystate.goodConfig,
-            (2 ** 255) +
+            uint256(
                 1 *
-                2 ** 217 +
-                3 *
-                2 ** 211 +
-                5 *
-                2 ** 204 +
-                7 *
-                2 ** 197,
-            "after initial normalgood:metagoodkey goodConfig error"
+                    2 ** 217 +
+                    3 *
+                    2 ** 211 +
+                    5 *
+                    2 ** 204 +
+                    7 *
+                    2 ** 197 +
+                    92709122 *
+                    2 ** 229
+            ),
+            "2after initial normalgood:metagoodkey goodConfig error"
         );
 
         assertEq(
@@ -145,7 +186,7 @@ contract testInitNormalGood is BaseSetup {
         );
         assertEq(
             normalgoodstate.currentState.amount0(),
-            63000 * 10 ** 6 - (63000 * 10 ** 6) / 10000,
+            100000000,
             "after initial normalgood:normalgood currentState amount0()"
         );
 
@@ -155,19 +196,28 @@ contract testInitNormalGood is BaseSetup {
             "after initial normalgood:normalgood currentState amount1()"
         );
         assertEq(
-            normalgoodstate.investState,
-            toTTSwapUINT256(63000 * 10 ** 6 - 63000 * 10 ** 2, 1 * 10 ** 8),
+            normalgoodstate.investState.amount0(),
+            toTTSwapUINT256(1 * 10 ** 8, 63000 * 10 ** 6).amount0(),
             "after initial normalgood:normalgood investState error"
-        );
-        assertEq(
-            normalgoodstate.feeQuantityState,
-            0,
-            "after initial normalgood:normalgood feequnitity error"
         );
 
         assertEq(
+            normalgoodstate.investState.amount1(),
+            toTTSwapUINT256(1 * 10 ** 8, 62993700000000000).amount1(),
+            "after initial normalgood:normalgood investState amount1 error"
+        );
+        assertEq(
             normalgoodstate.goodConfig,
-            1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197,
+            1 *
+                2 ** 217 +
+                3 *
+                2 ** 211 +
+                5 *
+                2 ** 204 +
+                7 *
+                2 ** 197 +
+                25600258 *
+                2 ** 229,
             "after initial normalgood:normalgood goodConfig error"
         );
 
@@ -178,31 +228,53 @@ contract testInitNormalGood is BaseSetup {
         );
 
         ///////////////////////////
-        uint256 normalproof = market.proofmapping(
-            S_ProofKey(users[1], normalgoodkey, metagoodkey).toKey()
-        );
+        uint256 normalproof = S_ProofKey(users[1], normalgoodkey, metagoodkey)
+            .toId();
         S_ProofState memory _proof1 = market.getProofState(normalproof);
         assertEq(
-            _proof1.state.amount0(),
-            63000 * 10 ** 6 - 63000 * 10 ** 2,
-            "after initial:proof value error"
-        );
-        assertEq(
-            _proof1.invest.amount1(),
+            _proof1.shares.amount0(),
             1 * 10 ** 8,
-            "after initial:proof quantity error"
+            "after initial:proof normal shares error"
         );
         assertEq(
-            tts_nft.balanceOf(users[1]),
-            1,
-            "erc721 users[1] balance error"
+            _proof1.shares.amount1(),
+            62993700000,
+            "after initial:proof value shares error"
+        );
+        assertEq(
+            _proof1.state.amount0(),
+            62993700000000000,
+            "after initial:proof virtual value error"
+        );
+        assertEq(
+            _proof1.state.amount1(),
+            62993700000000000,
+            "after initial:proof actual value error"
+        );
+        assertEq(
+            _proof1.invest.amount0(),
+            1 * 10 ** 8,
+            "after initial:normal good share error"
         );
 
         assertEq(
-            tts_nft.ownerOf(normalproof),
-            users[1],
-            "erc721 proof owner error"
+            _proof1.invest.amount1(),
+            1 * 10 ** 8,
+            "after initial:normal good quantity error"
         );
+
+        assertEq(
+            _proof1.valueinvest.amount0(),
+            62993700000,
+            "after initial:proof value good share error"
+        );
+
+        assertEq(
+            _proof1.valueinvest.amount1(),
+            62993700000,
+            "after initial:proof value good quantity error"
+        );
+
         vm.stopPrank();
     }
 
@@ -232,10 +304,14 @@ contract testInitNormalGood is BaseSetup {
         market.initGood{value: 1 * 10 ** 8}(
             metagoodkey,
             toTTSwapUINT256(1 * 10 ** 8, 63000 * 10 ** 6),
-            address(0),
-            normalgoodconfig
+            address(1),
+            normalgoodconfig,
+            defaultdata,
+            defaultdata,
+            users[1],
+            defaultdata
         );
-        snapLastCall("init_nativeETH_normalgood");
+        snapLastCall("init_NativeETH_By_ERC20");
         vm.stopPrank();
 
         assertEq(
@@ -266,39 +342,51 @@ contract testInitNormalGood is BaseSetup {
             metagoodkey
         );
         assertEq(
-            metagoodkeystate.currentState,
+            metagoodkeystate.currentState.amount0(),
             toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ),
+                50000 * 10 ** 6 + 63000 * 10 ** 6,
+                50000 * 10 ** 6 + 63000 * 10 ** 6 
+            ).amount0(),
             "after initial normalgood:metagoodkey currentState error"
         );
+
         assertEq(
-            metagoodkeystate.investState,
+            metagoodkeystate.currentState.amount1(),
+            toTTSwapUINT256(
+                50000 * 10 ** 6 + 63000 * 10 ** 6,
+                50000 * 10 ** 6 + 63000 * 10 ** 6 
+            ).amount1(),
+            "after initial normalgood:metagoodkey currentState amount1 error"
+        );
+        assertEq(
+            metagoodkeystate.investState.amount0(),
             toTTSwapUINT256(
                 50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
                 50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ),
-            "after initial normalgood:metagoodkey investState error"
+            ).amount0(),
+            "after initial normalgood:metagoodkey investState error0"
         );
         assertEq(
-            metagoodkeystate.feeQuantityState,
-            toTTSwapUINT256(((63000 * 10 ** 2)), 0),
-            "after initial normalgood:metagoodkey feequnitity error"
+            metagoodkeystate.investState.amount1(),
+            112993700000000000,
+            "after initial normalgood:metagoodkey investState error1"
         );
 
         assertEq(
             metagoodkeystate.goodConfig,
-            (2 ** 255) +
+            uint256(
                 1 *
-                2 ** 217 +
-                3 *
-                2 ** 211 +
-                5 *
-                2 ** 204 +
-                7 *
-                2 ** 197,
-            "after initial normalgood:metagoodkey goodConfig error"
+                    2 ** 217 +
+                    3 *
+                    2 ** 211 +
+                    5 *
+                    2 ** 204 +
+                    7 *
+                    2 ** 197 +
+                    92709122 *
+                    2 ** 229
+            ),
+            "4after initial normalgood:metagoodkey goodConfig error"
         );
 
         assertEq(
@@ -307,7 +395,7 @@ contract testInitNormalGood is BaseSetup {
             "after initial normalgood:metagoodkey marketcreator error"
         );
 
-        uint256 normalgoodkey = S_GoodKey(users[1], address(0)).toId();
+        address normalgoodkey = address(1);
 
         ////////////////////////////////////////
         S_GoodTmpState memory normalgoodstate = market.getGoodState(
@@ -315,7 +403,7 @@ contract testInitNormalGood is BaseSetup {
         );
         assertEq(
             normalgoodstate.currentState.amount0(),
-            63000 * 10 ** 6 - ((63000 * 10 ** 6) / 10000),
+            1 * 10 ** 8,
             "after initial normalgood:normalgood currentState amount0()"
         );
 
@@ -324,15 +412,19 @@ contract testInitNormalGood is BaseSetup {
             1 * 10 ** 8,
             "after initial normalgood:normalgood currentState amount1()"
         );
-        assertEq(
-            normalgoodstate.feeQuantityState,
-            0,
-            "after initial normalgood:normalgood feequnitity error"
-        );
 
         assertEq(
             normalgoodstate.goodConfig,
-            1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197,
+            1 *
+                2 ** 217 +
+                3 *
+                2 ** 211 +
+                5 *
+                2 ** 204 +
+                7 *
+                2 ** 197 +
+                25600258 *
+                2 ** 229,
             "after initial normalgood:normalgood goodConfig error"
         );
 
@@ -344,36 +436,52 @@ contract testInitNormalGood is BaseSetup {
 
         ///////////////////////////
 
-        uint256 normalproof = market.proofmapping(
-            S_ProofKey(users[1], normalgoodkey, metagoodkey).toKey()
-        );
+        uint256 normalproof = S_ProofKey(users[1], normalgoodkey, metagoodkey)
+            .toId();
 
         S_ProofState memory _proof1 = market.getProofState(normalproof);
+         assertEq(
+            _proof1.shares.amount0(),
+            1 * 10 ** 8,
+            "after initial:proof normal shares error"
+        );
+        assertEq(
+            _proof1.shares.amount1(),
+            62993700000,
+            "after initial:proof value shares error"
+        );
         assertEq(
             _proof1.state.amount0(),
-            63000 * 10 ** 6 - 63000 * 10 ** 2,
-            "after initial:proof value error"
+            62993700000000000,
+            "after initial:proof virtual value error"
         );
+        assertEq(
+            _proof1.state.amount1(),
+            62993700000000000,
+            "after initial:proof actual value error"
+        );
+        assertEq(
+            _proof1.invest.amount0(),
+            1 * 10 ** 8,
+            "after initial:normal good share error"
+        );
+
         assertEq(
             _proof1.invest.amount1(),
             1 * 10 ** 8,
-            "after initial:proof normal error"
-        );
-        assertEq(
-            _proof1.valueinvest.amount1(),
-            63000 * 10 ** 6 - 63000 * 10 ** 2,
-            "after initial:proof value quantity error"
-        );
-        assertEq(
-            tts_nft.balanceOf(users[1]),
-            1,
-            "erc721 users[1] balance error"
+            "after initial:normal good quantity error"
         );
 
         assertEq(
-            tts_nft.ownerOf(normalproof),
-            users[1],
-            "erc721 proof owner error"
+            _proof1.valueinvest.amount0(),
+            62993700000,
+            "after initial:proof value good share error"
+        );
+
+        assertEq(
+            _proof1.valueinvest.amount1(),
+            62993700000,
+            "after initial:proof value good quantity error"
         );
     }
 }

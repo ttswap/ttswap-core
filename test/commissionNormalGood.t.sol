@@ -1,35 +1,32 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.26;
+pragma solidity 0.8.29;
 
-import {Test, console2} from "forge-std/Test.sol";
-import {MyToken} from "../src/ERC20.sol";
+import {Test, console2} from "forge-std/src/Test.sol";
+import {MyToken} from "../src/test/MyToken.sol";
 import "../src/TTSwap_Market.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_GoodKey, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
-import {L_ProofKeyLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
-import {L_GoodIdLibrary, L_Good} from "../src/libraries/L_Good.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toInt128} from "../src/libraries/L_TTSwapUINT256.sol";
+import {S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
+import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
+import {L_Good} from "../src/libraries/L_Good.sol";
+import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toUint128} from "../src/libraries/L_TTSwapUINT256.sol";
 
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
-import {L_MarketConfigLibrary} from "../src/libraries/L_MarketConfig.sol";
 
 contract commissionNormalGood is BaseSetup {
-    using L_MarketConfigLibrary for uint256;
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
-    using L_GoodIdLibrary for S_GoodKey;
-    using L_ProofKeyLibrary for S_ProofKey;
 
-    uint256 metagood;
-    uint256 normalgoodusdt;
-    uint256 normalgoodbtc;
+    using L_ProofIdLibrary for S_ProofKey;
+
+    address metagood;
+    address normalgoodusdt;
+    address normalgoodbtc;
 
     function setUp() public override {
         BaseSetup.setUp();
         initmetagood();
         initbtcgood();
         investOwnERC20NormalGood();
-        collectProof();
     }
 
     function initmetagood() public {
@@ -48,10 +45,11 @@ contract commissionNormalGood is BaseSetup {
             2 ** 197;
         market.initMetaGood(
             address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            _goodconfig
+            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
+            _goodconfig,
+            defaultdata
         );
-        metagood = S_GoodKey(marketcreator, address(usdt)).toId();
+        metagood = address(usdt);
         vm.stopPrank();
     }
 
@@ -78,9 +76,13 @@ contract commissionNormalGood is BaseSetup {
             metagood,
             toTTSwapUINT256(1 * 10 ** 8, 63000 * 10 ** 6),
             address(btc),
-            normalgoodconfig
+            normalgoodconfig,
+            defaultdata,
+            defaultdata,
+            users[1],
+            defaultdata
         );
-        normalgoodbtc = S_GoodKey(users[1], address(btc)).toId();
+        normalgoodbtc = address(btc);
         vm.stopPrank();
     }
 
@@ -88,153 +90,18 @@ contract commissionNormalGood is BaseSetup {
         vm.startPrank(users[1]);
         usdt.approve(address(market), 800000 * 10 ** 6 + 1);
         btc.approve(address(market), 10 * 10 ** 8 + 1);
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8);
-        vm.stopPrank();
-    }
-
-    function collectProof() public {
-        vm.startPrank(users[1]);
-        uint256 normalproof;
-        normalproof = market.proofmapping(
-            S_ProofKey(users[1], normalgoodbtc, metagood).toKey()
+        market.investGood(
+            normalgoodbtc,
+            metagood,
+            1 * 10 ** 8,
+            defaultdata,
+            defaultdata,users[1],defaultdata
         );
-        S_ProofState memory _proof = market.getProofState(normalproof);
-        assertEq(
-            _proof.state.amount0(),
-            125981100630,
-            "before collect:proof value error"
-        );
-        assertEq(
-            _proof.invest.amount1(),
-            199990000,
-            "before collect:proof quantity error"
-        );
-
-        assertEq(
-            _proof.invest.amount0(),
-            0,
-            "before collect:proof contruct error"
-        );
-        assertEq(
-            _proof.valueinvest.amount1(),
-            125981100630,
-            "before collect:proof valueinvest quantity error"
-        );
-
-        assertEq(
-            _proof.valueinvest.amount0(),
-            3511882,
-            "before collect:proof  valueinvest contruct error"
-        );
-
-        S_GoodTmpState memory good_ = market.getGoodState(normalgoodbtc);
-        assertEq(
-            good_.currentState.amount0(),
-            125981100630,
-            "before collect erc20 good:normalgoodbtc currentState amount0 error"
-        );
-        assertEq(
-            good_.currentState.amount1(),
-            199990000,
-            "before collect erc20 good:normalgoodbtc currentState amount1 error"
-        );
-        assertEq(
-            good_.investState.amount0(),
-            125981100630,
-            "before collect erc20 good:normalgoodbtc investState amount0 error"
-        );
-        assertEq(
-            good_.investState.amount1(),
-            199990000,
-            "before collect erc20 good:normalgoodbtc investState amount1 error"
-        );
-        assertEq(
-            good_.feeQuantityState.amount0(),
-            10000,
-            "before collect erc20 good:normalgoodbtc feeQuantityState amount0 error"
-        );
-        assertEq(
-            good_.feeQuantityState.amount1(),
-            0,
-            "before collect erc20 good:normalgoodbtc feeQuantityState amount1 error"
-        );
-        normalproof = market.proofmapping(
-            S_ProofKey(users[1], normalgoodbtc, metagood).toKey()
-        );
-
-        market.collectProof(normalproof, address(0));
-        snapLastCall("collect_own_erc20_normalgood_first");
-        good_ = market.getGoodState(normalgoodbtc);
-        assertEq(
-            good_.currentState.amount0(),
-            125981100630,
-            "after collect erc20 good:normalgoodbtc currentState amount0 error"
-        );
-        assertEq(
-            good_.currentState.amount1(),
-            199990000,
-            "after collect erc20 good:normalgoodbtc currentState amount1 error"
-        );
-        assertEq(
-            good_.investState.amount0(),
-            125981100630,
-            "after collect erc20 good:normalgoodbtc investState amount0 error"
-        );
-        assertEq(
-            good_.investState.amount1(),
-            199990000,
-            "after collect erc20 good:normalgoodbtc investState amount1 error"
-        );
-        assertEq(
-            good_.feeQuantityState.amount0(),
-            10000,
-            "after collect erc20 good:normalgoodbtc feeQuantityState amount0 error"
-        );
-        assertEq(
-            good_.feeQuantityState.amount1(),
-            10000,
-            "after collect erc20 good:normalgoodbtc feeQuantityState amount1 error"
-        );
-
-        _proof = market.getProofState(normalproof);
-        assertEq(
-            _proof.state.amount0(),
-            125981100630,
-            "after collect:proof value error"
-        );
-        assertEq(
-            _proof.invest.amount1(),
-            199990000,
-            "after collect:proof quantity error"
-        );
-        assertEq(
-            _proof.invest.amount0(),
-            10000,
-            "after collect:proof contruct error"
-        );
-        assertEq(
-            _proof.valueinvest.amount1(),
-            125981100630,
-            "after collect:proof quantity error"
-        );
-        assertEq(
-            _proof.valueinvest.amount0(),
-            11533700,
-            "after collect:proof contruct error"
-        );
-
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8);
-        market.collectProof(normalproof, address(0));
-        snapLastCall("collect_own_erc20_normalgood_second");
-
-        market.investGood(normalgoodbtc, metagood, 1 * 10 ** 8);
-        market.collectProof(normalproof, address(0));
-        snapLastCall("collect_own_erc20_normalgood_three");
         vm.stopPrank();
     }
 
     function testQueryCommission1() public {
-        uint256[] memory goodid = new uint256[](2);
+        address[] memory goodid = new address[](2);
 
         emit log("1");
         goodid[0] = metagood;
@@ -251,7 +118,7 @@ contract commissionNormalGood is BaseSetup {
 
     function testCollectCommission1() public {
         vm.startPrank(marketcreator);
-        uint256[] memory goodid = new uint256[](2);
+        address[] memory goodid = new address[](2);
 
         emit log("1");
         goodid[0] = metagood;
@@ -265,7 +132,7 @@ contract commissionNormalGood is BaseSetup {
         console2.log("meta before", cm[0]);
         console2.log("btc  before", cm[1]);
 
-        market.collectCommission(goodid);
+        market.collectCommission(goodid,marketcreator,'0x');
 
         cm = market.queryCommission(goodid, marketcreator);
 

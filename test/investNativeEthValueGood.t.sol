@@ -1,27 +1,25 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.26;
+pragma solidity 0.8.29;
 
-import {Test, console2} from "forge-std/Test.sol";
+import {Test, console2} from "forge-std/src/Test.sol";
 import "../src/TTSwap_Market.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_GoodKey, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
-import {L_ProofKeyLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
-import {L_GoodIdLibrary, L_Good} from "../src/libraries/L_Good.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toInt128} from "../src/libraries/L_TTSwapUINT256.sol";
+import {S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
+import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
+import {L_Good} from "../src/libraries/L_Good.sol";
+import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toUint128} from "../src/libraries/L_TTSwapUINT256.sol";
 
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
-import {L_MarketConfigLibrary} from "../src/libraries/L_MarketConfig.sol";
 
 contract investNativeETHValueGood is BaseSetup {
-    using L_MarketConfigLibrary for uint256;
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
-    using L_GoodIdLibrary for S_GoodKey;
-    using L_ProofKeyLibrary for S_ProofKey;
 
-    uint256 metagood;
-    uint256 normalgoodusdt;
-    uint256 normalgoodeth;
+    using L_ProofIdLibrary for S_ProofKey;
+
+    address metagood;
+    address normalgoodusdt;
+    address normalgoodeth;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -31,7 +29,7 @@ contract investNativeETHValueGood is BaseSetup {
     function initmetagood() public {
         BaseSetup.setUp();
         deal(marketcreator, 1000000 * 10 ** 6);
-        vm.startPrank(marketcreator);
+        vm.startPrank(marketcreator);   
         uint256 _goodconfig = (2 ** 255) +
             1 *
             2 ** 217 +
@@ -42,11 +40,12 @@ contract investNativeETHValueGood is BaseSetup {
             7 *
             2 ** 197;
         market.initMetaGood{value: 50000 * 10 ** 6}(
-            address(0),
+            address(1),
             toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            _goodconfig
+            _goodconfig,
+            defaultdata
         );
-        metagood = S_GoodKey(marketcreator, address(0)).toId();
+        metagood = address(1);
         vm.stopPrank();
     }
 
@@ -54,9 +53,7 @@ contract investNativeETHValueGood is BaseSetup {
         vm.startPrank(marketcreator);
 
         uint256 normalproof;
-        normalproof = market.proofmapping(
-            S_ProofKey(marketcreator, metagood, 0).toKey()
-        );
+        normalproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
         S_ProofState memory _proof1 = market.getProofState(normalproof);
 
         assertEq(
@@ -80,7 +77,13 @@ contract investNativeETHValueGood is BaseSetup {
             "before invest:proof quantity error"
         );
 
-        market.investGood{value: 50000000000}(metagood, 0, 50000 * 10 ** 6);
+        market.investGood{value: 50000000000}(
+            metagood,
+            address(0),
+            50000 * 10 ** 6,
+            defaultdata,
+            defaultdata,marketcreator,defaultdata
+        );
         snapLastCall("invest_own_nativeeth_valuegood_first");
         assertEq(
             marketcreator.balance,
@@ -96,12 +99,12 @@ contract investNativeETHValueGood is BaseSetup {
         S_GoodTmpState memory good_ = market.getGoodState(metagood);
         assertEq(
             good_.currentState.amount0(),
-            99995000000,
+            100000000000,
             "after invest metagood:metagood currentState amount0 error"
         );
         assertEq(
             good_.currentState.amount1(),
-            99995000000,
+            100000000000,
             "after invest metagood:metagood currentState amount1 error"
         );
         assertEq(
@@ -114,28 +117,21 @@ contract investNativeETHValueGood is BaseSetup {
             99995000000,
             "after invest metagood:metagood investState amount1 error"
         );
-        assertEq(
-            good_.feeQuantityState.amount0(),
-            5000000,
-            "after invest metagood:metagood feeQuantityState amount0 error"
-        );
-        assertEq(
-            good_.feeQuantityState.amount1(),
-            0,
-            "after invest metagood:metagood feeQuantityState amount1 error"
-        );
 
         assertEq(
             good_.goodConfig,
-            (2 ** 255) +
+            uint256(
                 1 *
-                2 ** 217 +
-                3 *
-                2 ** 211 +
-                5 *
-                2 ** 204 +
-                7 *
-                2 ** 197,
+                    2 ** 217 +
+                    3 *
+                    2 ** 211 +
+                    5 *
+                    2 ** 204 +
+                    7 *
+                    2 ** 197 +
+                    92709122 *
+                    2 ** 229
+            ),
             "after invest metagood:metagood goodConfig error"
         );
 
@@ -145,14 +141,7 @@ contract investNativeETHValueGood is BaseSetup {
             "after invest metagood:metagood marketcreator error"
         );
 
-        assertEq(
-            good_.erc20address,
-            address(0),
-            "after invest metagood:metagood nativeeth error"
-        );
-        normalproof = market.proofmapping(
-            S_ProofKey(marketcreator, metagood, 0).toKey()
-        );
+        normalproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
         _proof1 = market.getProofState(normalproof);
         assertEq(
             _proof1.state.amount0(),
@@ -162,17 +151,29 @@ contract investNativeETHValueGood is BaseSetup {
         assertEq(
             _proof1.invest.amount1(),
             99995000000,
-            "after invest:proof quantity error"
+            "after invest:proof invest quantity  error"
         );
         assertEq(
             _proof1.valueinvest.amount1(),
             0,
-            "after invest:proof quantity error"
+            "after invest:proof valueinvest quantity  error"
         );
 
-        market.investGood{value: 50000000000}(metagood, 0, 50000 * 10 ** 6);
+        market.investGood{value: 50000000000}(
+            metagood,
+            address(0),
+            50000 * 10 ** 6,
+            defaultdata,
+            defaultdata,marketcreator,defaultdata
+        );
         snapLastCall("invest_own_nativeeth_valuegood_second");
-        market.investGood{value: 50000000000}(metagood, 0, 50000 * 10 ** 6);
+        market.investGood{value: 50000000000}(
+            metagood,
+            address(0),
+            50000 * 10 ** 6,
+            defaultdata,
+            defaultdata,marketcreator,defaultdata
+        );
         snapLastCall("invest_own_nativeeth_valuegood_three");
         vm.stopPrank();
     }
@@ -182,9 +183,7 @@ contract investNativeETHValueGood is BaseSetup {
         deal(users[2], 300000 * 10 ** 6);
 
         uint256 normalproof;
-        normalproof = market.proofmapping(
-            S_ProofKey(users[2], metagood, 0).toKey()
-        );
+        normalproof = S_ProofKey(users[2], metagood, address(0)).toId();
         S_ProofState memory _proof1 = market.getProofState(normalproof);
 
         assertEq(
@@ -193,19 +192,19 @@ contract investNativeETHValueGood is BaseSetup {
             "before invest metagood:users[2] account invest balance error"
         );
         assertEq(_proof1.state.amount0(), 0, "before invest:proof value error");
+        assertEq(_proof1.state.amount1(), 0, "before invest:proof value error");
+        assertEq(_proof1.shares.amount0(), 0, "before invest:proof normal shares error");
+        assertEq(_proof1.shares.amount1(), 0, "before invest:proof value shares error");
+        assertEq(_proof1.invest.amount0(), 0, "before invest:proof quantity error");
+        assertEq(_proof1.invest.amount1(), 0, "before invest:proof quantity error");
 
-        assertEq(
-            _proof1.invest.amount1(),
-            0,
-            "before invest:proof quantity error"
+        market.investGood{value: 50000000000}(
+            metagood,
+            address(0),
+            50000 * 10 ** 6,
+            defaultdata,
+            defaultdata,users[2],defaultdata
         );
-        assertEq(
-            _proof1.valueinvest.amount1(),
-            0,
-            "before invest:proof quantity error"
-        );
-
-        market.investGood{value: 50000000000}(metagood, 0, 50000 * 10 ** 6);
         snapLastCall("invest_other_nativeeth_valuegood_first");
 
         assertEq(
@@ -222,12 +221,12 @@ contract investNativeETHValueGood is BaseSetup {
         S_GoodTmpState memory good_ = market.getGoodState(metagood);
         assertEq(
             good_.currentState.amount0(),
-            99995000000,
+            100000000000,
             "after invest metagood:metagood currentState amount0 error"
         );
         assertEq(
             good_.currentState.amount1(),
-            99995000000,
+            100000000000,
             "after invest metagood:metagood currentState amount1 error"
         );
         assertEq(
@@ -240,28 +239,21 @@ contract investNativeETHValueGood is BaseSetup {
             99995000000,
             "after invest metagood:metagood investState amount1 error"
         );
-        assertEq(
-            good_.feeQuantityState.amount0(),
-            5000000,
-            "after invest metagood:metagood feeQuantityState amount0 error"
-        );
-        assertEq(
-            good_.feeQuantityState.amount1(),
-            0,
-            "after invest metagood:metagood feeQuantityState amount1 error"
-        );
 
         assertEq(
             good_.goodConfig,
-            (2 ** 255) +
+            uint256(
                 1 *
-                2 ** 217 +
-                3 *
-                2 ** 211 +
-                5 *
-                2 ** 204 +
-                7 *
-                2 ** 197,
+                    2 ** 217 +
+                    3 *
+                    2 ** 211 +
+                    5 *
+                    2 ** 204 +
+                    7 *
+                    2 ** 197 +
+                    92709122 *
+                    2 ** 229
+            ),
             "after invest metagood:metagood goodConfig error"
         );
 
@@ -271,24 +263,24 @@ contract investNativeETHValueGood is BaseSetup {
             "after invest metagood:metagood marketcreator error"
         );
 
-        assertEq(
-            good_.erc20address,
-            address(0),
-            "after invest metagood:metagood nativeeth error"
-        );
-        normalproof = market.proofmapping(
-            S_ProofKey(users[2], metagood, 0).toKey()
-        );
+        normalproof = S_ProofKey(users[2], metagood, address(0)).toId();
         _proof1 = market.getProofState(normalproof);
+        assertEq(_proof1.shares.amount0(), 49995000000, "after invest:proof normal shares error");
+        assertEq(_proof1.shares.amount1(), 0, "after invest:proof value shares error");
         assertEq(
             _proof1.state.amount0(),
             49995000000,
-            "after invest:proof value error"
+            "after invest:proof virtual value error"
+        );
+        assertEq(
+            _proof1.state.amount1(),
+            49995000000,
+            "after invest:proof actual value error"
         );
         assertEq(
             _proof1.invest.amount0(),
-            0,
-            "after invest:proof contruct fee error"
+            49995000000,
+            "after invest:proof share error"
         );
         assertEq(
             _proof1.invest.amount1(),
@@ -300,10 +292,27 @@ contract investNativeETHValueGood is BaseSetup {
             0,
             "after invest:proof quantity error"
         );
+        assertEq(
+            _proof1.valueinvest.amount1(),
+            0,
+            "after invest:proof quantity error"
+        );
 
-        market.investGood{value: 50000000000}(metagood, 0, 50000 * 10 ** 6);
+        market.investGood{value: 50000000000}(
+            metagood,
+            address(0),
+            50000 * 10 ** 6,
+            defaultdata,
+            defaultdata,users[2],defaultdata
+        );
         snapLastCall("invest_other_nativeeth_valuegood_second");
-        market.investGood{value: 50000000000}(metagood, 0, 50000 * 10 ** 6);
+        market.investGood{value: 50000000000}(
+            metagood,
+            address(0),
+            50000 * 10 ** 6,
+            defaultdata,
+            defaultdata,users[2],defaultdata
+        );
         snapLastCall("invest_other_nativeeth_valuegood_three");
 
         vm.stopPrank();

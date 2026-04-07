@@ -14,7 +14,7 @@ There are many ways to contribute, but here are a few if you want a place to sta
 
 ## Opening an Issue
 
-When opening an [issue](https://github.com/tt-swap/ttswap-core/issues/new/choose), choose a template to start from: Bug Report or Feature Improvement. For bug reports, you should be able to reproduce the bug through tests or proof of concept implementations. For feature improvements, please title it with a concise problem statement and check that a similar request is not already open or already in progress. Not all issues may be deemed worth resolving, so please follow through with responding to any questions or comments that others may have regarding the issue.
+When opening an [issue](https://github.com/ttswap/ttswap-core/issues/new/choose), choose a template to start from: Bug Report or Feature Improvement. For bug reports, you should be able to reproduce the bug through tests or proof of concept implementations. For feature improvements, please title it with a concise problem statement and check that a similar request is not already open or already in progress. Not all issues may be deemed worth resolving, so please follow through with responding to any questions or comments that others may have regarding the issue.
 
 Feel free to tag the issue as a “good first issue” for any clean-up related issues, or small scoped changes to help encourage pull requests from first time contributors!
 
@@ -39,7 +39,7 @@ Finally, before opening a pull request please do the following:
 All contributions must follow the below standards. Maintainers will close out PRs that do not adhere to these standards.
 
 1. All contracts should be formatted with the default forge fmt config. Run `forge fmt`.
-2. These contracts follow the [solidity style guide](https://docs.soliditylang.org/en/v0.8.17/style-guide.html) with one minor exception of using the \_prependUnderscore style naming for internal contract functions, internal top-level parameters, and function parameters with naming collisions.
+2. These contracts follow the [solidity style guide](https://docs.soliditylang.org/en/v0.8.29/style-guide.html) with one minor exception of using the \_prependUnderscore style naming for internal contract functions, internal top-level parameters, and function parameters with naming collisions.
 3. All external facing contracts should inherit from interfaces, which specify and document its functions with natspec.
 4. Picking up stale issues by other authors is fine! Please just communicate with them ahead of time and it is best practice to include co-authors in any commits.
 5. Squash commits where possible to make reviews clean and efficient. PRs that are merged to main will be squashed into 1 commit.
