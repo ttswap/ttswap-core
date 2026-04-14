@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// version 1.14.0
+// version 1.16.0
 pragma solidity 0.8.29;
 
 import {
@@ -180,75 +180,76 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         }
     }
 
-    /**
-     * @dev Initializes a meta good with initial liquidity
-     * @param _erc20address The address of the ERC20 token to be used as the meta good
-     * @param _initial The initial liquidity amounts:
-     *        - amount0: Initial token value
-     *        - amount1: Initial token amount
-     * @param _goodConfig Configuration parameters for the good:
-     *        - Fee rates (trading, investment)
-     *        - Trading limits (min/max amounts)
-     *        - Special flags ( emergency pause)
-     * @param data Additional data for token transfer
-     * @return bool Success status of the initialization
-     * @notice This function:
-     * - Creates a new meta good with specified parameters
-     * - Sets up initial liquidity pool
-     * - Mints corresponding tokens to the market creator
-     * - Initializes proof tracking
-     * - Emits initialization events
-     * @custom:security Only callable by market admin
-     */
-    /// @inheritdoc I_TTSwap_Market
-    function initMetaGood(
-        address _erc20address,
-        uint256 _initial,
-        uint256 _goodConfig,
-        bytes calldata data
-    ) external payable onlyMarketadmin msgValue returns (bool) {
-        if (!_goodConfig.isvaluegood()) revert TTSwapError(4);
-        if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
-        _erc20address.transferFrom(
-            msg.sender,
-            msg.sender,
-            _initial.amount1(),
-            data
-        );
-        goods[_erc20address].init(_initial, _goodConfig);
-        /// update good to value good & initialize good config
-        // Set default fee splits and max power for the meta/value good.
-        goods[_erc20address].modifyGoodConfig(
-            0x30d4204000000000000000000000000000000000000000000000000000000000
-        ); //6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
-        goods[_erc20address].modifyGoodCoreConfig(
-            0x8000000000000000000000000000000000000000000000000000000000000000
-        ); //2**255
-        uint256 proofid = S_ProofKey(msg.sender, _erc20address, address(0))
-            .toId();
-        // Seed the proof with initial shares/value/quantity; this anchors the pool's initial V/Q/I.
-        proofs[proofid].updateInvest(
-            _erc20address,
-            address(0),
-            toTTSwapUINT256(_initial.amount1(), 0),
-            toTTSwapUINT256(_initial.amount0(), _initial.amount0()),
-            toTTSwapUINT256(_initial.amount1(), _initial.amount1()),
-            0
-        );
-        uint128 construct = L_Proof.stake(
-            TTS_CONTRACT,
-            msg.sender,
-            _initial.amount0()
-        );
-        emit e_initMetaGood(
-            proofid,
-            _erc20address,
-            construct,
-            _goodConfig,
-            _initial
-        );
-        return true;
-    }
+    // /**
+    //  * @dev Initializes a meta good with initial liquidity
+    //  * @param _erc20address The address of the ERC20 token to be used as the meta good
+    //  * @param _initial The initial liquidity amounts:
+    //  *        - amount0: Initial token value
+    //  *        - amount1: Initial token amount
+    //  * @param _goodConfig Configuration parameters for the good:
+    //  *        - Fee rates (trading, investment)
+    //  *        - Trading limits (min/max amounts)
+    //  *        - Special flags ( emergency pause)
+    //  * @param data Additional data for token transfer
+    //  * @return bool Success status of the initialization
+    //  * @notice This function:
+    //  * - Creates a new meta good with specified parameters
+    //  * - Sets up initial liquidity pool
+    //  * - Mints corresponding tokens to the market creator
+    //  * - Initializes proof tracking
+    //  * - Emits initialization events
+    // * remove @v1.16.0 
+    //  * @custom:security Only callable by market admin
+    //  */
+    // /// @inheritdoc I_TTSwap_Market
+    // function initMetaGood(
+    //     address _erc20address,
+    //     uint256 _initial,
+    //     uint256 _goodConfig,
+    //     bytes calldata data
+    // ) external payable onlyMarketadmin msgValue returns (bool) {
+    //     if (!_goodConfig.isvaluegood()) revert TTSwapError(4);
+    //     if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
+    //     _erc20address.transferFrom(
+    //         msg.sender,
+    //         msg.sender,
+    //         _initial.amount1(),
+    //         data
+    //     );
+    //     goods[_erc20address].init(_initial, _goodConfig);
+    //     /// update good to value good & initialize good config
+    //     // Set default fee splits and max power for the meta/value good.
+    //     goods[_erc20address].modifyGoodConfig(
+    //         0x30d4204000000000000000000000000000000000000000000000000000000000
+    //     ); //6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6
+    //     goods[_erc20address].modifyGoodCoreConfig(
+    //         0x8000000000000000000000000000000000000000000000000000000000000000
+    //     ); //2**255
+    //     uint256 proofid = S_ProofKey(msg.sender, _erc20address, address(0))
+    //         .toId();
+    //     // Seed the proof with initial shares/value/quantity; this anchors the pool's initial V/Q/I.
+    //     proofs[proofid].updateInvest(
+    //         _erc20address,
+    //         address(0),
+    //         toTTSwapUINT256(_initial.amount1(), 0),
+    //         toTTSwapUINT256(_initial.amount0(), _initial.amount0()),
+    //         toTTSwapUINT256(_initial.amount1(), _initial.amount1()),
+    //         0
+    //     );
+    //     uint128 construct = L_Proof.stake(
+    //         TTS_CONTRACT,
+    //         msg.sender,
+    //         _initial.amount0()
+    //     );
+    //     emit e_initMetaGood(
+    //         proofid,
+    //         _erc20address,
+    //         construct,
+    //         _goodConfig,
+    //         _initial
+    //     );
+    //     return true;
+    // }
 
     /**
      * @dev Initializes a new normal good in the market.

@@ -163,18 +163,18 @@ interface I_TTSwap_Market {
         uint256 _proofid
     );
 
-    /// @notice Initialize the first good in the market
-    /// @param _erc20address The contract address of the good
-    /// @param _initial Initial parameters for the good (amount0: value, amount1: quantity)
-    /// @param _goodconfig Configuration of the good
-    /// @param data Configuration of the good
-    /// @return Success status
-    function initMetaGood(
-        address _erc20address,
-        uint256 _initial,
-        uint256 _goodconfig,
-        bytes calldata data
-    ) external payable returns (bool);
+    // /// @notice Initialize the first good in the market
+    // /// @param _erc20address The contract address of the good
+    // /// @param _initial Initial parameters for the good (amount0: value, amount1: quantity)
+    // /// @param _goodconfig Configuration of the good
+    // /// @param data Configuration of the good
+    // /// @return Success status
+    // function initMetaGood(
+    //     address _erc20address,
+    //     uint256 _initial,
+    //     uint256 _goodconfig,
+    //     bytes calldata data
+    // ) external payable returns (bool);
 
     /// @notice Initialize a normal good in the market
     /// @param _valuegood The ID of the value good used to measure the normal good's value
