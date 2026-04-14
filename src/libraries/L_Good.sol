@@ -90,6 +90,11 @@ library L_Good {
         _self.goodConfig = tmpconfig;
     }
 
+    /// @notice Updates only the core-config bit segment in a good's configuration.
+    /// @dev Applies `coreConfigMask` to keep only core bits from `_goodconfig`, then merges
+    ///      them into `_self.goodConfig` while preserving all non-core bit segments.
+    /// @param _self Storage pointer to the good state.
+    /// @param _goodconfig New config value containing the target core-config bits.
     function modifyGoodCoreConfig(
         S_GoodState storage _self,
         uint256 _goodconfig
@@ -102,6 +107,10 @@ library L_Good {
         _self.goodConfig = tmpconfig;
     }
 
+    /// @notice Locks a good by setting its lock flag in `goodConfig`.
+    /// @dev Sets bit 254 (`0x4000...0000`) and keeps all other bits unchanged.
+    ///      After locking, related market operations can enforce lock-aware restrictions.
+    /// @param _self Storage pointer to the good state.
     function lockGood(S_GoodState storage _self) internal {
         uint256 tmpconfig = _self.goodConfig;
         uint256 lockConfig = 0x4000000000000000000000000000000000000000000000000000000000000000;
@@ -137,7 +146,13 @@ library L_Good {
         self.owner = msg.sender;
     }
 
-
+    /// @notice Checks whether the requested invest price is not higher than the current pool price.
+    /// @dev Compares cross-multiplied ratios to avoid precision loss from division:
+    ///      `_invest.amount0 / _invest.amount1 <= investState.amount1 / currentState.amount1`.
+    ///      Returns `true` when the incoming invest price is lower than or equal to current price.
+    /// @param self Storage pointer to the good state.
+    /// @param _invest Packed invest params where amount0 is invest value and amount1 is invest quantity.
+    /// @return bool True if invest price is lower than or equal to current pool price.
     function checkInvest(
         S_GoodState storage self,
         uint256 _invest
@@ -147,9 +162,9 @@ library L_Good {
         uint256 config2 = uint256(self.investState.amount1()) *
             uint256(_invest.amount1());
         if (config1 <= config2) {
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
     /*

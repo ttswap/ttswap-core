@@ -45,23 +45,6 @@ interface I_TTSwap_Market_v1_5 {
         uint256 _initial
     );
 
-    /// @notice Emitted when a one token is invested or created
-    /// @dev The decimal precision of _initial.amount0() defaults to 6
-    /// @param _proofNo The ID of the investment proof
-    /// @param _goodid A 256-bit value where the first 128 bits represent the good's ID and the last 128 bits represent the stake construct
-    /// @param _construct The stake construct of mint tts token
-    /// @param _invest Market initialization parameters: amount0 is the value, amount1 is the quantity
-    /// for verison <1.15.0
-    event e_oneTokenInvest(
-        uint256 _proofNo,
-        address _goodid,
-        uint256 _construct,
-        uint256 _value,
-        uint256 _invest,
-        address _trader
-    );
-
-
 
 
     /// @notice Emitted when a good is created and initialized
