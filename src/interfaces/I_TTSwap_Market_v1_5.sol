@@ -3,7 +3,7 @@ pragma solidity ^0.8.29;
 
 /// @title Market Management Interface
 /// @notice Defines the interface for managing market operations
-interface I_TTSwap_Market {
+interface I_TTSwap_Market_v1_5 {
     /// @notice Emitted when a good's configuration is updated
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
@@ -195,44 +195,6 @@ interface I_TTSwap_Market {
         bytes calldata signature
     ) external payable returns (bool);
 
-
-    /// @notice Initialize a new good with single-token deposit at a user-specified price
-    /// @param _erc20address The address of the ERC20 token representing the new good
-    /// @param _initial amount0: user-specified total value, amount1: token quantity to deposit
-    /// @param _goodConfig The good configuration settings (fees, limits, etc.)
-    /// @param _normaldata The data for transferring the normal good (Permit/Transfer)
-    /// @param _trader The address of the trader initiating the initialization
-    /// @param signature The signature authorizing the initialization (if applicable)
-    function initGoodWithPrice(
-        address _erc20address,
-        uint256 _initial,
-        uint256 _goodConfig,
-        bytes calldata _normaldata,
-        address _trader,
-        bytes calldata signature
-    ) external payable returns (bool) ;
-
-
-    /// @notice Add single-token liquidity to an existing good without pairing a value good.
-    /// @dev The caller deposits only the target token; its credited value is derived from
-    ///      the current pool price and scaled by the leverage factor (`enpower`).
-    ///      Flow: checkInvest (price guard) → transfer tokens in → compute virtual shares
-    ///      → update good state → update/create proof → stake value to TTS.
-    ///      Reverts with TTSwapError(47) if the deposit price exceeds the current pool price,
-    ///      TTSwapError(38) if the resulting investment value is below the dust threshold.
-    /// @param _goodid  Address of the ERC-20 token (good) to invest in.
-    /// @param _invest  Packed uint256 — amount0: credited value per unit, amount1: token quantity to deposit.
-    /// @param _gooddata  Encoded transfer authorisation (plain approve / EIP-2612 / Permit2).
-    /// @param signature  Reserved for future EIP-712 relayer support (currently unused).
-    /// @param _trader  Must equal msg.sender; the address receiving the investment proof.
-    /// @return bool  True on success.
-    function oneTokenInvest(
-        address _goodid,
-        uint256 _invest,
-        bytes calldata _gooddata,
-        bytes calldata signature,
-        address _trader
-    ) external payable  returns (bool) ;
 
     /**
      * @dev Buys a good
@@ -434,79 +396,4 @@ interface I_TTSwap_Market {
         returns (uint256 good1correntstate, uint256 good2correntstate);
 }
 
-/**
- * @dev Represents the state of a proof.
- * @notice Fields:
- * - `currentgood`: The current good associated with the proof
- * - `valuegood`: The value good associated with the proof
- * - `shares`: amount0 = normal good shares, amount1 = value good shares
- * - `state`: amount0 = total value, amount1 = total actual value
- * - `invest`: amount0 = normal good virtual quantity, amount1 = normal good actual quantity
- * - `valueinvest`: amount0 = value good virtual quantity, amount1 = value good actual quantity
- */
-struct S_ProofState {
-    address currentgood;
-    address valuegood;
-    uint256 shares;
-    uint256 state;
-    uint256 invest;
-    uint256 valueinvest;
-}
-
-/**
- * @dev Struct representing the state of a good.
- * @notice Fields:
- * - `goodConfig`: amount0 = configuration settings, amount1 = total virtual quantity
- * - `owner`: Creator of the good
- * - `currentState`: Present invest quantity and current quantity
- * - `investState`: Shares and value aggregates
- */
-struct S_GoodState {
-    uint256 goodConfig;
-    address owner;
-    uint256 currentState;
-    uint256 investState;
-    uint256 extendsState1;
-    uint256 extendsState2;
-    uint256 extendsState3;
-    uint256 extendsState4;
-    uint256 extendsState5;
-    uint256 extendsState6;
-    uint256 extendsState7;
-    uint256 extendsState8;
-    uint256 extendsState9;
-    mapping(address => uint256) commission;
-    mapping(address => uint256) extendmapping1;
-    mapping(address => uint256) extendmapping2;
-    mapping(address => uint256) extendmapping3;
-    mapping(address => uint256) extendmapping4;
-    mapping(address => uint256) extendmapping5;
-}
-
-/**
- * @dev Struct representing a temporary state of a good.
- * @notice Fields mirror `S_GoodState` but store lightweight snapshots:
- * - `goodConfig`: amount0 = configuration settings, amount1 = total virtual quantity
- * - `owner`: Creator of the good
- * - `currentState`: Present invest quantity and current quantity
- * - `investState`: Shares and value aggregates
- */
-struct S_GoodTmpState {
-    uint256 goodConfig;
-    address owner;
-    uint256 currentState;
-    uint256 investState;
-}
-
-/**
- * @dev Struct representing a key of a proof.
- * @notice Fields:
- * - `owner`: The owner of the proof
- * - `currentgood`: The current good associated with the proof
- * - `valuegood`: The value good associated with the proof
- */
-struct S_ProofKey {
-    address owner;
-    address currentgood;
-    address valuegood;
-}
+import {S_ProofState, S_GoodState, S_GoodTmpState, S_ProofKey} from "./I_TTSwap_Market.sol";
