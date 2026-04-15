@@ -161,11 +161,17 @@ library L_Good {
             uint256(_invest.amount0());
         uint256 config2 = uint256(self.investState.amount1()) *
             uint256(_invest.amount1());
-        if (config1 <= config2) {
+        if (
+            config1 <= config2 &&
+            self.goodConfig.getApply() &&
+            msg.sender == self.owner
+        ) {
+            return false;
+        } else {
             return true;
         }
-        return false;
     }
+
 
     /*
      * @notice Swap quantity
