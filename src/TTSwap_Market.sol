@@ -383,7 +383,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata _normaldata,
         address _trader,
         bytes calldata signature
-    ) external payable guardedEntry msgValue override returns (bool) {
+    ) external payable override guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
         if (_initial.amount1() < 500000 || _initial.amount1() > 2 ** 109)
             revert TTSwapError(36);
@@ -444,8 +444,16 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address _trader
     ) external payable guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
-
-        if (goods[_goodid].checkInvest(_invest)) revert TTSwapError(47);
+        if (_invest.amount0() > 0) {
+            if (goods[_goodid].checkInvest(_invest)) revert TTSwapError(47);
+        } else {
+            uint128 poolValue = uint128(
+                (uint256(goods[_goodid].investState.amount1()) *
+                    uint256(_invest.amount1())) /
+                    uint256(goods[_goodid].currentState.amount1())
+            );
+            _invest = toTTSwapUINT256(poolValue, _invest.amount1());
+        }
         L_Good.S_GoodInvestReturn memory normalInvest_;
 
         _checkGoodActive(_goodid, 10, 12);

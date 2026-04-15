@@ -161,12 +161,17 @@ library L_Good {
             uint256(_invest.amount0());
         uint256 config2 = uint256(self.investState.amount1()) *
             uint256(_invest.amount1());
-        if (config1 <= config2) {
+        if (
+            config1 <= config2 &&
+            self.goodConfig.getApply() &&
+            msg.sender == self.owner
+        ) {
+            return false;
+        } else {
             return true;
         }
-        return false;
     }
-
+    
     /*
      * @notice Swap quantity
      * @dev Swaps quantity of the good
@@ -464,7 +469,10 @@ library L_Good {
         // Updates a tracking counter in the config (likely for fee/limit calculations), accounting for the leverage.
         _self.goodConfig = add(
             _self.goodConfig,
-            toTTSwapUINT256(0, investResult_.investQuantity - investStateTemp.amount1())
+            toTTSwapUINT256(
+                0,
+                investResult_.investQuantity - investStateTemp.amount1()
+            )
         );
     }
 
