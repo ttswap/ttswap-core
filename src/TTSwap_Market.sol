@@ -386,8 +386,15 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata signature
     ) external payable override guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
-        if (_initial.amount1() < 500000 || _initial.amount1() > 2 ** 109)
-            revert TTSwapError(36);
+        if (
+            _initial.amount1() < 10000 ||
+            _initial.amount1() > 2 ** 109 
+        ) revert TTSwapError(36);
+        if (
+           
+            _initial.amount0() > 2 ** 109 ||
+            _initial.amount0() < 500000
+        ) revert TTSwapError(35);
         if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
 
         _erc20address.transferFrom(
@@ -445,7 +452,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address _trader
     ) external payable guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
-
         if (_invest.amount0() > 0) {
             if (goods[_goodid].checkInvest(_invest)) revert TTSwapError(47);
         } else {
@@ -522,7 +528,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             0,
             _trader
         );
-        investvalue = investvalue;
 
         // Stake the investment value to the TTS contract to earn rewards.
         L_Proof.stake(TTS_CONTRACT, msg.sender, investvalue);

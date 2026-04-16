@@ -194,7 +194,43 @@ interface I_TTSwap_Market {
         address _trader,
         bytes calldata signature
     ) external payable returns (bool);
+    /// @notice Initialize a new good with single-token deposit at a user-specified price
+    /// @param _erc20address The address of the ERC20 token representing the new good
+    /// @param _initial amount0: user-specified total value, amount1: token quantity to deposit
+    /// @param _goodConfig The good configuration settings (fees, limits, etc.)
+    /// @param _normaldata The data for transferring the normal good (Permit/Transfer)
+    /// @param _trader The address of the trader initiating the initialization
+    /// @param signature The signature authorizing the initialization (if applicable)
+    function initGoodWithPrice(
+        address _erc20address,
+        uint256 _initial,
+        uint256 _goodConfig,
+        bytes calldata _normaldata,
+        address _trader,
+        bytes calldata signature
+    ) external payable returns (bool) ;
 
+
+    /// @notice Add single-token liquidity to an existing good without pairing a value good.
+    /// @dev The caller deposits only the target token; its credited value is derived from
+    ///      the current pool price and scaled by the leverage factor (`enpower`).
+    ///      Flow: checkInvest (price guard) → transfer tokens in → compute virtual shares
+    ///      → update good state → update/create proof → stake value to TTS.
+    ///      Reverts with TTSwapError(47) if the deposit price exceeds the current pool price,
+    ///      TTSwapError(38) if the resulting investment value is below the dust threshold.
+    /// @param _goodid  Address of the ERC-20 token (good) to invest in.
+    /// @param _invest  Packed uint256 — amount0: credited value per unit, amount1: token quantity to deposit.
+    /// @param _gooddata  Encoded transfer authorisation (plain approve / EIP-2612 / Permit2).
+    /// @param signature  Reserved for future EIP-712 relayer support (currently unused).
+    /// @param _trader  Must equal msg.sender; the address receiving the investment proof.
+    /// @return bool  True on success.
+    function oneTokenInvest(
+        address _goodid,
+        uint256 _invest,
+        bytes calldata _gooddata,
+        bytes calldata signature,
+        address _trader
+    ) external payable  returns (bool) ;
     /**
      * @dev Buys a good
      * @param _goodid1 The ID of the first good
