@@ -14,9 +14,6 @@ library L_SignatureVerification {
     /// @notice Thrown when the recovered signer does not match the expected claimedSigner.
     error InvalidSigner();
 
-    /// @notice Thrown when the recovered contract signature is incorrect (reserved for EIP-1271 support in future).
-    error InvalidContractSignature();
-
     bytes32 constant UPPER_BIT_MASK = (0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
 
     /// @notice Verifies that a signature was produced by a specific address.

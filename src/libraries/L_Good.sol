@@ -223,6 +223,8 @@ library L_Good {
             // Output-side (exact-out for value): use K_B from value-shifted R_B.
             uint128 K = config.getK2();
             // Δb = (K_B * Q_B * ΔV) / (K_B * V_B - ΔV), scaled by 100 for fee precision.
+            if (uint256(_swapParam) * 10000 >= uint256(K) * uint256(current_value))
+    revert TTSwapError(48);
             swapTemp = uint128(
                 (uint256(K) * uint256(_swapParam) * uint256(current_quantity)) /
                     (uint256(K) *
@@ -289,6 +291,7 @@ library L_Good {
             uint128 swap = _swapParam + swap_fee;
             // Quantity-view exact-out: solve for ΔV using K_A derived from quantity shift.
             uint128 K = config.getK1();
+            if (uint256(_swapParam) * 10000 >= uint256(K) * uint256(current_value)) revert TTSwapError(46);
             // ΔV = (K_A * V_A * Δa) / (K_A * Q_A - Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
                 (uint256(K) * uint256(swap) * uint256(current_value)) /

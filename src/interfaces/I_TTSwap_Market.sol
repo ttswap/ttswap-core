@@ -7,27 +7,39 @@ interface I_TTSwap_Market {
     /// @notice Emitted when a good's configuration is updated
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
-    event e_updateGoodConfig(address _goodid, uint256 _goodConfig,address _trader);
+    event e_updateGoodConfig(
+        address _goodid,
+        uint256 _goodConfig,
+        address _trader
+    );
 
     /// @notice Emitted when a good's configuration is modified by market admin
     /// @param _goodid The ID of the good
     /// @param _goodconfig The new configuration
-    event e_modifyGoodConfig(address _goodid, uint256 _goodconfig,address _trader);
+    event e_modifyGoodConfig(
+        address _goodid,
+        uint256 _goodconfig,
+        address _trader
+    );
 
     /// @notice Emitted when a good's owner is changed
     /// @param goodid The ID of the good
     /// @param to The new owner's address
-    event e_changegoodowner(address goodid, address to,address _trader);
+    event e_changegoodowner(address goodid, address to, address _trader);
 
     /// @notice Emitted when market commission is collected
     /// @param _gooid Array of good IDs
     /// @param _commisionamount Array of commission amounts
-    event e_collectcommission(address[] _gooid, uint256[] _commisionamount,address _trader);
+    event e_collectcommission(
+        address[] _gooid,
+        uint256[] _commisionamount,
+        address _trader
+    );
 
     /// @notice Emitted when welfare is delivered to investors
     /// @param goodid The ID of the good
     /// @param welfare The amount of welfare
-    event e_goodWelfare(address goodid, uint128 welfare,address _trader);
+    event e_goodWelfare(address goodid, uint128 welfare, address _trader);
 
     /// @notice Emitted when a meta good is created and initialized
     /// @dev The decimal precision of _initial.amount0() defaults to 6
@@ -60,9 +72,6 @@ interface I_TTSwap_Market {
         uint256 _invest,
         address _trader
     );
-
-
-
 
     /// @notice Emitted when a good is created and initialized
     /// @param _proofNo The ID of the investment proof
@@ -117,7 +126,6 @@ interface I_TTSwap_Market {
         uint256 data_hash
     );
 
-
     /// @notice Emitted when a user invests in a normal good
     /// @param _proofNo The ID of the investment proof
     /// @param _normalgoodid Packed data: first 128 bits for good's ID, last 128 bits for stake construct
@@ -158,11 +166,9 @@ interface I_TTSwap_Market {
         address _trader
     );
 
-    event e_getPromiseProof(
-        address _goodid,
-        uint256 _proofid
-    );
+    event e_getPromiseProof(address _goodid, uint256 _proofid);
 
+    function getNonce(address _trader) external view returns (uint256);
     // /// @notice Initialize the first good in the market
     // /// @param _erc20address The contract address of the good
     // /// @param _initial Initial parameters for the good (amount0: value, amount1: quantity)
@@ -195,7 +201,6 @@ interface I_TTSwap_Market {
         bytes calldata signature
     ) external payable returns (bool);
 
-
     /// @notice Initialize a new good with single-token deposit at a user-specified price
     /// @param _erc20address The address of the ERC20 token representing the new good
     /// @param _initial amount0: user-specified total value, amount1: token quantity to deposit
@@ -210,8 +215,7 @@ interface I_TTSwap_Market {
         bytes calldata _normaldata,
         address _trader,
         bytes calldata signature
-    ) external payable returns (bool) ;
-
+    ) external payable returns (bool);
 
     /// @notice Add single-token liquidity to an existing good without pairing a value good.
     /// @dev The caller deposits only the target token; its credited value is derived from
@@ -232,7 +236,7 @@ interface I_TTSwap_Market {
         bytes calldata _gooddata,
         bytes calldata signature,
         address _trader
-    ) external payable  returns (bool) ;
+    ) external payable returns (bool);
 
     /**
      * @dev Buys a good
@@ -241,7 +245,7 @@ interface I_TTSwap_Market {
      * @param _swapQuantity The amount of _goodid1 to swap
      *        - amount0: The quantity of the input good
      *        - amount1: The limit quantity of the output good
-     * @param _referal when side is buy, _referal is the referral address when side is sell, _referal is the address to receive the fee
+     * @param _referral when side is buy, _referral is the referral address when side is sell, _referral is the address to receive the fee
      * @return good1change amount0() good1tradefee,good1tradeamount
      * @return good2change amount0() good1tradefee,good2tradeamount
      */
@@ -249,12 +253,27 @@ interface I_TTSwap_Market {
         address _goodid1,
         address _goodid2,
         uint256 _swapQuantity,
-        address _referal,
+        address _referral,
         bytes calldata data,
         address _trader,
         bytes calldata signature
     ) external payable returns (uint256 good1change, uint256 good2change);
 
+    /**
+     * @notice Pays a fixed output amount to recipient using inverse pricing.
+     * @param _goodid1 Input good id (payer side).
+     * @param _goodid2 Output good id (recipient side).
+     * @param _swapQuantity Packed swap params:
+     *        - amount0: max input limit.
+     *        - amount1: target output amount.
+     * @param _recipient Address receiving output good.
+     * @param data Additional transfer data for input token (Permit/Transfer).
+     * @param _trader Trader address bound to signature/caller checks.
+     * @param signature Signature used for relayer mode.
+     * @param external_info External business metadata (e.g., payment order id or other extra info).
+     * @return good1change Packed input-side change.
+     * @return good2change Packed output-side change.
+     */
     function payGood(
         address _goodid1,
         address _goodid2,
@@ -263,7 +282,7 @@ interface I_TTSwap_Market {
         bytes calldata data,
         address _trader,
         bytes calldata signature,
-        uint256 data_hash
+        uint256 external_info
     ) external payable returns (uint256 good1change, uint256 good2change);
 
     /// @notice Invest in a normal good
@@ -306,7 +325,7 @@ interface I_TTSwap_Market {
         uint256 compareprice
     ) external view returns (bool);
 
-    function refreshPromise(uint256 _proofid) external   ;
+    function refreshPromise(uint256 _proofid) external;
 
     /// @notice Retrieves the current state of a proof
     /// @param proofid The ID of the proof to query

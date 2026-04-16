@@ -61,7 +61,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     address internal implementation;
     I_TTSwap_Token internal immutable TTS_CONTRACT;
 
-    mapping(address _trader => uint256 nonce) public nonces;
+    mapping(address _trader => uint256 nonce) public override nonces;
     bool internal upgradeable;
 
     /**
@@ -386,15 +386,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata signature
     ) external payable override guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
-        if (
-            _initial.amount1() < 10000 ||
-            _initial.amount1() > 2 ** 109 
-        ) revert TTSwapError(36);
-        if (
-           
-            _initial.amount0() > 2 ** 109 ||
-            _initial.amount0() < 500000
-        ) revert TTSwapError(35);
+        if (_initial.amount1() < 10000 || _initial.amount1() > 2 ** 109)
+            revert TTSwapError(36);
+        if (_initial.amount0() > 2 ** 109 || _initial.amount0() < 500000)
+            revert TTSwapError(35);
         if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
 
         _erc20address.transferFrom(
@@ -584,15 +579,15 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         keccak256(
                             abi.encode(
                                 keccak256(
-                                    "buyGood(address _trader,address referal,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 nonce,bytes data)"
+                                    "buyGood(address _trader,address referral,address _goodid1,address _goodid2,uint256 _swapQuantity,bytes data,uint256 nonce)"
                                 ),
                                 _trader,
                                 _recipient,
                                 _goodid1,
                                 _goodid2,
                                 _swapQuantity,
-                                nonces[_trader]++,
-                                keccak256(data)
+                                keccak256(data),
+                                nonces[_trader]++
                             )
                         )
                     )
@@ -665,7 +660,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param data Additional data for the input token transfer (Permit/Transfer).
      * @param _trader The address of the trader initiating the payment (must match signer).
      * @param signature The EIP-712 signature authorizing the payment (if msg.sender != _trader).
-     * @param external_info A hash of the `data` parameter, intended to bind the transfer data to the signature.
+    * @param external_info External business metadata (e.g., payment order id or other extra info).
      * @return good1change The state change of the input good:
      *         - amount0: Fee quantity deducted.
      *         - amount1: Actual input quantity used.
@@ -677,7 +672,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @custom:security Protected by reentrancy guard.
      * @custom:security Verifies EIP-712 signature if the caller is a relayer.
      * @custom:security Checks max input limit (`_swapQuantity.amount0()`).
-     * @custom:security CRITICAL: `data_hash` is signed but NOT verified against `data` in current implementation.
+    * @custom:security `external_info` is included in signature payload as business context metadata.
      */
     function payGood(
         address _goodid1,
@@ -709,7 +704,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         keccak256(
                             abi.encode(
                                 keccak256(
-                                    "payGood(address _trader,address recipent,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 external_info,bytes data,uint256 nonce)"
+                                    "payGood(address _trader,address recipient,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 external_info,bytes data,uint256 nonce)"
                                 ),
                                 _trader,
                                 _recipient,
@@ -774,7 +769,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 ),
                 _trader,
                 _recipient,
-                data_hash
+                external_info
             );
         } else {
             // Direct payment path (good1 == good2).
@@ -810,7 +805,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 good2change,
                 _trader,
                 _recipient,
-                data_hash
+                external_info
             );
         }
     }
@@ -1023,12 +1018,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         }
         address valuegood = proofs[_proofid].valuegood;
         uint256 divestvalue;
-        address referal = TTS_CONTRACT.getreferral(msg.sender);
+        address referral = TTS_CONTRACT.getreferral(msg.sender);
         _gate = TTS_CONTRACT.userConfig(_gate).isBan() ? address(0) : _gate;
-        referal = _gate == referal ? address(0) : referal;
-        referal = TTS_CONTRACT.userConfig(referal).isBan()
+        referral = _gate == referral ? address(0) : referral;
+        referral = TTS_CONTRACT.userConfig(referral).isBan()
             ? address(0)
-            : referal;
+            : referral;
         // Normalize payout routes:
         // - banned gate/referral are nulled
         // - gate == referral collapses referral to avoid double-counting
@@ -1049,7 +1044,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 L_Good.S_GoodDisinvestParam(
                     _goodshares,
                     _gate,
-                    referal,
+                    referral,
                     msg.sender
                 )
             );
@@ -1305,17 +1300,17 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata signature
     ) external override guardedEntry {
         _checkTrader(_trader);
-        address recipent = TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin()
+        address recipient = TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin()
             ? address(0)
             : msg.sender;
         uint256 len = _goodid.length;
         if (len > 100) revert TTSwapError(21);
         uint256[] memory commissionamount = new uint256[](len);
         for (uint256 i = 0; i < len; ) {
-            commissionamount[i] = goods[_goodid[i]].commission[recipent];
+            commissionamount[i] = goods[_goodid[i]].commission[recipient];
             if (commissionamount[i] > 1) {
                 commissionamount[i] = commissionamount[i] - 1;
-                goods[_goodid[i]].commission[recipent] = 1;
+                goods[_goodid[i]].commission[recipient] = 1;
                 _goodid[i].safeTransfer(msg.sender, commissionamount[i]);
             }
             unchecked {
