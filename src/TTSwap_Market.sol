@@ -61,7 +61,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     address internal implementation;
     I_TTSwap_Token internal immutable TTS_CONTRACT;
 
-    mapping(address _trader => uint256 nonce) private nonces;
+    mapping(address _trader => uint256 nonce) public nonces;
     bool internal upgradeable;
 
     /**
@@ -665,7 +665,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param data Additional data for the input token transfer (Permit/Transfer).
      * @param _trader The address of the trader initiating the payment (must match signer).
      * @param signature The EIP-712 signature authorizing the payment (if msg.sender != _trader).
-     * @param data_hash A hash of the `data` parameter, intended to bind the transfer data to the signature.
+     * @param external_info A hash of the `data` parameter, intended to bind the transfer data to the signature.
      * @return good1change The state change of the input good:
      *         - amount0: Fee quantity deducted.
      *         - amount1: Actual input quantity used.
@@ -687,7 +687,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata data,
         address _trader,
         bytes calldata signature,
-        uint256 data_hash
+        uint256 external_info
     )
         external
         payable
@@ -709,14 +709,14 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         keccak256(
                             abi.encode(
                                 keccak256(
-                                    "payGood(address _trader,address recipent,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 data_hash,bytes data,uint256 nonce)"
+                                    "payGood(address _trader,address recipent,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 external_info,bytes data,uint256 nonce)"
                                 ),
                                 _trader,
                                 _recipient,
                                 _goodid1,
                                 _goodid2,
                                 _swapQuantity,
-                                data_hash,
+                                external_info,
                                 keccak256(data),
                                 nonces[_trader]++
                             )
