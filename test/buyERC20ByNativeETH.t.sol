@@ -142,7 +142,7 @@ contract buyERC20ByNativeETH is BaseSetup {
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
             address(0),
-            defaultdata,users[1],defaultdata
+            defaultdata,users[1],defaultdata,0
         );
         snapLastCall("buy_erc20_by_NativeETH_first");
         assertEq(
@@ -186,7 +186,7 @@ contract buyERC20ByNativeETH is BaseSetup {
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
             address(0),
-            defaultdata,users[1],defaultdata
+            defaultdata,users[1],defaultdata,0
         );
         snapLastCall("buy_erc20_by_NativeETH_second");
 
@@ -250,7 +250,7 @@ contract buyERC20ByNativeETH is BaseSetup {
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
             address(100),
-            defaultdata,users[1],defaultdata
+            defaultdata,users[1],defaultdata,0
         );
         snapLastCall("buy_erc20_by_NativeETH_first_with_refer");
         assertEq(
@@ -294,7 +294,7 @@ contract buyERC20ByNativeETH is BaseSetup {
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
             address(100),
-            defaultdata,users[1],defaultdata
+            defaultdata,users[1],defaultdata,0
         );
         snapLastCall(
             "buy_erc20_by_NativeETH_second_with_exists_refer_reject_add"
@@ -305,7 +305,7 @@ contract buyERC20ByNativeETH is BaseSetup {
             normalgoodbtc,
             toTTSwapUINT256(6300 * 10 ** 6, 1),
             address(0),
-            defaultdata,users[1],defaultdata
+            defaultdata,users[1],defaultdata,0
         );
         snapLastCall("buy_erc20_by_NativeETH_second_with_exists_refer");
         vm.stopPrank();

@@ -50,16 +50,30 @@ contract Fuzz_CollectCommission is BaseTest {
         // Execute trades to generate fees
         tokenA.mint(USER1, 1e10);
         tokenA.approve(address(market), 1e10);
+        usdt.mint(USER1, 1e10);
+        usdt.approve(address(market), 1e10);
         
         market.buyGood(
-            address(tokenA),
+
             address(usdt),
+            address(tokenA),
             (1e9 << 128),
             
             address(0),
             "",
             USER1,
-            ""
+            "",0
+        );
+        market.buyGood(
+
+            address(tokenA),
+            address(usdt),
+            (1e8 << 128),
+            
+            address(0),
+            "",
+            USER1,
+            "",0
         );
         
         vm.stopPrank();

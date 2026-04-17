@@ -144,7 +144,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             address(0),
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("buy_NativeETH_by_erc20_first");
         assertEq(
@@ -190,7 +190,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             address(0),
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("buy_NativeETH_by_erc20_second");
 
@@ -256,7 +256,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             address(100),
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("buy_NativeETH_by_erc20_first_with_refer");
         assertEq(
@@ -302,7 +302,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             address(100),
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall(
             "buy_NativeETH_by_erc20_second_with_exists_refer_reject_add"
@@ -315,7 +315,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             address(0),
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("buy_NativeETH_by_erc20_second_with_exists_refer");
         vm.stopPrank();

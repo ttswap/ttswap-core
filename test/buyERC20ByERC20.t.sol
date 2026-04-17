@@ -146,7 +146,7 @@ contract buyERC20ByERC20 is BaseSetup {
             address(0),
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("buy_erc20_by_erc20_first");
         assertEq(
@@ -192,7 +192,7 @@ contract buyERC20ByERC20 is BaseSetup {
             address(0),
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("buy_erc20_by_erc20_second");
 
@@ -258,7 +258,7 @@ contract buyERC20ByERC20 is BaseSetup {
             address(100),
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("buy_erc20_by_erc20_first_with_refer");
         assertEq(
@@ -304,7 +304,7 @@ contract buyERC20ByERC20 is BaseSetup {
             address(100),
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("buy_erc20_by_erc20_second_with_exists_refer_reject_add");
 
@@ -315,7 +315,7 @@ contract buyERC20ByERC20 is BaseSetup {
             address(0),
             defaultdata,
             users[1],
-            defaultdata
+            defaultdata,0
         );
         snapLastCall("buy_erc20_by_erc20_second_with_exists_refer");
         vm.stopPrank();

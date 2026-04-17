@@ -296,7 +296,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             toTTSwapUINT256(inputAmount, 1000 * 10 ** 6),
             address(0),
             "",
-            marketcreator,""
+            marketcreator,"",0
         );
         snapLastCall("testswapwithoutfee1");
         
@@ -317,7 +317,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             toTTSwapUINT256(usdtReceived, 0),
             msg.sender,
             "",
-            marketcreator,""
+            marketcreator,"",0
         );
 
         snapLastCall("testswapwithoutfee2");
@@ -380,7 +380,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             toTTSwapUINT256(inputAmount, 1000 * 10 ** 6),
             address(0),
             "",
-            marketcreator,""
+            marketcreator,"",0
         );
         snapLastCall("testswapwithoutfee1");
         
@@ -401,7 +401,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             toTTSwapUINT256(usdtReceived, 0),
             msg.sender,
             "",
-            marketcreator,""
+            marketcreator,"",0
         );
 
         snapLastCall("testswapwithoutfee2");
@@ -471,7 +471,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             
             address(0),
             "",
-            marketcreator,""
+            marketcreator,"",0
         );
         snapLastCall("testswapwithoutfee1");
         uint256 usdcafter = usdc.balanceOf(address(address(market)));
@@ -489,7 +489,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             
             address(0),
             "",
-            marketcreator,""
+            marketcreator,"",0  
         );
         snapLastCall("testswapwithoutfee1");
         usdcafter = usdc.balanceOf(address(address(market)));
@@ -505,7 +505,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             
             address(0),
             "",
-            marketcreator,""
+            marketcreator,"",0
         );
         snapLastCall("testswapwithoutfee3");
         usdcafter = usdc.balanceOf(address(market));
@@ -532,7 +532,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             
             address(0),
             "",
-            marketcreator,""
+            marketcreator,"",0
         );
         snapLastCall("testswapwithoutfee1");
         uint256 usdcafter = usdc.balanceOf(address(marketcreator));
@@ -563,7 +563,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             
             address(0),
             "",
-            marketcreator,""
+            marketcreator,"",0
         );
 
         market.buyGood(
@@ -573,7 +573,7 @@ contract modified_swap_without_fee is Test, GasSnapshot {
             
             address(0),
             "",
-            marketcreator,""
+            marketcreator,"",0  
         );
         snapLastCall("testswapwithoutfee1");
         uint256 usdcafter = usdc.balanceOf(address(marketcreator));
@@ -699,14 +699,14 @@ contract modified_swap_without_fee is Test, GasSnapshot {
     //     uint256 usdtbefore=usdt.balanceOf(marketcreator);
     //     usdc.approve(address(market), 50000 * 10 ** 6 + 1);
     //     usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-    //     market.buyGood(address(usdc),address(usdt),1000*10**6,5,address(0),"");
+    //     market.buyGood(address(usdc),address(usdt),1000*10**6,5,address(0),"",0);
     //     uint256 usdcafter=usdc.balanceOf(marketcreator);
     //     uint256 usdtafter=usdt.balanceOf(marketcreator);
     //     console2.log("usdcbefore:",usdcbefore);
     //     console2.log("usdtbefore:",usdtbefore);
     //     console2.log("usdcafter:",usdcafter);
     //     console2.log("usdtafter:",usdtafter);
-    //     market.buyGood(address(usdt),address(usdc),99601593,5,address(0),"");
+    //     market.buyGood(address(usdt),address(usdc),99601593,5,address(0),"",0);
     //     usdcafter=usdc.balanceOf(marketcreator);
     //     usdtafter=usdt.balanceOf(marketcreator);
 

@@ -135,7 +135,7 @@ contract modified_swap_fee is Test, GasSnapshot  {
         usdt.approve(address(market), 50000 * 10 ** 6 + 1);
         S_GoodTmpState memory beforeusdc=market.getGoodState(address(usdc));
         S_GoodTmpState memory beforeusdt=market.getGoodState(address(usdt));
-        market.buyGood(address(usdc),address(usdt),toTTSwapUINT256(500*10**6,0),address(0),"",marketcreator,defaultdata);
+        market.buyGood(address(usdc),address(usdt),toTTSwapUINT256(500*10**6,0),address(0),"",marketcreator,defaultdata,0);
         snapLastCall("testswapwithfee1");
         uint256 usdcafter=usdc.balanceOf(address(market));
         uint256 usdtafter=usdt.balanceOf(address(market));
@@ -162,7 +162,7 @@ contract modified_swap_fee is Test, GasSnapshot  {
         console2.log("usdcafter:",usdcafter);
         console2.log("usdtafter:",usdtafter);
         console2.log("********************************************");
-        market.buyGood(address(usdt),address(usdc),toTTSwapUINT256(494261657,0),address(0),"",marketcreator,defaultdata);
+        market.buyGood(address(usdt),address(usdc),toTTSwapUINT256(494261657,0),address(0),"",marketcreator,defaultdata,0);
         snapLastCall("testswapwithfee2");
         usdcafter=usdc.balanceOf(address(market));
         usdtafter=usdt.balanceOf(address(market));
