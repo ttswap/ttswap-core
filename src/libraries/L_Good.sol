@@ -53,12 +53,9 @@ library L_Good {
         if (_goodConfig.getK1() <= 10000) {
             revert TTSwapError(44);
         }
-        if (
-            _self.goodConfig.getK1() - 100 > _goodConfig.getK1() ||
-            _self.goodConfig.getK1() + 100 < _goodConfig.getK1()
-        ) {
-            revert TTSwapError(43);
-        }
+        uint128 oldK = _self.goodConfig.getK1();
+        uint128 newK = _goodConfig.getK1();
+        if (newK > oldK + 100 || oldK > newK + 100) revert TTSwapError(43);
 
         uint256 tmpconfig = _self.goodConfig;
         assembly {
@@ -153,7 +150,7 @@ library L_Good {
     /// @param self Storage pointer to the good state.
     /// @param _invest Packed invest params where amount0 is invest value and amount1 is invest quantity.
     /// @return bool True if invest price is lower than or equal to current pool price.
-    function checkInvest(
+    function isInvestBlocked(
         S_GoodState storage self,
         uint256 _invest
     ) internal view returns (bool) {
@@ -171,7 +168,6 @@ library L_Good {
             return true;
         }
     }
-
 
     /*
      * @notice Swap quantity
@@ -223,8 +219,10 @@ library L_Good {
             // Output-side (exact-out for value): use K_B from value-shifted R_B.
             uint128 K = config.getK2();
             // Δb = (K_B * Q_B * ΔV) / (K_B * V_B - ΔV), scaled by 100 for fee precision.
-            if (uint256(_swapParam) * 10000 >= uint256(K) * uint256(current_value))
-    revert TTSwapError(48);
+            if (
+                uint256(_swapParam) * 10000 >=
+                uint256(K) * uint256(current_value)
+            ) revert TTSwapError(48);
             swapTemp = uint128(
                 (uint256(K) * uint256(_swapParam) * uint256(current_quantity)) /
                     (uint256(K) *
@@ -291,7 +289,10 @@ library L_Good {
             uint128 swap = _swapParam + swap_fee;
             // Quantity-view exact-out: solve for ΔV using K_A derived from quantity shift.
             uint128 K = config.getK1();
-            if (uint256(_swapParam) * 10000 >= uint256(K) * uint256(current_value)) revert TTSwapError(46);
+            if (
+                uint256(_swapParam) * 10000 >=
+                uint256(K) * uint256(current_value)
+            ) revert TTSwapError(46);
             // ΔV = (K_A * V_A * Δa) / (K_A * Q_A - Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
                 (uint256(K) * uint256(swap) * uint256(current_value)) /
@@ -473,7 +474,10 @@ library L_Good {
         // Updates a tracking counter in the config (likely for fee/limit calculations), accounting for the leverage.
         _self.goodConfig = add(
             _self.goodConfig,
-            toTTSwapUINT256(0, investResult_.investQuantity - investStateTemp.amount1())
+            toTTSwapUINT256(
+                0,
+                investResult_.investQuantity - investStateTemp.amount1()
+            )
         );
     }
 
@@ -772,13 +776,20 @@ library L_Good {
             // - gate receives operator + customer portions (if gate exists)
             // - remaining + platform fee accrues to protocol (address(0))
             // If no referrer, distribute fees differently
-            _self.commission[_sender] += (liquidFee + _divestQuantity);
-            _self.commission[_gater] += sellerFee + customerFee;
-            _self.commission[address(0)] += (_profit -
-                liquidFee -
-                sellerFee -
-                customerFee +
-                marketfee);
+            if (_gater == address(0)) {
+                _self.commission[address(0)] += (_profit -
+                    liquidFee +
+                    marketfee);
+                _self.commission[_sender] += (liquidFee + _divestQuantity);
+            } else {
+                _self.commission[_sender] += (liquidFee + _divestQuantity);
+                _self.commission[_gater] += sellerFee + customerFee;
+                _self.commission[address(0)] += (_profit +
+                    marketfee -
+                    liquidFee -
+                    sellerFee -
+                    customerFee);
+            }
         } else {
             // Referrer path:
             // - operator fee goes to owner (or protocol if owner is zero)

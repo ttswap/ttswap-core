@@ -3,6 +3,9 @@ pragma solidity ^0.8.29;
 
 /// @title Market Management Interface
 /// @notice Defines the interface for managing market operations
+/// @custom:security C-01: Only `buyGood` and `payGood` verify EIP-712 when `msg.sender != _trader`. On every other function
+/// that includes `bytes calldata signature`, that parameter is **unused** (reserved for ABI / future relayer); callers must
+/// pass `_trader == msg.sender` where the implementation enforces `_checkTrader`.
 interface I_TTSwap_Market {
     /// @notice Emitted when a good's configuration is updated
     /// @param _goodid The ID of the good
@@ -168,7 +171,7 @@ interface I_TTSwap_Market {
 
     event e_getPromiseProof(address _goodid, uint256 _proofid);
 
-    function getNonce(address _trader) external view returns (uint256);
+    function nonces(address _trader) external view returns (uint256);
     // /// @notice Initialize the first good in the market
     // /// @param _erc20address The contract address of the good
     // /// @param _initial Initial parameters for the good (amount0: value, amount1: quantity)
@@ -187,8 +190,10 @@ interface I_TTSwap_Market {
     /// @param _initial Initial parameters (amount0: normal good quantity, amount1: value good quantity)
     /// @param _erc20address The contract address of the good
     /// @param _goodConfig Configuration of the good
-    /// @param data1 Configuration of the good
-    /// @param data2 Configuration of the good
+    /// @param data1 Transfer data for the normal good
+    /// @param data2 Transfer data for the value good
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
     function initGood(
         address _valuegood,
@@ -206,8 +211,8 @@ interface I_TTSwap_Market {
     /// @param _initial amount0: user-specified total value, amount1: token quantity to deposit
     /// @param _goodConfig The good configuration settings (fees, limits, etc.)
     /// @param _normaldata The data for transferring the normal good (Permit/Transfer)
-    /// @param _trader The address of the trader initiating the initialization
-    /// @param signature The signature authorizing the initialization (if applicable)
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     function initGoodWithPrice(
         address _erc20address,
         uint256 _initial,
@@ -227,8 +232,8 @@ interface I_TTSwap_Market {
     /// @param _goodid  Address of the ERC-20 token (good) to invest in.
     /// @param _invest  Packed uint256 — amount0: credited value per unit, amount1: token quantity to deposit.
     /// @param _gooddata  Encoded transfer authorisation (plain approve / EIP-2612 / Permit2).
-    /// @param signature  Reserved for future EIP-712 relayer support (currently unused).
-    /// @param _trader  Must equal msg.sender; the address receiving the investment proof.
+    /// @param signature Reserved for ABI compatibility; **not verified** here (C-01 scheme B).
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
     /// @return bool  True on success.
     function oneTokenInvest(
         address _goodid,
@@ -246,6 +251,9 @@ interface I_TTSwap_Market {
      *        - amount0: The quantity of the input good
      *        - amount1: The limit quantity of the output good
      * @param _referral when side is buy, _referral is the referral address when side is sell, _referral is the address to receive the fee
+     * @param data Encoded transfer authorization for the input token (Permit/Transfer).
+     * @param _trader The trader; `msg.sender` may be a relayer distinct from `_trader` when `signature` is valid.
+     * @param signature EIP-712 signature over the buy payload; **verified** when `msg.sender != _trader`.
      * @return good1change amount0() good1tradefee,good1tradeamount
      * @return good2change amount0() good1tradefee,good2tradeamount
      */
@@ -268,8 +276,8 @@ interface I_TTSwap_Market {
      *        - amount1: target output amount.
      * @param _recipient Address receiving output good.
      * @param data Additional transfer data for input token (Permit/Transfer).
-     * @param _trader Trader address bound to signature/caller checks.
-     * @param signature Signature used for relayer mode.
+     * @param _trader The trader; `msg.sender` may be a relayer distinct from `_trader` when `signature` is valid.
+     * @param signature EIP-712 signature over the pay payload; **verified** when `msg.sender != _trader`.
      * @param external_info External business metadata (e.g., payment order id or other extra info).
      * @return good1change Packed input-side change.
      * @return good2change Packed output-side change.
@@ -289,6 +297,10 @@ interface I_TTSwap_Market {
     /// @param _togood ID of the normal good to invest in
     /// @param _valuegood ID of the value good
     /// @param _quantity Quantity of normal good to invest
+    /// @param data1 Transfer data for `_togood`
+    /// @param data2 Transfer data for `_valuegood`
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
     function investGood(
         address _togood,
@@ -304,6 +316,8 @@ interface I_TTSwap_Market {
     /// @param _proofid ID of the investment proof
     /// @param _goodQuantity Quantity to disinvest
     /// @param _gate Address of the gate
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return reward1 status
     /// @return reward2 status
     function disinvestProof(
@@ -354,6 +368,8 @@ interface I_TTSwap_Market {
     /// @notice Updates a good's configuration
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
     function updateGoodConfig(
         address _goodid,
@@ -365,6 +381,8 @@ interface I_TTSwap_Market {
     /// @notice Allows market admin to modify a good's attributes
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
     function modifyGoodConfig(
         address _goodid,
@@ -373,8 +391,10 @@ interface I_TTSwap_Market {
         bytes calldata signature
     ) external returns (bool);
 
-    // @param _goodid The ID of the good
+    /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
     function modifyGoodCoreConfig(
         address _goodid,
@@ -383,6 +403,9 @@ interface I_TTSwap_Market {
         bytes calldata signature
     ) external returns (bool);
 
+    /// @param _goodid The good to lock
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     function lockGood(
         address _goodid,
         address _trader,
@@ -392,6 +415,8 @@ interface I_TTSwap_Market {
     /// @notice Changes the owner of a good
     /// @param _goodid The ID of the good
     /// @param _to The new owner's address
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     function changeGoodOwner(
         address _goodid,
         address _to,
@@ -401,6 +426,8 @@ interface I_TTSwap_Market {
 
     /// @notice Collects commission for specified goods
     /// @param _goodid Array of good IDs
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     function collectCommission(
         address[] calldata _goodid,
         address _trader,
@@ -428,6 +455,9 @@ interface I_TTSwap_Market {
     /// @notice Delivers welfare to investors
     /// @param goodid The ID of the good
     /// @param welfare The amount of welfare
+    /// @param data1 Transfer data for the token
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     function goodWelfare(
         address goodid,
         uint128 welfare,

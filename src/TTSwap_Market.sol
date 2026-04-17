@@ -39,6 +39,8 @@ import {L_SignatureVerification} from "./libraries/L_SignatureVerification.sol";
  * twitter https://x.com/ttswapfinance
  * telegram https://t.me/ttswapfinance
  * discord https://discord.gg/XygqnmQgX3
+ * @custom:security C-01 (documentation): `buyGood` and `payGood` verify EIP-712 when `msg.sender != _trader`. Every other
+ * `signature` argument is reserved for ABI compatibility and is **not** verified; those entrypoints require `msg.sender == _trader` (enforced by `_checkTrader`).
  */
 contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     using L_GoodConfigLibrary for uint256;
@@ -139,14 +141,14 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
     /// @dev Internal function to validate trader matches msg.sender
     function _checkTrader(address _trader) private view {
-        if (_trader != msg.sender) revert TTSwapError(39);
+        if (_trader != msg.sender || _trader == address(0)) revert TTSwapError(39);
     }
 
     /// @dev Internal function to check if a good is active (not frozen and has state)
     function _checkGoodActive(
         address _goodid,
-        uint8 freezeErr,
-        uint8 emptyErr
+        uint256 freezeErr,
+        uint256 emptyErr
     ) private view {
         // Storage pointer avoids recomputing the mapping key hash twice
         S_GoodState storage g = goods[_goodid];
@@ -261,8 +263,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param _goodConfig The good configuration settings (fees, limits, etc.).
      * @param _normaldata The data for transferring the normal good (Permit/Transfer).
      * @param _valuedata The data for transferring the value good (Permit/Transfer).
-     * @param _trader The address of the trader initiating the initialization (must be msg.sender).
-     * @param signature The signature authorizing the initialization (if applicable).
+     * @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+     * @param signature Reserved for ABI compatibility; **not verified** in this function. Relayer / meta-tx is not supported here.
      * @return bool Returns true if the initialization is successful.
      * @notice This function creates a new market pair between the normal good and the value good.
      * It requires:
@@ -375,8 +377,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @param _initial amount0: user-specified total value, amount1: token quantity to deposit
     /// @param _goodConfig The good configuration settings (fees, limits, etc.)
     /// @param _normaldata The data for transferring the normal good (Permit/Transfer)
-    /// @param _trader The address of the trader initiating the initialization
-    /// @param signature The signature authorizing the initialization (if applicable)
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** in this function. Relayer / meta-tx is not supported here.
     function initGoodWithPrice(
         address _erc20address,
         uint256 _initial,
@@ -388,7 +390,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         _checkTrader(_trader);
         if (_initial.amount1() < 10000 || _initial.amount1() > 2 ** 109)
             revert TTSwapError(36);
-        if (_initial.amount0() > 2 ** 109 || _initial.amount0() < 500000)
+        if (_initial.amount0() > 2 ** 109 || _initial.amount0() < 500000000000000)
             revert TTSwapError(35);
         if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
 
@@ -429,15 +431,15 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @notice Add single-token liquidity to an existing good without pairing a value good.
     /// @dev The caller deposits only the target token; its credited value is derived from
     ///      the current pool price and scaled by the leverage factor (`enpower`).
-    ///      Flow: checkInvest (price guard) → transfer tokens in → compute virtual shares
+    ///      Flow: isInvestBlocked (price guard) → transfer tokens in → compute virtual shares
     ///      → update good state → update/create proof → stake value to TTS.
     ///      Reverts with TTSwapError(47) if the deposit price exceeds the current pool price,
     ///      TTSwapError(38) if the resulting investment value is below the dust threshold.
     /// @param _goodid  Address of the ERC-20 token (good) to invest in.
     /// @param _invest  Packed uint256 — amount0: credited value per unit, amount1: token quantity to deposit.
     /// @param _gooddata  Encoded transfer authorisation (plain approve / EIP-2612 / Permit2).
-    /// @param signature  Reserved for future EIP-712 relayer support (currently unused).
-    /// @param _trader  Must equal msg.sender; the address receiving the investment proof.
+    /// @param signature Reserved for ABI compatibility; **not verified** here (C-01 scheme B). Do not rely on relayer semantics.
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`); receives the investment proof context in events.
     /// @return bool  True on success.
     function oneTokenInvest(
         address _goodid,
@@ -448,7 +450,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     ) external payable guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
         if (_invest.amount0() > 0) {
-            if (goods[_goodid].checkInvest(_invest)) revert TTSwapError(47);
+            if (goods[_goodid].isInvestBlocked(_invest)) revert TTSwapError(47);
         } else {
             uint128 poolValue = uint128(
                 (uint256(goods[_goodid].investState.amount1()) *
@@ -627,6 +629,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 .getamount1fromamount0(executeFee);
             if (feeQuantity > good2change.amount1()) revert TTSwapError(46);
             goods[_goodid2].commission[msg.sender] += feeQuantity;
+            if (_recipient == address(0)) _recipient = _trader; 
             _goodid2.safeTransfer(
                 _recipient,
                 (good2change.amount1() - feeQuantity)
@@ -660,7 +663,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param data Additional data for the input token transfer (Permit/Transfer).
      * @param _trader The address of the trader initiating the payment (must match signer).
      * @param signature The EIP-712 signature authorizing the payment (if msg.sender != _trader).
-    * @param external_info External business metadata (e.g., payment order id or other extra info).
+    * @param external_info amouunt0:External business metadata (e.g., payment order id or other extra info). amount1():dealline
      * @return good1change The state change of the input good:
      *         - amount0: Fee quantity deducted.
      *         - amount1: Actual input quantity used.
@@ -720,6 +723,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 ),
                 _trader
             );
+        if (block.timestamp > external_info.amount1()) revert TTSwapError(48);
         if (_goodid1 != _goodid2) {
             // exact-out flow: desired output quantity -> required input value -> required input quantity
             good2change = goods[_goodid2].good2Swap(
@@ -817,8 +821,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param _quantity The amount of `_togood` to invest.
      * @param data1 Transfer data for `_togood`.
      * @param data2 Transfer data for `_valuegood`.
-     * @param _trader The address of the investor (must match msg.sender).
-     * @param signature Unused in current logic but present for interface consistency (potential future EIP-712 support).
+     * @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+     * @param signature Reserved for ABI compatibility; **not verified** here. Relayer / meta-tx is not supported for this entrypoint.
      * @return bool Returns true if investment is successful.
      * @notice Investment requires providing both the normal good and the paired value good (if applicable)
      * in a ratio determined by the current pool reserves.
@@ -986,6 +990,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * - Proof ID does not match sender's proof
      * - Invalid proof state
      * - Insufficient balance for disinvestment
+     * @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+     * @param signature Reserved for ABI compatibility; **not verified** here. Relayer / meta-tx is not supported for this entrypoint.
      */
     /// @inheritdoc I_TTSwap_Market
     function disinvestProof(
@@ -1214,6 +1220,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @notice Updates a good's configuration
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
     /// @inheritdoc I_TTSwap_Market
     function updateGoodConfig(
@@ -1231,6 +1239,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
     /// @inheritdoc I_TTSwap_Market
     function modifyGoodConfig(
@@ -1248,6 +1258,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
     /// @inheritdoc I_TTSwap_Market
     function modifyGoodCoreConfig(
@@ -1262,6 +1274,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         return true;
     }
 
+    /// @notice Locks a good when the caller is market manager or good owner.
+    /// @param _goodid The good to lock.
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
+    /// @inheritdoc I_TTSwap_Market
     function lockGood(
         address _goodid,
         address _trader,
@@ -1279,6 +1296,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @notice Changes the owner of a good
     /// @param _goodid The ID of the good
     /// @param _to The new owner's address
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @inheritdoc I_TTSwap_Market
     function changeGoodOwner(
         address _goodid,
@@ -1293,6 +1312,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
     /// @notice Collects commission for specified goods
     /// @param _goodid Array of good IDs
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @inheritdoc I_TTSwap_Market
     function collectCommission(
         address[] calldata _goodid,
@@ -1355,6 +1376,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param goodid The address of the good to receive welfare
      * @param welfare The amount of tokens to add as welfare
      * @param data Additional data for token transfer
+     * @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+     * @param signature Reserved for ABI compatibility; **not verified** here.
      * @notice This function:
      * - Allows anyone to contribute additional funds to a good's fee pool
      * - Increases the good's feeQuantityState by the welfare amount
@@ -1372,6 +1395,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata signature
     ) external payable override guardedEntry msgValue {
         _checkTrader(_trader);
+        if (goods[goodid].owner == address(0)) revert TTSwapError(12);
         if (goods[goodid].currentState.amount0() + welfare > 2 ** 109) {
             revert TTSwapError(18);
         }
