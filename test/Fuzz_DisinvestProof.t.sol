@@ -201,25 +201,26 @@ contract Fuzz_DisinvestProof is BaseTest {
         usdt.mint(USER2, tradeVolume);
         usdt.approve(address(market), tradeVolume);
         
-        // First trade: buy with tokenA
-        market.buyGood(
-            normalGood,
-            valueGood,
-            (uint256(tradeVolume) << 128),
-           
-            address(0),
-            "",USER2,""
-        );
-        
+
         // Second trade: buy back with usdt
         market.buyGood(
             valueGood,
             normalGood,
-            (uint256(tradeVolume / 2) << 128),
+            (uint256(tradeVolume ) << 128),
           
             address(0),
-            "",USER2,""
+            "",USER2,"",0
         );
+                // First trade: buy with tokenA
+        market.buyGood(
+            normalGood,
+            valueGood,
+            (uint256(tradeVolume/10) << 128),
+           
+            address(0),
+            "",USER2,"",0
+        );
+        
         
         vm.stopPrank();
         
