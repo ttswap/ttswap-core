@@ -630,7 +630,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             uint128 feeQuantity = goods[_goodid2]
                 .getGoodState()
                 .getamount1fromamount0(executeFee);
-            if (feeQuantity > good2change.amount1()) revert TTSwapError(46);
+            if (feeQuantity > good2change.amount1()) revert TTSwapError(50);
             goods[_goodid2].commission[msg.sender] += feeQuantity;
             if (_recipient == address(0)) _recipient = _trader;
             _goodid2.safeTransfer(
@@ -666,7 +666,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param data Additional data for the input token transfer (Permit/Transfer).
      * @param _trader The address of the trader initiating the payment (must match signer).
      * @param signature The EIP-712 signature authorizing the payment (if msg.sender != _trader).
-     * @param external_info amouunt0:External business metadata (e.g., payment order id or other extra info). amount1():dealline
+     * @param external_info amount0: external business metadata (e.g. payment order id). amount1: deadline; if non-zero and `block.timestamp` exceeds it, reverts `TTSwapError(53)`.
      * @return good1change The state change of the input good:
      *         - amount0: Fee quantity deducted.
      *         - amount1: Actual input quantity used.
@@ -729,7 +729,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (
             block.timestamp > external_info.amount1() &&
             external_info.amount1() != 0
-        ) revert TTSwapError(48);
+        ) revert TTSwapError(53);
         if (_goodid1 != _goodid2) {
             // exact-out flow: desired output quantity -> required input value -> required input quantity
             good2change = goods[_goodid2].good2Swap(
@@ -761,7 +761,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 feeQuantity = goods[_goodid2]
                     .getGoodState()
                     .getamount1fromamount0(executeFee);
-                if (feeQuantity > good2change.amount1()) revert TTSwapError(46);
+                if (feeQuantity > good2change.amount1()) revert TTSwapError(50);
                 goods[_goodid2].commission[msg.sender] += feeQuantity;
                 _goodid2.safeTransfer(
                     _recipient,
@@ -801,7 +801,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
                 feeQuantity = good1change.getamount0fromamount1(executeFee);
                 if (feeQuantity > _swapQuantity.amount0())
-                    revert TTSwapError(46);
+                    revert TTSwapError(50);
                 good2change = _swapQuantity.amount0() - feeQuantity;
                 goods[_goodid1].commission[msg.sender] += feeQuantity;
                 _goodid1.safeTransfer(_recipient, good2change);

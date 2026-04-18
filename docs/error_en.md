@@ -1,64 +1,83 @@
 TTSwapError(uint256) 0xd1b51911
-1:Execute Error, user is not market super administrator
-2:Execute Error, user is not market manager
-3:Execute Error, task is lock ,waiting a minute
-4:Execute Error, token config must config to value token
-5:Execute Error, token has been created
-6:Execute Error, value token   config wrong
-8:Execute Error, swap side config is not corrected
-9:Execute Error, two token can't be same
-10:Execute Error, token 1 is freezed
-11:Execute Error, token 2 is freezed
-12:Execute Error, token 1 is not initialize
-13:Execute Error, token 1 is not initialize
-14:Execute Error, swap value is less than 1
-15:Execute Error, not commit when protected by MeV attacks
-16:Execute Error, liquidity can not cover this price, Have't Support the transactions
-7:Execute Error, liquidity can not cover this price, Have't Support the transactions
-17:Execute Error, one of the two tokens needs to be a value token
-18:Execute Error, the investment quantity exceeds the threshold
-19:Execute Error, you are not the creator of this proof
-20:Execute Error, you are not the creator of this token
-21:Execute Error, query exceeds 100
-22:Execute Error, you are not a protocol security officer
-23:Execute Error, exceeding the maximum investment amplification factor
-24:Execute Error, the sum of fee ratios is not 100
-25:Execute Error, when initializing tokens, the investment amplification factor cannot exceed 1
-26:Execute Error, the withdrawal value is greater than the maximum single value of the token. Please reduce the number of withdrawals
-27:Execute Error, the withdrawal quantity is greater than the maximum single token quantity. Please reduce the withdrawal quantity
-28:Execute Error, the withdrawal value of the corresponding value token is greater than the maximum single value of the token. Please reduce the number of withdrawals
-29:Execute Error, the corresponding value token withdrawal quantity is greater than the maximum single token quantity. Please reduce the withdrawal quantity
-30:Execute Error, nativeETH insufficient
-31:Execute Error, return of remaining NativeETH failed
-32:Execute Error, the receive address  can't be null
-33:Execute Error, the good quantity of the protocol received is exceeds the invest quantity*2
-34:Execute Error, please freezen the token before
-36:Execute Error, the initial quantity is too big or to small
-38:Execute Error, the invest value of the good is to small
-39:Execute Error ,the excuter and the msgsender is not same
-61:Execute Error, not be mainnet
-62:Execute Error, not a DAO administrator
-63:Execute Error, not a token super administrator
-64:Execute Error, not a stake manager
-65:Execute Error, not a token manager
-66:Execute Error, proportional configuration not exceeding 10000
-67:Execute Error, the allocated quantity exceeds the remaining quantity
-68:Execute Error, price not doubled, minting failed
-69:Execute Error, the remaining casting quantity is 0
-70:Execute Error, the public sales quantity exceeds the target value
-71:Execute Error, no secondary pledge permission
-72:Execute Error, the signature has expired
-NativeETHTransferFailed()          6c0f429e   native ETH transfer failed
-ERC20TransferFailed()              f27f64e4   token transfer failed
-ERC20PermitFailed()                40754b6a   token transfer failed
-InvalidSignature()                 8baa579f   invalid signature
-InvalidSignatureLength()           4be6321b   invalid signature length
-InvalidSigner()                    815e1d64   invalid signer
-AllowanceExpired(uint256)          d81b2f2e   allowance expired
-ExcessiveInvalidation()            24d35a26   excessive Invalidation
-InsufficientAllowance(uint256)     f96fb071   insufficient allowance
-InvalidAmount(uint256)             3728b83d   invalid amount
-InvalidContractSignature()         b0669cbc   invalid contract signature
-InvalidNonce()                     756688fe   invalid nonce
-LengthMismatch()                   ff633a38   length mismatch
-SignatureExpired(uint256)          cd21db4f   signature expired
+1: Execution failed: caller is not the market super administrator.
+2: Execution failed: caller is not an administrator.
+3: Execution failed: operation is locked; please wait and retry.
+4: Execution failed: token must be configured as a value token.
+5: Execution failed: token (good) has already been created.
+6: Execution failed: value-token contract parameters are invalid.
+8: Execution failed: swap direction / side configuration is invalid.
+9: Execution failed: the two tokens must not be the same address.
+10: Execution failed: token 1 (good) is frozen.
+11: Execution failed: token 2 (good) is frozen.
+12: Execution failed: token 1 (good) is not initialized.
+13: Execution failed: token 2 (good) is not initialized.
+14: Execution failed: trade value is below the minimum (dust relative to 100_000 value units).
+    Condition: normal-good threshold = 1_000_000 * current_quantity / current_value.
+15: Execution failed: MEV / slippage protection — trade did not fill (output below limit).
+16: Execution failed: token 2 liquidity insufficient for this trade.
+    Condition: trade_qty + good2_current_quantity > good2config.amount1() * 11 / 10.
+7: Execution failed: token 2 liquidity insufficient for this trade.
+    Condition: current_quantity - trade_qty > current_quantity / 10.
+17: Execution failed: exactly one of the two goods must be a value token.
+18: Execution failed: investment size exceeds the allowed threshold.
+19: Execution failed: you are not the creator of this proof.
+20: Execution failed: you are not the creator of this good.
+21: Execution failed: batch query length exceeds 100.
+22: Execution failed: caller is not the protocol security officer.
+23: Execution failed: investment leverage exceeds the maximum allowed.
+24: Execution failed: fee ratios in configuration do not sum to 100%.
+25: Execution failed: on initialization, investment power / leverage must equal 1 (100%).
+26: Execution failed: disinvest value exceeds the per-transaction cap; reduce the amount.
+27: Execution failed: disinvest quantity exceeds the per-transaction cap; reduce the amount.
+28: Execution failed: value-token disinvest value exceeds the per-transaction cap; reduce the amount.
+29: Execution failed: value-token disinvest quantity exceeds the per-transaction cap; reduce the amount.
+30: Execution failed: insufficient NativeETH balance in transient vault.
+31: Execution failed: refunding remaining NativeETH failed.
+32: Execution failed: recipient address must not be zero.
+33: Execution failed: protocol would receive more of the good than allowed vs. invested depth.
+    Condition: trade_qty + good1_current_quantity < good1_current_quantity * 2 - good1config.amount1().
+34: Execution failed: good is not frozen; freeze it first where required.
+35: Execution failed: initial token value is below the minimum threshold (init uses 500_000_000 value basis).
+    Condition: threshold = 500_000_000 * current_quantity / current_value.
+36: Execution failed: initial token quantity is too small or too large.
+38: Execution failed: investment value is below the dust threshold (invest uses 1_000_000 value basis).
+39: Execution failed: trader and executor (msg.sender) do not match when required.
+40: Execution failed: this good owner’s proof is in a locked / restricted state.
+41: Execution failed: disinvest shares exceed the proof’s position.
+42: Execution failed: token transfer failed.
+43: Execution failed: good configuration update failed (K / consistency check).
+44: Execution failed: good configuration update failed (duplicate path / config branch).
+45: Execution failed: good is in buy-only mode; operation not allowed.
+47: Execution failed: single-sided invest price guard .
+49: Execution failed: signature expired.
+50: Execution failed: relayer executeFee exceeds the actual output token amount .
+51: Execution failed: good2Swap exact-out — requested value/quantity violates the pool invariant .
+52: Execution failed: amount cannot be represented as uint160.
+53: Execution failed: signature expired.
+54: Execution failed: exact-out (value side) — request exceeds pool depth.
+61: Execution failed: chain is not configured as mainnet for this operation.
+62: Execution failed: caller is not a DAO administrator.
+63: Execution failed: caller is not a token super administrator.
+64: Execution failed: caller is not a stake administrator.
+65: Execution failed: caller is not a token manager.
+66: Execution failed: ratio must not exceed 10_000 (basis points cap).
+67: Execution failed: allocated share exceeds remaining mintable amount.
+68: Execution failed: price has not doubled enough for this mint tranche.
+69: Execution failed: no remaining mint allowance for this tranche.
+70: Execution failed: public sale cumulative amount exceeds the cap.
+71: Execution failed: caller lacks secondary mint / stake permission.
+72: Execution failed: signature or permit deadline has expired.
+NativeETHTransferFailed()          6c0f429e   Native ETH transfer failed
+ERC20TransferFailed()              f27f64e4   ERC-20 transfer failed
+ERC20PermitFailed()                40754b6a   ERC-20 permit / allowance path failed
+InvalidSignature()                 8baa579f   Invalid signature
+InvalidSignatureLength()           4be6321b   Invalid signature length
+InvalidSigner()                    815e1d64   Invalid signer
+AllowanceExpired(uint256)          d81b2f2e   Allowance expired
+ExcessiveInvalidation()            24d35a26   Excessive invalidation
+InsufficientAllowance(uint256)     f96fb071   Insufficient allowance
+InvalidAmount(uint256)             3728b83d   Invalid amount
+InvalidContractSignature()         b0669cbc   Invalid contract signature
+InvalidNonce()                     756688fe   Invalid nonce
+LengthMismatch()                   ff633a38   Length mismatch
+SignatureExpired(uint256)          cd21db4f   Signature expired
