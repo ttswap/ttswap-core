@@ -39,7 +39,7 @@ import {L_SignatureVerification} from "./libraries/L_SignatureVerification.sol";
  * twitter https://x.com/ttswapfinance
  * telegram https://t.me/ttswapfinance
  * discord https://discord.gg/XygqnmQgX3
- * @custom:security C-01 (documentation): `buyGood` and `payGood` verify EIP-712 when `msg.sender != _trader`. Every other
+ * `buyGood` and `payGood` verify EIP-712 when `msg.sender != _trader`. Every other
  * `signature` argument is reserved for ABI compatibility and is **not** verified; those entrypoints require `msg.sender == _trader` (enforced by `_checkTrader`).
  */
 contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
@@ -52,18 +52,13 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     using L_CurrencyLibrary for address;
     using L_SignatureVerification for bytes;
 
-    /**
-     * @dev Address of the official TTS token contract
-     * @notice Handles:
-     * - Minting rewards for market participation
-     * - Staking operations and rewards
-     * - Referral tracking and rewards
-     * - Governance token functionality
-     */
+    /// @dev Reserved storage slot for **proxy implementation pointer** (UUPS / transparent proxy layout).
+    ///      Intentionally unused in logic-only builds; keeps layout aligned with deployed proxy. See audit M-06.
     address internal implementation;
     I_TTSwap_Token internal immutable TTS_CONTRACT;
 
     mapping(address _trader => uint256 nonce) public override nonces;
+    /// @dev Reserved flag for upgrade / admin flows in proxy deployments; placeholder in logic contract. See audit M-06.
     bool internal upgradeable;
 
     /**
@@ -88,6 +83,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     uint256 internal immutable INITIAL_CHAIN_ID;
     uint128 internal constant executeFee = 50_000_000_000; //5*10**10
     bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
+    string internal constant Version = "1.16.0";
 
     /**
      * @dev Constructor for TTSwap_Market
@@ -141,7 +137,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
     /// @dev Internal function to validate trader matches msg.sender
     function _checkTrader(address _trader) private view {
-        if (_trader != msg.sender || _trader == address(0)) revert TTSwapError(39);
+        if (_trader != msg.sender || _trader == address(0))
+            revert TTSwapError(39);
     }
 
     /// @dev Internal function to check if a good is active (not frozen and has state)
@@ -253,124 +250,125 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     //     return true;
     // }
 
-    /**
-     * @dev Initializes a new normal good in the market.
-     * @param _valuegood The ID of the value good (must be a value good).
-     * @param _initial The initial balance configuration:
-     *        - amount0: The quantity of the normal good to invest
-     *        - amount1: The quantity of the value good to invest
-     * @param _erc20address The address of the ERC20 token representing the new good.
-     * @param _goodConfig The good configuration settings (fees, limits, etc.).
-     * @param _normaldata The data for transferring the normal good (Permit/Transfer).
-     * @param _valuedata The data for transferring the value good (Permit/Transfer).
-     * @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
-     * @param signature Reserved for ABI compatibility; **not verified** in this function. Relayer / meta-tx is not supported here.
-     * @return bool Returns true if the initialization is successful.
-     * @notice This function creates a new market pair between the normal good and the value good.
-     * It requires:
-     * - Both goods to be transferred from the creator.
-     * - Initial liquidity to be added.
-     * - A proof of investment to be created.
-     * @custom:security Protected by reentrancy guard.
-     * @custom:security Validates that `_valuegood` is a valid value good.
-     * @custom:security Validates initial amounts and configurations.
-     */
-    function initGood(
-        address _valuegood,
-        uint256 _initial,
-        address _erc20address,
-        uint256 _goodConfig,
-        bytes calldata _normaldata,
-        bytes calldata _valuedata,
-        address _trader,
-        bytes calldata signature
-    ) external payable override guardedEntry msgValue returns (bool) {
-        _checkTrader(_trader);
-        if (_initial.amount0() < 500000 || _initial.amount0() > 2 ** 109)
-            revert TTSwapError(36);
-        if (!goods[_valuegood].goodConfig.isvaluegood()) {
-            revert TTSwapError(6);
-        }
-        if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
-        _erc20address.transferFrom(
-            msg.sender,
-            msg.sender,
-            _initial.amount0(),
-            _normaldata
-        );
-        _valuegood.transferFrom(
-            msg.sender,
-            msg.sender,
-            _initial.amount1(),
-            _valuedata
-        );
-        L_Good.S_GoodInvestReturn memory investResult;
-        // Retrieve the current investment state of the value good (Shares and Values)
-        (investResult.goodShares, investResult.goodValues) = goods[_valuegood]
-            .investState
-            .amount01();
-        // Retrieve the current trading state of the value good (Invest Quantity and Current Quantity)
-        (
-            investResult.goodInvestQuantity,
-            investResult.goodCurrentQuantity
-        ) = goods[_valuegood].currentState.amount01();
+    // /**
+    //  * @dev Initializes a new normal good in the market.
+    //  * @param _valuegood The ID of the value good (must be a value good).
+    //  * @param _initial The initial balance configuration:
+    //  *        - amount0: The quantity of the normal good to invest
+    //  *        - amount1: The quantity of the value good to invest
+    //  * @param _erc20address The address of the ERC20 token representing the new good.
+    //  * @param _goodConfig The good configuration settings (fees, limits, etc.).
+    //  * @param _normaldata The data for transferring the normal good (Permit/Transfer).
+    //  * @param _valuedata The data for transferring the value good (Permit/Transfer).
+    //  * @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    //  * @param signature Reserved for ABI compatibility; **not verified** in this function. Relayer / meta-tx is not supported here.
+    //  * @return bool Returns true if the initialization is successful.
+    //  * @notice This function creates a new market pair between the normal good and the value good.
+    //  * It requires:
+    //  * - Both goods to be transferred from the creator.
+    //  * - Initial liquidity to be added.
+    //  * - A proof of investment to be created.
+    //  * @custom:security Protected by reentrancy guard.
+    //  * @custom:security Validates that `_valuegood` is a valid value good.
+    //  * @custom:security Validates initial amounts and configurations.
+    //  */
+    // function initGood(
+    //     address _valuegood,
+    //     uint256 _initial,
+    //     address _erc20address,
+    //     uint256 _goodConfig,
+    //     bytes calldata _normaldata,
+    //     bytes calldata _valuedata,
+    //     address _trader,
+    //     bytes calldata signature
+    // ) external payable override guardedEntry msgValue returns (bool) {
+    //     _checkTrader(_trader);
+    //     if (_initial.amount1() < 10000 || _initial.amount1() > 2 ** 109)
+    //         revert TTSwapError(36);
 
-        // Calculate the investment details for the value good.
-        // This step ensures the new normal good is paired with the correct amount/value of the value good
-        // based on the current market state of the value good.
-        goods[_valuegood].investGood(_initial.amount1(), investResult, 100);
+    //     if (!goods[_valuegood].goodConfig.isvaluegood()) {
+    //         revert TTSwapError(6);
+    //     }
+    //     if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
+    //     _erc20address.transferFrom(
+    //         msg.sender,
+    //         msg.sender,
+    //         _initial.amount0(),
+    //         _normaldata
+    //     );
+    //     _valuegood.transferFrom(
+    //         msg.sender,
+    //         msg.sender,
+    //         _initial.amount1(),
+    //         _valuedata
+    //     );
+    //     L_Good.S_GoodInvestReturn memory investResult;
+    //     // Retrieve the current investment state of the value good (Shares and Values)
+    //     (investResult.goodShares, investResult.goodValues) = goods[_valuegood]
+    //         .investState
+    //         .amount01();
+    //     // Retrieve the current trading state of the value good (Invest Quantity and Current Quantity)
+    //     (
+    //         investResult.goodInvestQuantity,
+    //         investResult.goodCurrentQuantity
+    //     ) = goods[_valuegood].currentState.amount01();
 
-        if (investResult.investValue < 100000000000000) revert TTSwapError(35);
+    //     // Calculate the investment details for the value good.
+    //     // This step ensures the new normal good is paired with the correct amount/value of the value good
+    //     // based on the current market state of the value good.
+    //     goods[_valuegood].investGood(_initial.amount1(), investResult, 100);
 
-        // Initialize the new normal good state.
-        // amount0: Initial value (pegged to the value good's invested value).
-        // amount1: Initial quantity of the normal good.
-        goods[_erc20address].init(
-            toTTSwapUINT256(investResult.investValue, _initial.amount0()),
-            _goodConfig
-        );
+    //     if (investResult.investValue < 100_000_000_000_000) revert TTSwapError(35);
 
-        // Generate a unique proof ID for this liquidity provision.
-        // The proof key consists of the creator (msg.sender), the new good, and the value good.
-        uint256 proofId = S_ProofKey(msg.sender, _erc20address, _valuegood)
-            .toId();
+    //     // Initialize the new normal good state.
+    //     // amount0: Initial value (pegged to the value good's invested value).
+    //     // amount1: Initial quantity of the normal good.
+    //     goods[_erc20address].init(
+    //         toTTSwapUINT256(investResult.investValue, _initial.amount0()),
+    //         _goodConfig
+    //     );
 
-        // Create the initial proof state.
-        // - Shares: Initial shares issued for the new good and the value good investment.
-        // - State: Tracks the total value of the investment.
-        // - Invest: Tracks the virtual and actual quantities of the normal good.
-        // - ValueInvest: Tracks the virtual and actual quantities of the value good.
-        proofs[proofId] = S_ProofState(
-            _erc20address,
-            _valuegood,
-            toTTSwapUINT256(_initial.amount0(), investResult.investShare),
-            toTTSwapUINT256(investResult.investValue, investResult.investValue),
-            toTTSwapUINT256(_initial.amount0(), _initial.amount0()),
-            toTTSwapUINT256(
-                investResult.investQuantity,
-                investResult.investQuantity
-            )
-        );
+    //     // Generate a unique proof ID for this liquidity provision.
+    //     // The proof key consists of the creator (msg.sender), the new good, and the value good.
+    //     uint256 proofId = S_ProofKey(msg.sender, _erc20address, _valuegood)
+    //         .toId();
 
-        emit e_initGood(
-            proofId,
-            _erc20address,
-            _valuegood,
-            _goodConfig,
-            L_Proof.stake(
-                TTS_CONTRACT,
-                msg.sender,
-                investResult.investValue * 2
-            ),
-            toTTSwapUINT256(_initial.amount0(), investResult.investValue), // amount0: the quantity of the normal good,amount1: the value of the value good
-            toTTSwapUINT256(
-                investResult.investFeeQuantity, // amount0: the fee of the value good
-                investResult.investQuantity // amount1: the quantity of the value good
-            ),
-            _trader
-        );
-        return true;
-    }
+    //     // Create the initial proof state.
+    //     // - Shares: Initial shares issued for the new good and the value good investment.
+    //     // - State: Tracks the total value of the investment.
+    //     // - Invest: Tracks the virtual and actual quantities of the normal good.
+    //     // - ValueInvest: Tracks the virtual and actual quantities of the value good.
+    //     proofs[proofId] = S_ProofState(
+    //         _erc20address,
+    //         _valuegood,
+    //         toTTSwapUINT256(_initial.amount0(), investResult.investShare),
+    //         toTTSwapUINT256(investResult.investValue, investResult.investValue),
+    //         toTTSwapUINT256(_initial.amount0(), _initial.amount0()),
+    //         toTTSwapUINT256(
+    //             investResult.investQuantity,
+    //             investResult.investQuantity
+    //         )
+    //     );
+
+    //     emit e_initGood(
+    //         proofId,
+    //         _erc20address,
+    //         _valuegood,
+    //         _goodConfig,
+    //         L_Proof.stake(
+    //             TTS_CONTRACT,
+    //             msg.sender,
+    //             investResult.investValue * 2
+    //         ),
+    //         toTTSwapUINT256(_initial.amount0(), investResult.investValue), // amount0: the quantity of the normal good,amount1: the value of the value good
+    //         toTTSwapUINT256(
+    //             investResult.investFeeQuantity, // amount0: the fee of the value good
+    //             investResult.investQuantity // amount1: the quantity of the value good
+    //         ),
+    //         _trader
+    //     );
+    //     return true;
+    // }
 
     /// @notice Initialize a new good with single-token deposit at a user-specified price
     /// @param _erc20address The address of the ERC20 token representing the new good
@@ -390,8 +388,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         _checkTrader(_trader);
         if (_initial.amount1() < 10000 || _initial.amount1() > 2 ** 109)
             revert TTSwapError(36);
-        if (_initial.amount0() > 2 ** 109 || _initial.amount0() < 500000000000000)
-            revert TTSwapError(35);
+        if (
+            _initial.amount0() > 2 ** 109 ||
+            _initial.amount0() < 500000000000000
+        ) revert TTSwapError(35);
         if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
 
         _erc20address.transferFrom(
@@ -491,7 +491,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
         // Process investment for normal good.
         // Calculates new shares and updates normal good's state.
-        goods[_goodid].investOneTokenGood(_invest, normalInvest_, enpower);
+        goods[_goodid].investOneTokenGood(_invest.amount1(), _invest.amount0(), normalInvest_, enpower);
 
         if (normalInvest_.investValue < 1000000) revert TTSwapError(38);
 
@@ -543,6 +543,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param data Additional data for the input token transfer (Permit/Transfer).
      * @param _trader The address of the trader initiating the swap (must match signer if signature used).
      * @param signature The EIP-712 signature authorizing the trade (if msg.sender != _trader).
+     * @param deadline Unix timestamp; if non-zero and `block.timestamp > deadline`, reverts (TTSwapError(49)). Included in EIP-712 struct hash.
      * @return good1change The state change of the input good:
      *         - amount0: Fee quantity deducted.
      *         - amount1: Actual input quantity swapped.
@@ -563,7 +564,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address _recipient,
         bytes calldata data,
         address _trader,
-        bytes calldata signature
+        bytes calldata signature,
+        uint256 deadline
     )
         external
         payable
@@ -581,7 +583,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         keccak256(
                             abi.encode(
                                 keccak256(
-                                    "buyGood(address _trader,address referral,address _goodid1,address _goodid2,uint256 _swapQuantity,bytes data,uint256 nonce)"
+                                    "buyGood(address _trader,address referral,address _goodid1,address _goodid2,uint256 _swapQuantity,bytes data,uint256 deadline,uint256 nonce)"
                                 ),
                                 _trader,
                                 _recipient,
@@ -589,6 +591,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                                 _goodid2,
                                 _swapQuantity,
                                 keccak256(data),
+                                deadline,
                                 nonces[_trader]++
                             )
                         )
@@ -596,6 +599,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 ),
                 _trader
             );
+        if (deadline != 0 && block.timestamp > deadline) revert TTSwapError(49);
         if (_goodid1 == _goodid2) revert TTSwapError(9);
         _checkGoodActive(_goodid1, 10, 12);
         _checkGoodActive(_goodid2, 11, 13);
@@ -627,9 +631,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             uint128 feeQuantity = goods[_goodid2]
                 .getGoodState()
                 .getamount1fromamount0(executeFee);
-            if (feeQuantity > good2change.amount1()) revert TTSwapError(46);
+            if (feeQuantity > good2change.amount1()) revert TTSwapError(50);
             goods[_goodid2].commission[msg.sender] += feeQuantity;
-            if (_recipient == address(0)) _recipient = _trader; 
+            if (_recipient == address(0)) _recipient = _trader;
             _goodid2.safeTransfer(
                 _recipient,
                 (good2change.amount1() - feeQuantity)
@@ -663,7 +667,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param data Additional data for the input token transfer (Permit/Transfer).
      * @param _trader The address of the trader initiating the payment (must match signer).
      * @param signature The EIP-712 signature authorizing the payment (if msg.sender != _trader).
-    * @param external_info amouunt0:External business metadata (e.g., payment order id or other extra info). amount1():dealline
+     * @param external_info amount0: external business metadata (e.g. payment order id). amount1: deadline; if non-zero and `block.timestamp` exceeds it, reverts `TTSwapError(53)`.
      * @return good1change The state change of the input good:
      *         - amount0: Fee quantity deducted.
      *         - amount1: Actual input quantity used.
@@ -675,7 +679,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @custom:security Protected by reentrancy guard.
      * @custom:security Verifies EIP-712 signature if the caller is a relayer.
      * @custom:security Checks max input limit (`_swapQuantity.amount0()`).
-    * @custom:security `external_info` is included in signature payload as business context metadata.
+     * @custom:security `external_info` is included in signature payload as business context metadata.
      */
     function payGood(
         address _goodid1,
@@ -707,7 +711,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         keccak256(
                             abi.encode(
                                 keccak256(
-                                    "payGood(address _trader,address recipient,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 external_info,bytes data,uint256 nonce)"
+                                    "payGood(address _trader,address recipent,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 external_info,bytes data,uint256 nonce)"
                                 ),
                                 _trader,
                                 _recipient,
@@ -723,7 +727,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 ),
                 _trader
             );
-        if (block.timestamp > external_info.amount1()) revert TTSwapError(48);
+        if (
+            block.timestamp > external_info.amount1() &&
+            external_info.amount1() != 0
+        ) revert TTSwapError(53);
         if (_goodid1 != _goodid2) {
             // exact-out flow: desired output quantity -> required input value -> required input quantity
             good2change = goods[_goodid2].good2Swap(
@@ -755,7 +762,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 feeQuantity = goods[_goodid2]
                     .getGoodState()
                     .getamount1fromamount0(executeFee);
-                if (feeQuantity > good2change.amount1()) revert TTSwapError(46);
+                if (feeQuantity > good2change.amount1()) revert TTSwapError(50);
                 goods[_goodid2].commission[msg.sender] += feeQuantity;
                 _goodid2.safeTransfer(
                     _recipient,
@@ -795,7 +802,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
                 feeQuantity = good1change.getamount0fromamount1(executeFee);
                 if (feeQuantity > _swapQuantity.amount0())
-                    revert TTSwapError(46);
+                    revert TTSwapError(50);
                 good2change = _swapQuantity.amount0() - feeQuantity;
                 goods[_goodid1].commission[msg.sender] += feeQuantity;
                 _goodid1.safeTransfer(_recipient, good2change);
@@ -814,162 +821,162 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         }
     }
 
-    /**
-     * @dev Invests liquidity into a good pool, minting shares and proof tokens.
-     * @param _togood The address of the normal good to invest in.
-     * @param _valuegood The address of the paired value good (can be address(0) for single-sided, but checks apply).
-     * @param _quantity The amount of `_togood` to invest.
-     * @param data1 Transfer data for `_togood`.
-     * @param data2 Transfer data for `_valuegood`.
-     * @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
-     * @param signature Reserved for ABI compatibility; **not verified** here. Relayer / meta-tx is not supported for this entrypoint.
-     * @return bool Returns true if investment is successful.
-     * @notice Investment requires providing both the normal good and the paired value good (if applicable)
-     * in a ratio determined by the current pool reserves.
-     * - Mints shares representing ownership of the pool.
-     * - Updates the investment proof (S_ProofState).
-     * - Stakes a portion of the value to the TTS contract (minting TTS rewards).
-     * @custom:security Protected by reentrancy guard.
-     * @custom:security Enforces `_trader == msg.sender`.
-     * @custom:security Validates goods are initialized and not frozen.
-     * @custom:security Calculates required `_valuegood` amount based on current price.
-     */
-    function investGood(
-        address _togood,
-        address _valuegood,
-        uint128 _quantity,
-        bytes calldata data1,
-        bytes calldata data2,
-        address _trader,
-        bytes calldata signature
-    ) external payable override guardedEntry msgValue returns (bool) {
-        _checkTrader(_trader);
-        L_Good.S_GoodInvestReturn memory normalInvest_;
-        L_Good.S_GoodInvestReturn memory valueInvest_;
-        if (_togood == _valuegood) revert TTSwapError(9);
-        _checkGoodActive(_togood, 10, 12);
-        if (
-            !(goods[_togood].goodConfig.isvaluegood() ||
-                goods[_valuegood].goodConfig.isvaluegood())
-        ) revert TTSwapError(17);
-        if (goods[_togood].currentState.amount1() + _quantity > 2 ** 109)
-            revert TTSwapError(18);
+    // /**
+    //  * @dev Invests liquidity into a good pool, minting shares and proof tokens.
+    //  * @param _togood The address of the normal good to invest in.
+    //  * @param _valuegood The address of the paired value good (can be address(0) for single-sided, but checks apply).
+    //  * @param _quantity The amount of `_togood` to invest.
+    //  * @param data1 Transfer data for `_togood`.
+    //  * @param data2 Transfer data for `_valuegood`.
+    //  * @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    //  * @param signature Reserved for ABI compatibility; **not verified** here. Relayer / meta-tx is not supported for this entrypoint.
+    //  * @return bool Returns true if investment is successful.
+    //  * @notice Investment requires providing both the normal good and the paired value good (if applicable)
+    //  * in a ratio determined by the current pool reserves.
+    //  * - Mints shares representing ownership of the pool.
+    //  * - Updates the investment proof (S_ProofState).
+    //  * - Stakes a portion of the value to the TTS contract (minting TTS rewards).
+    //  * @custom:security Protected by reentrancy guard.
+    //  * @custom:security Enforces `_trader == msg.sender`.
+    //  * @custom:security Validates goods are initialized and not frozen.
+    //  * @custom:security Calculates required `_valuegood` amount based on current price.
+    //  */
+    // function investGood(
+    //     address _togood,
+    //     address _valuegood,
+    //     uint128 _quantity,
+    //     bytes calldata data1,
+    //     bytes calldata data2,
+    //     address _trader,
+    //     bytes calldata signature
+    // ) external payable override guardedEntry msgValue returns (bool) {
+    //     _checkTrader(_trader);
+    //     L_Good.S_GoodInvestReturn memory normalInvest_;
+    //     L_Good.S_GoodInvestReturn memory valueInvest_;
+    //     if (_togood == _valuegood) revert TTSwapError(9);
+    //     _checkGoodActive(_togood, 10, 12);
+    //     if (
+    //         !(goods[_togood].goodConfig.isvaluegood() ||
+    //             goods[_valuegood].goodConfig.isvaluegood())
+    //     ) revert TTSwapError(17);
+    //     if (goods[_togood].currentState.amount1() + _quantity > 2 ** 109)
+    //         revert TTSwapError(18);
 
-        // Calculate the power/leverage factor.
-        // The power determines how much "virtual" liquidity is minted relative to the actual deposit.
-        // It is capped by the lower power factor of the two goods in the pair.
-        uint128 enpower = goods[_togood].getInvestPower();
-        if (_valuegood != address(0)) {
-            enpower = enpower < goods[_valuegood].getInvestPower()
-                ? enpower
-                : goods[_valuegood].getInvestPower();
-        }
+    //     // Calculate the power/leverage factor.
+    //     // The power determines how much "virtual" liquidity is minted relative to the actual deposit.
+    //     // It is capped by the lower power factor of the two goods in the pair.
+    //     uint128 enpower = goods[_togood].getInvestPower();
+    //     if (_valuegood != address(0)) {
+    //         enpower = enpower < goods[_valuegood].getInvestPower()
+    //             ? enpower
+    //             : goods[_valuegood].getInvestPower();
+    //     }
 
-        // Transfer normal good tokens from investor to market.
-        _togood.transferFrom(msg.sender, msg.sender, _quantity, data1);
+    //     // Transfer normal good tokens from investor to market.
+    //     _togood.transferFrom(msg.sender, msg.sender, _quantity, data1);
 
-        // Retrieve current investment state of the normal good.
-        (normalInvest_.goodShares, normalInvest_.goodValues) = goods[_togood]
-            .investState
-            .amount01();
-        (
-            normalInvest_.goodInvestQuantity,
-            normalInvest_.goodCurrentQuantity
-        ) = goods[_togood].currentState.amount01();
+    //     // Retrieve current investment state of the normal good.
+    //     (normalInvest_.goodShares, normalInvest_.goodValues) = goods[_togood]
+    //         .investState
+    //         .amount01();
+    //     (
+    //         normalInvest_.goodInvestQuantity,
+    //         normalInvest_.goodCurrentQuantity
+    //     ) = goods[_togood].currentState.amount01();
 
-        // Process investment for normal good.
-        // Calculates new shares and updates normal good's state.
-        goods[_togood].investGood(_quantity, normalInvest_, enpower);
+    //     // Process investment for normal good.
+    //     // Calculates new shares and updates normal good's state.
+    //     goods[_togood].investGood(_quantity, normalInvest_, enpower);
 
-        if (normalInvest_.investValue < 1000000) revert TTSwapError(38);
+    //     if (normalInvest_.investValue < 1000000) revert TTSwapError(38);
 
-        if (_valuegood != address(0)) {
-            _checkGoodActive(_valuegood, 11, 13);
-            S_GoodState storage vGood = goods[_valuegood];
-            (valueInvest_.goodShares, valueInvest_.goodValues) = vGood
-                .investState
-                .amount01();
-            (
-                valueInvest_.goodInvestQuantity,
-                valueInvest_.goodCurrentQuantity
-            ) = vGood.currentState.amount01();
+    //     if (_valuegood != address(0)) {
+    //         _checkGoodActive(_valuegood, 11, 13);
+    //         S_GoodState storage vGood = goods[_valuegood];
+    //         (valueInvest_.goodShares, valueInvest_.goodValues) = vGood
+    //             .investState
+    //             .amount01();
+    //         (
+    //             valueInvest_.goodInvestQuantity,
+    //             valueInvest_.goodCurrentQuantity
+    //         ) = vGood.currentState.amount01();
 
-            // Calculate required value good quantity based on the value of the normal good investment.
-            // Ensures the investment maintains the current price ratio between the two goods.
-            valueInvest_.investQuantity = toTTSwapUINT256(
-                valueInvest_.goodCurrentQuantity,
-                valueInvest_.goodValues
-            ).getamount0fromamount1(normalInvest_.investValue);
+    //         // Calculate required value good quantity based on the value of the normal good investment.
+    //         // Ensures the investment maintains the current price ratio between the two goods.
+    //         valueInvest_.investQuantity = toTTSwapUINT256(
+    //             valueInvest_.goodCurrentQuantity,
+    //             valueInvest_.goodValues
+    //         ).getamount0fromamount1(normalInvest_.investValue);
 
-            // Cache goodConfig once: getInvestFullFee + investGood both read it internally
-            valueInvest_.investQuantity = vGood.goodConfig.getInvestFullFee(
-                valueInvest_.investQuantity
-            );
+    //         // Cache goodConfig once: getInvestFullFee + investGood both read it internally
+    //         valueInvest_.investQuantity = vGood.goodConfig.getInvestFullFee(
+    //             valueInvest_.investQuantity
+    //         );
 
-            // Process investment for value good.
-            vGood.investGood(
-                valueInvest_.investQuantity,
-                valueInvest_,
-                enpower
-            );
+    //         // Process investment for value good.
+    //         vGood.investGood(
+    //             valueInvest_.investQuantity,
+    //             valueInvest_,
+    //             enpower
+    //         );
 
-            // Transfer value good tokens from investor to market.
-            _valuegood.transferFrom(
-                msg.sender,
-                msg.sender,
-                (valueInvest_.investQuantity * 100) /
-                    enpower +
-                    valueInvest_.investFeeQuantity,
-                data2
-            );
-        }
+    //         // Transfer value good tokens from investor to market.
+    //         _valuegood.transferFrom(
+    //             msg.sender,
+    //             msg.sender,
+    //             (valueInvest_.investQuantity * 100) /
+    //                 enpower +
+    //                 valueInvest_.investFeeQuantity,
+    //             data2
+    //         );
+    //     }
 
-        // Generate/Get proof ID.
-        uint256 proofNo = S_ProofKey(msg.sender, _togood, _valuegood).toId();
-        uint128 investvalue = normalInvest_.investValue;
+    //     // Generate/Get proof ID.
+    //     uint256 proofNo = S_ProofKey(msg.sender, _togood, _valuegood).toId();
+    //     uint128 investvalue = normalInvest_.investValue;
 
-        // Convert virtual value to actual value basis (scale down by leverage).
-        investvalue = ((normalInvest_.investValue * 100) / enpower);
+    //     // Convert virtual value to actual value basis (scale down by leverage).
+    //     investvalue = ((normalInvest_.investValue * 100) / enpower);
 
-        // Update the investment proof with the new shares and amounts.
-        proofs[proofNo].updateInvest(
-            _togood,
-            _valuegood,
-            toTTSwapUINT256(
-                normalInvest_.investShare,
-                valueInvest_.investShare
-            ),
-            toTTSwapUINT256(normalInvest_.investValue, investvalue),
-            toTTSwapUINT256(
-                normalInvest_.investQuantity,
-                (normalInvest_.investQuantity * 100) / enpower //real quantity
-            ),
-            toTTSwapUINT256(
-                valueInvest_.investQuantity,
-                (valueInvest_.investQuantity * 100) / enpower
-            )
-        );
-        emit e_investGood(
-            proofNo,
-            _togood,
-            _valuegood,
-            toTTSwapUINT256(normalInvest_.investValue, investvalue),
-            toTTSwapUINT256(
-                normalInvest_.investFeeQuantity,
-                normalInvest_.investQuantity
-            ),
-            toTTSwapUINT256(
-                valueInvest_.investFeeQuantity,
-                valueInvest_.investQuantity
-            ),
-            _trader
-        );
-        investvalue = _valuegood == address(0) ? investvalue : investvalue * 2;
+    //     // Update the investment proof with the new shares and amounts.
+    //     proofs[proofNo].updateInvest(
+    //         _togood,
+    //         _valuegood,
+    //         toTTSwapUINT256(
+    //             normalInvest_.investShare,
+    //             valueInvest_.investShare
+    //         ),
+    //         toTTSwapUINT256(normalInvest_.investValue, investvalue),
+    //         toTTSwapUINT256(
+    //             normalInvest_.investQuantity,
+    //             (normalInvest_.investQuantity * 100) / enpower //real quantity
+    //         ),
+    //         toTTSwapUINT256(
+    //             valueInvest_.investQuantity,
+    //             (valueInvest_.investQuantity * 100) / enpower
+    //         )
+    //     );
+    //     emit e_investGood(
+    //         proofNo,
+    //         _togood,
+    //         _valuegood,
+    //         toTTSwapUINT256(normalInvest_.investValue, investvalue),
+    //         toTTSwapUINT256(
+    //             normalInvest_.investFeeQuantity,
+    //             normalInvest_.investQuantity
+    //         ),
+    //         toTTSwapUINT256(
+    //             valueInvest_.investFeeQuantity,
+    //             valueInvest_.investQuantity
+    //         ),
+    //         _trader
+    //     );
+    //     investvalue = _valuegood == address(0) ? investvalue : investvalue * 2;
 
-        // Stake the investment value to the TTS contract to earn rewards.
-        L_Proof.stake(TTS_CONTRACT, msg.sender, investvalue);
-        return true;
-    }
+    //     // Stake the investment value to the TTS contract to earn rewards.
+    //     L_Proof.stake(TTS_CONTRACT, msg.sender, investvalue);
+    //     return true;
+    // }
 
     /**
      * @dev Disinvests from a proof by withdrawing invested tokens and collecting profits
@@ -1105,6 +1112,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         return (disinvestNormalResult1_.profit, disinvestValueResult2_.profit);
     }
 
+    /// @notice Emits `e_getPromiseProof` for applied goods when the caller is the good owner and proof matches `msg.sender`.
+    /// @dev **C-01 / M-08**: No EIP-712 and **no relayer/meta-tx**; only the proof owner can call (enforced via `S_ProofKey(msg.sender, ...)`).
+    ///      Integrators must not assume a signature or `_trader` parameter — caller MUST be `msg.sender`.
+    /// @param _proofid Proof id derived from `(msg.sender, currentgood, valuegood)`.
     function refreshPromise(uint256 _proofid) external override {
         // Cache proof storage pointer + fields: avoids 4+ repeated SLOAD on proofs[_proofid]
         S_ProofState storage proof = proofs[_proofid];
@@ -1425,7 +1436,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
                     ),
                     keccak256(bytes("TTSwap_Market")),
-                    keccak256("1"),
+                    keccak256(bytes(Version)),
                     block.chainid,
                     address(this)
                 )

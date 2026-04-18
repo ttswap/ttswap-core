@@ -14,14 +14,19 @@ library L_SignatureVerification {
     /// @notice Thrown when the recovered signer does not match the expected claimedSigner.
     error InvalidSigner();
 
-    bytes32 constant UPPER_BIT_MASK = (0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
+    bytes32 constant UPPER_BIT_MASK =
+        (0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
 
     /// @notice Verifies that a signature was produced by a specific address.
     /// @param signature The signature bytes (64 or 65 bytes).
     /// @param hash The 32-byte hash of the data that was signed.
     /// @param claimedSigner The address expected to have signed the hash.
     /// @dev Reverts if the signature is invalid or the signer does not match.
-    function verify(bytes calldata signature, bytes32 hash, address claimedSigner) internal pure {
+    function verify(
+        bytes calldata signature,
+        bytes32 hash,
+        address claimedSigner
+    ) internal pure {
         bytes32 r;
         bytes32 s;
         uint8 v;
@@ -38,11 +43,12 @@ library L_SignatureVerification {
         } else {
             revert InvalidSignatureLength();
         }
-        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0)
-    revert InvalidSignature();
+        if (
+            uint256(s) >
+            0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
+        ) revert InvalidSignature();
         address signer = ecrecover(hash, v, r, s);
         if (signer == address(0)) revert InvalidSignature();
         if (signer != claimedSigner) revert InvalidSigner();
-        
     }
 }

@@ -3,7 +3,7 @@ pragma solidity ^0.8.29;
 
 /// @title Market Management Interface
 /// @notice Defines the interface for managing market operations
-/// @custom:security C-01: Only `buyGood` and `payGood` verify EIP-712 when `msg.sender != _trader`. On every other function
+///  Only `buyGood` and `payGood` verify EIP-712 when `msg.sender != _trader`. On every other function
 /// that includes `bytes calldata signature`, that parameter is **unused** (reserved for ABI / future relayer); callers must
 /// pass `_trader == msg.sender` where the implementation enforces `_checkTrader`.
 interface I_TTSwap_Market {
@@ -170,7 +170,6 @@ interface I_TTSwap_Market {
     );
 
     event e_getPromiseProof(address _goodid, uint256 _proofid);
-
     function nonces(address _trader) external view returns (uint256);
     // /// @notice Initialize the first good in the market
     // /// @param _erc20address The contract address of the good
@@ -185,26 +184,25 @@ interface I_TTSwap_Market {
     //     bytes calldata data
     // ) external payable returns (bool);
 
-    /// @notice Initialize a normal good in the market
-    /// @param _valuegood The ID of the value good used to measure the normal good's value
-    /// @param _initial Initial parameters (amount0: normal good quantity, amount1: value good quantity)
-    /// @param _erc20address The contract address of the good
-    /// @param _goodConfig Configuration of the good
-    /// @param data1 Transfer data for the normal good
-    /// @param data2 Transfer data for the value good
-    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
-    /// @param signature Reserved for ABI compatibility; **not verified** here.
-    /// @return Success status
-    function initGood(
-        address _valuegood,
-        uint256 _initial,
-        address _erc20address,
-        uint256 _goodConfig,
-        bytes calldata data1,
-        bytes calldata data2,
-        address _trader,
-        bytes calldata signature
-    ) external payable returns (bool);
+    // /// @notice Initialize a normal good in the market
+    // /// @param _valuegood The ID of the value good used to measure the normal good's value
+    // /// @param _initial Initial parameters (amount0: normal good quantity, amount1: value good quantity)
+    // /// @param _erc20address The contract address of the good
+    // /// @param _goodConfig Configuration of the good
+    // /// @param data1 Transfer data for the normal good
+    // /// @param data2 Transfer data for the value good
+    // /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    // /// @param signature Reserved for ABI compatibility; **not verified** here.    /// @return Success status
+    // function initGood(
+    //     address _valuegood,
+    //     uint256 _initial,
+    //     address _erc20address,
+    //     uint256 _goodConfig,
+    //     bytes calldata data1,
+    //     bytes calldata data2,
+    //     address _trader,
+    //     bytes calldata signature
+    // ) external payable returns (bool);
 
     /// @notice Initialize a new good with single-token deposit at a user-specified price
     /// @param _erc20address The address of the ERC20 token representing the new good
@@ -254,6 +252,7 @@ interface I_TTSwap_Market {
      * @param data Encoded transfer authorization for the input token (Permit/Transfer).
      * @param _trader The trader; `msg.sender` may be a relayer distinct from `_trader` when `signature` is valid.
      * @param signature EIP-712 signature over the buy payload; **verified** when `msg.sender != _trader`.
+     * @param deadline Unix timestamp; if non-zero and expired, reverts. Bound in EIP-712 struct; `0` means no expiry check on-chain.
      * @return good1change amount0() good1tradefee,good1tradeamount
      * @return good2change amount0() good1tradefee,good2tradeamount
      */
@@ -264,7 +263,8 @@ interface I_TTSwap_Market {
         address _referral,
         bytes calldata data,
         address _trader,
-        bytes calldata signature
+        bytes calldata signature,
+        uint256 deadline
     ) external payable returns (uint256 good1change, uint256 good2change);
 
     /**
@@ -293,24 +293,24 @@ interface I_TTSwap_Market {
         uint256 external_info
     ) external payable returns (uint256 good1change, uint256 good2change);
 
-    /// @notice Invest in a normal good
-    /// @param _togood ID of the normal good to invest in
-    /// @param _valuegood ID of the value good
-    /// @param _quantity Quantity of normal good to invest
-    /// @param data1 Transfer data for `_togood`
-    /// @param data2 Transfer data for `_valuegood`
-    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
-    /// @param signature Reserved for ABI compatibility; **not verified** here.
-    /// @return Success status
-    function investGood(
-        address _togood,
-        address _valuegood,
-        uint128 _quantity,
-        bytes calldata data1,
-        bytes calldata data2,
-        address _trader,
-        bytes calldata signature
-    ) external payable returns (bool);
+    // /// @notice Invest in a normal good
+    // /// @param _togood ID of the normal good to invest in
+    // /// @param _valuegood ID of the value good
+    // /// @param _quantity Quantity of normal good to invest
+    // /// @param data1 Transfer data for `_togood`
+    // /// @param data2 Transfer data for `_valuegood`
+    // /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    // /// @param signature Reserved for ABI compatibility; **not verified** here.
+    // /// @return Success status
+    // function investGood(
+    //     address _togood,
+    //     address _valuegood,
+    //     uint128 _quantity,
+    //     bytes calldata data1,
+    //     bytes calldata data2,
+    //     address _trader,
+    //     bytes calldata signature
+    // ) external payable returns (bool);
 
     /// @notice Disinvest from a normal good
     /// @param _proofid ID of the investment proof
@@ -339,6 +339,7 @@ interface I_TTSwap_Market {
         uint256 compareprice
     ) external view returns (bool);
 
+    /// @notice Signal for claimable proof on applied goods; **only** `msg.sender` as proof owner (no relayer, no EIP-712). See C-01 / M-08.
     function refreshPromise(uint256 _proofid) external;
 
     /// @notice Retrieves the current state of a proof
@@ -513,8 +514,8 @@ struct S_ProofState {
 struct S_GoodState {
     uint256 goodConfig;
     address owner;
-    uint256 currentState;
-    uint256 investState;
+    uint256 currentState; //amount0:Present actual invest quantity, amount1:Present current virtual quantity
+    uint256 investState;  //amount0:shares, amount1:value
     uint256 extendsState1;
     uint256 extendsState2;
     uint256 extendsState3;
