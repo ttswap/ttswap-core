@@ -222,7 +222,7 @@ library L_Good {
             if (
                 uint256(_swapParam) * 10000 >=
                 uint256(K) * uint256(current_value)
-            ) revert TTSwapError(48);
+            ) revert TTSwapError(54);
             swapTemp = uint128(
                 (uint256(K) * uint256(_swapParam) * uint256(current_quantity)) /
                     (uint256(K) *
@@ -286,7 +286,7 @@ library L_Good {
             if (
                 uint256(_swapParam) * 10000 >=
                 uint256(K) * uint256(current_value)
-            ) revert TTSwapError(46);
+            ) revert TTSwapError(51);
             // ΔV = (K_A * V_A * Δa) / (K_A * Q_A - Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
                 (uint256(K) * uint256(swap) * uint256(current_value)) /
