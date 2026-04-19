@@ -80,9 +80,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * valueinvest amount0:value good virtual quantity amount1:value good actual quantity
      */
     mapping(uint256 proofid => S_ProofState) private proofs;
-    uint256 internal immutable INITIAL_CHAIN_ID;
     uint128 internal constant executeFee = 50_000_000_000; //5*10**10
-    bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
     string internal constant Version = "1.16.0";
 
     /**
@@ -91,8 +89,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      */
     constructor(I_TTSwap_Token _TTS_Contract) {
         TTS_CONTRACT = _TTS_Contract;
-        INITIAL_CHAIN_ID = block.chainid;
-        INITIAL_DOMAIN_SEPARATOR = computeDomainSeparator();
     }
 
     /// only market admin can execute
@@ -1420,11 +1416,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         emit e_goodWelfare(goodid, welfare, _trader);
     }
 
+    /// @notice Returns the EIP-712 domain separator used by relayed entrypoints.
+    /// @dev Always computed from the current execution context so proxy calls bind signatures
+    ///      to the proxy address instead of the implementation address.
     function DOMAIN_SEPARATOR() public view virtual returns (bytes32) {
-        return
-            block.chainid == INITIAL_CHAIN_ID
-                ? INITIAL_DOMAIN_SEPARATOR
-                : computeDomainSeparator();
+        return computeDomainSeparator();
     }
 
     function computeDomainSeparator() internal view virtual returns (bytes32) {
