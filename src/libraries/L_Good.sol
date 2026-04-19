@@ -210,8 +210,7 @@ library L_Good {
             );
             if (
                 !_self.goodConfig.isvaluegood() &&
-                _self.currentState.amount0() + _self.goodConfig.amount1() <
-                _self.currentState.amount1()
+                _self.currentState.amount0()+_self.goodConfig.amount1() < _self.currentState.amount1()
             ) {
                 revert TTSwapError(45);
             }
@@ -307,8 +306,7 @@ library L_Good {
             );
             if (
                 !_self.goodConfig.isvaluegood() &&
-                _self.currentState.amount0() + _self.goodConfig.amount1() <
-                _self.currentState.amount1()
+                _self.currentState.amount0()+_self.goodConfig.amount1()  < _self.currentState.amount1()
             ) {
                 revert TTSwapError(45);
             }
@@ -439,7 +437,7 @@ library L_Good {
                 investResult_.goodValues,
                 investResult_.goodCurrentQuantity
             ).getamount0fromamount1(investResult_.investQuantity)
-            : (_investValue * enpower) / 100;
+            :  (_investValue * enpower) / 100;
 
         // Calculate the invest share based from investQuantity on the invest state
         // Mints shares proportional to the new virtual quantity vs the total existing virtual quantity.
