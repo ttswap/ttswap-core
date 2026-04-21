@@ -444,6 +444,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         address _trader
     ) external payable guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
+        _checkGoodActive(_goodid, 10, 12);
         if (_invest.amount0() > 0) {
             if (goods[_goodid].isInvestBlocked(_invest, _trader)) revert TTSwapError(47);
         } else {
@@ -456,7 +457,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         }
         L_Good.S_GoodInvestReturn memory normalInvest_;
 
-        _checkGoodActive(_goodid, 10, 12);
 
         if (
             goods[_goodid].currentState.amount1() + _invest.amount1() > 2 ** 109
@@ -706,7 +706,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         keccak256(
                             abi.encode(
                                 keccak256(
-                                    "payGood(address _trader,address recipent,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 external_info,bytes data,uint256 nonce)"
+                                    "payGood(address _trader,address recipient,address _goodid1,address _goodid2,uint256 _swapQuantity,uint256 external_info,bytes data,uint256 nonce)"
                                 ),
                                 _trader,
                                 _recipient,
@@ -800,6 +800,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                     revert TTSwapError(50);
                 good2change = _swapQuantity.amount0() - feeQuantity;
                 goods[_goodid1].commission[msg.sender] += feeQuantity;
+                if (good2change < _swapQuantity.amount1())
+                    revert TTSwapError(55);
                 _goodid1.safeTransfer(_recipient, good2change);
                 good2change = (good2change << 128) + feeQuantity;
             }
