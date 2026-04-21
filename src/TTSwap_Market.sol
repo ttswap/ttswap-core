@@ -445,7 +445,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     ) external payable guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
         if (_invest.amount0() > 0) {
-            if (goods[_goodid].isInvestBlocked(_invest)) revert TTSwapError(47);
+            if (goods[_goodid].isInvestBlocked(_invest, _trader)) revert TTSwapError(47);
         } else {
             uint128 poolValue = uint128(
                 (uint256(goods[_goodid].investState.amount1()) *
