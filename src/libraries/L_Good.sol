@@ -152,7 +152,8 @@ library L_Good {
     /// @return bool True if invest price is lower than or equal to current pool price.
     function isInvestBlocked(
         S_GoodState storage self,
-        uint256 _invest
+        uint256 _invest,
+        address _trader
     ) internal view returns (bool) {
         uint256 config1 = uint256(self.currentState.amount1()) *
             uint256(_invest.amount0());
@@ -161,7 +162,7 @@ library L_Good {
         if (
             config1 > config2 ||
             self.goodConfig.getApply() ||
-            msg.sender != self.owner
+            _trader != self.owner
         ) {
             return true;
         } else {
@@ -210,7 +211,8 @@ library L_Good {
             );
             if (
                 !_self.goodConfig.isvaluegood() &&
-                _self.currentState.amount0()+_self.goodConfig.amount1() < _self.currentState.amount1()
+                _self.currentState.amount0() + _self.goodConfig.amount1() <
+                _self.currentState.amount1()
             ) {
                 revert TTSwapError(45);
             }
@@ -306,7 +308,8 @@ library L_Good {
             );
             if (
                 !_self.goodConfig.isvaluegood() &&
-                _self.currentState.amount0()+_self.goodConfig.amount1()  < _self.currentState.amount1()
+                _self.currentState.amount0() + _self.goodConfig.amount1() <
+                _self.currentState.amount1()
             ) {
                 revert TTSwapError(45);
             }
@@ -417,7 +420,7 @@ library L_Good {
         S_GoodInvestReturn memory investResult_,
         uint128 enpower
     ) internal {
-        uint256 investStateTemp;
+     
         // Calculate the invest virtual quantity
         // The user receives virtual shares magnified by the power/leverage factor.
 
@@ -432,12 +435,29 @@ library L_Good {
 
         // Calculate the actual investment value based from investQuantity on the current state
         // Determines the monetary value (virtual USD/ETH) of the new shares relative to the pool's total value.
-        investResult_.investValue = _investValue == 0
-            ? toTTSwapUINT256(
+        if (_investValue == 0) {
+            if (_self.goodConfig.isvaluegood()) {
+                // 价值代币：线性公式
+                investResult_.investValue = toTTSwapUINT256(
                 investResult_.goodValues,
                 investResult_.goodCurrentQuantity
-            ).getamount0fromamount1(investResult_.investQuantity)
-            :  (_investValue * enpower) / 100;
+                ).getamount0fromamount1(investResult_.investQuantity);
+            } else {
+                // 普通代币：衰减公式（与 swap 同构）
+                uint128 K = _self.goodConfig.getK1();
+                investResult_.investValue = uint128(
+                    (uint256(K) *
+                        uint256(investResult_.goodValues) *
+                        uint256(investResult_.investQuantity)) /
+                        (uint256(K) *
+                            uint256(investResult_.goodCurrentQuantity) +
+                            uint256(investResult_.investQuantity) *
+                            10000)
+                );
+            }
+        } else {
+            investResult_.investValue = (_investValue * enpower) / 100;
+        }
 
         // Calculate the invest share based from investQuantity on the invest state
         // Mints shares proportional to the new virtual quantity vs the total existing virtual quantity.
@@ -471,7 +491,7 @@ library L_Good {
             _self.goodConfig,
             toTTSwapUINT256(
                 0,
-                investResult_.investQuantity - investStateTemp.amount1()
+                investResult_.investQuantity - _invest
             )
         );
     }
