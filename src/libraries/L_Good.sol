@@ -161,7 +161,7 @@ library L_Good {
             uint256(_invest.amount1());
         if (
             config1 > config2 ||
-            self.goodConfig.getApply() ||
+            !self.goodConfig.getApply() ||
             _trader != self.owner
         ) {
             return true;
