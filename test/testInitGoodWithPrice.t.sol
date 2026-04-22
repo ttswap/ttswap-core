@@ -257,11 +257,12 @@ contract testInitGoodWithPrice is BaseSetup {
         uint128 investPrice = btcValue;
         market.oneTokenInvest(
             address(btc),
-            toTTSwapUINT256(investPrice, investQty),
+            toTTSwapUINT256(0, investQty),
             defaultdata,
             defaultdata,
             users[1]
         );
+        snapLastCall("oneTokenInvest_firstafter_initGoodWithPrice");
 
         S_GoodTmpState memory btcGoodAfter = market.getGoodState(address(btc));
         assertGe(
@@ -277,6 +278,14 @@ contract testInitGoodWithPrice is BaseSetup {
             btcQuantity,
             "after oneTokenInvest: shares should increase"
         );
+                market.oneTokenInvest(
+            address(btc),
+            toTTSwapUINT256(0, investQty),
+            defaultdata,
+            defaultdata,
+            users[1]
+        );
+        snapLastCall("oneTokenInvest_second_after_initGoodWithPrice");
 
         vm.stopPrank();
     }
@@ -312,6 +321,33 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
+
+        vm.stopPrank();
+    }
+
+      function testInitGoodWithPrice_normaluser_thenOneTokenInvest_revertHighPrice() public {
+        vm.startPrank(users[1]);
+        deal(address(usdt), users[1], 10 * 10 ** 10, false);
+        usdt.approve(address(market), 5 * 10 ** 10 + 1);
+
+        uint128 usdtQuantity = 1 * 10 ** 8;
+        uint128 usdtValue = uint128(63000 * 10 ** 12);
+        market.oneTokenInvest(
+            address(usdt),
+            toTTSwapUINT256(0, usdtQuantity),
+            defaultdata,
+            defaultdata,
+            users[1]
+        );
+        snapLastCall("normaluser_oneTokenInvest_first_after_initGoodWithPrice");
+        market.oneTokenInvest(
+            address(usdt),
+            toTTSwapUINT256(0, usdtQuantity),
+            defaultdata,
+            defaultdata,
+            users[1]
+        );
+        snapLastCall("normaluser_oneTokenInvest_second_after_initGoodWithPrice");
 
         vm.stopPrank();
     }

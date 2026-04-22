@@ -376,7 +376,7 @@ contract testUpgradeV1_5ToV2 is Test {
         uint128 investVal = uint128(uint256(ethVal) * investQty / ethQty);
         marketV2.oneTokenInvest(
             address(eth),
-            toTTSwapUINT256(investVal, investQty),
+            toTTSwapUINT256(0, investQty),
             defaultdata,
             defaultdata,
             users[2]
