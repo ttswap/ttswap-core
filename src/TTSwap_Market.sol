@@ -801,6 +801,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                     revert TTSwapError(50);
                 good2change = _swapQuantity.amount0() - feeQuantity;
                 goods[_goodid1].commission[msg.sender] += feeQuantity;
+                if (good2change < _swapQuantity.amount1())
+                    revert TTSwapError(55);
                 _goodid1.safeTransfer(_recipient, good2change);
                 good2change = (good2change << 128) + feeQuantity;
             }
