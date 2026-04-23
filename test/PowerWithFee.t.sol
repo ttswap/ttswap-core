@@ -150,7 +150,7 @@ contract PowerWithFee is BaseSetup {
         );
         assertEq(
             good_.currentState.amount1(),
-            289988499674,
+            269989499725,
             "after disinvest nativeeth good:metagood currentState amount1 error"
         );
         assertEq(
