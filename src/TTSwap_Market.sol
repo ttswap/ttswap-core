@@ -447,7 +447,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         _checkTrader(_trader);
         _checkGoodActive(_goodid, 10, 12);
         if (_invest.amount0() > 0) {
-            if (goods[_goodid].isInvestBlocked(_invest, _trader)) revert TTSwapError(47);
+            if (goods[_goodid].isInvestBlocked(_invest, _trader))
+                revert TTSwapError(47);
         } else {
             uint128 poolValue = uint128(
                 (uint256(goods[_goodid].investState.amount1()) *
@@ -457,7 +458,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             _invest = toTTSwapUINT256(poolValue, _invest.amount1());
         }
         L_Good.S_GoodInvestReturn memory normalInvest_;
-
 
         if (
             goods[_goodid].currentState.amount1() + _invest.amount1() > 2 ** 109
@@ -487,7 +487,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
         // Process investment for normal good.
         // Calculates new shares and updates normal good's state.
-        goods[_goodid].investOneTokenGood(_invest.amount1(), _invest.amount0(), normalInvest_, enpower);
+        goods[_goodid].investOneTokenGood(
+            _invest.amount1(),
+            _invest.amount0(),
+            normalInvest_,
+            enpower
+        );
 
         if (normalInvest_.investValue < 1000000) revert TTSwapError(38);
 
@@ -533,7 +538,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param _goodid2 The address of the output good (buying).
      * @param _swapQuantity The swap details:
      *        - amount0: The input quantity of _goodid1.
-     *        - amount1: The minimum output quantity of _goodid2 (slippage protection).
+     *        - amount1: The minimum gross output quantity of _goodid2 before any relayer execution fee.
      * @param _recipient The address to receive the bought goods (if different from trader).
      *                 Also used for referral tracking if different from trader.
      * @param data Additional data for the input token transfer (Permit/Transfer).
@@ -545,12 +550,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      *         - amount1: Actual input quantity swapped.
      * @return good2change The state change of the output good:
      *         - amount0: Fee quantity deducted.
-     *         - amount1: Actual output quantity received.
+     *         - amount1: Gross output quantity from the AMM before any relayer execution fee.
      * @notice This function calculates the swap amount based on the AMM formula, deducts fees,
      * updates reserves, and transfers tokens.
      * @custom:security Protected by reentrancy guard.
      * @custom:security Verifies EIP-712 signature if the caller is a relayer.
-     * @custom:security Checks slippage tolerance (`_swapQuantity.amount1()`).
+     * @custom:security Checks slippage tolerance against gross AMM output (`_swapQuantity.amount1()`).
      * @custom:security Validates that the pool has sufficient liquidity and is not frozen.
      */
     function buyGood(
@@ -623,7 +628,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (msg.sender == _trader) {
             _goodid2.safeTransfer(_trader, good2change.amount1());
         } else {
-            // Fee is denominated in output good units to keep payout consistent.
+            // Fee is denominated in output good units and deducted from the delivered payout.
             uint128 feeQuantity = goods[_goodid2]
                 .getGoodState()
                 .getamount1fromamount0(executeFee);
@@ -658,8 +663,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param _goodid2 The address of the output good (paying to).
      * @param _swapQuantity The swap details:
      *        - amount0: The maximum input quantity of _goodid1 (slippage protection).
-     *        - amount1: The exact output quantity of _goodid2 required.
-     * @param _recipient The address to receive the payment (goods).
+     *        - amount1: The target gross output quantity of _goodid2 before any relayer execution fee.
+     * @param _recipient The address to receive the payment (goods). In relayer mode, net delivery may be lower because execution fee is deducted from gross output.
      * @param data Additional data for the input token transfer (Permit/Transfer).
      * @param _trader The address of the trader initiating the payment (must match signer).
      * @param signature The EIP-712 signature authorizing the payment (if msg.sender != _trader).
@@ -669,9 +674,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      *         - amount1: Actual input quantity used.
      * @return good2change The state change of the output good:
      *         - amount0: Fee quantity deducted.
-     *         - amount1: Actual output quantity paid.
-     * @notice This function calculates the input amount needed to get a specific output amount (inverse swap).
-     * If `_goodid1` == `_goodid2`, it performs a direct transfer with fee deduction.
+     *         - amount1: Gross output quantity from the AMM / direct-pay path before any relayer execution fee.
+     * @notice This function calculates the input amount needed to get a specific gross output amount (inverse swap).
+     * If `_goodid1` == `_goodid2`, it performs a direct transfer path with relayer fee deduction semantics.
      * @custom:security Protected by reentrancy guard.
      * @custom:security Verifies EIP-712 signature if the caller is a relayer.
      * @custom:security Checks max input limit (`_swapQuantity.amount0()`).
@@ -728,7 +733,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             external_info.amount1() != 0
         ) revert TTSwapError(53);
         if (_goodid1 != _goodid2) {
-            // exact-out flow: desired output quantity -> required input value -> required input quantity
+            // Gross-output flow: desired gross output quantity -> required input value -> required input quantity
             good2change = goods[_goodid2].good2Swap(
                 _swapQuantity.amount1(),
                 false
@@ -749,7 +754,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 good1change.amount1() + good1change.amount0(),
                 data
             );
-            // Transfer output tokens.
+            // Transfer output tokens. In relayer mode, recipient receives gross output minus execution fee.
             if (msg.sender == _trader) {
                 _goodid2.safeTransfer(_recipient, _swapQuantity.amount1());
             } else {
@@ -758,7 +763,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 feeQuantity = goods[_goodid2]
                     .getGoodState()
                     .getamount1fromamount0(executeFee);
-                if (feeQuantity > good2change.amount1()) revert TTSwapError(50);
+                if (feeQuantity > _swapQuantity.amount1())
+                    revert TTSwapError(50);
                 goods[_goodid2].commission[msg.sender] += feeQuantity;
                 _goodid2.safeTransfer(
                     _recipient,
@@ -780,36 +786,44 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             );
         } else {
             // Direct payment path (good1 == good2).
-            // No AMM swap, just fee deduction and transfer.
-            _goodid1.transferFrom(
-                _trader,
-                msg.sender,
-                _swapQuantity.amount0(),
-                data
-            );
+            // No AMM swap; the function debits amount0 and, in relayer mode, deducts execution fee from delivery.
+
             good1change = toTTSwapUINT256(
                 goods[_goodid1].currentState.amount1(),
                 goods[_goodid1].investState.amount1()
             );
             if (msg.sender == _trader) {
-                _goodid1.safeTransfer(_recipient, _swapQuantity.amount0());
+                _goodid1.transferFrom(
+                    _trader,
+                    msg.sender,
+                    _swapQuantity.amount1(),
+                    data
+                );
+                _goodid1.safeTransfer(_recipient, _swapQuantity.amount1());
+                good2change = (good2change << 128);
             } else {
                 // Relayer commission calculation.
 
                 feeQuantity = good1change.getamount0fromamount1(executeFee);
-                if (feeQuantity > _swapQuantity.amount0())
+                if (feeQuantity > _swapQuantity.amount1())
                     revert TTSwapError(50);
-                good2change = _swapQuantity.amount0() - feeQuantity;
+                good2change = _swapQuantity.amount1() - feeQuantity;
                 goods[_goodid1].commission[msg.sender] += feeQuantity;
-                if (good2change < _swapQuantity.amount1())
+                if (good2change > _swapQuantity.amount0())
                     revert TTSwapError(55);
                 _goodid1.safeTransfer(_recipient, good2change);
                 good2change = (good2change << 128) + feeQuantity;
+                _goodid1.transferFrom(
+                    _trader,
+                    msg.sender,
+                    _swapQuantity.amount1(),
+                    data
+                );
             }
             emit e_payGood(
                 _goodid1,
                 address(0),
-                good1change.getamount1fromamount0(_swapQuantity.amount0()),
+                good1change.getamount1fromamount0(_swapQuantity.amount1()),
                 _swapQuantity,
                 good2change,
                 _trader,
@@ -1439,5 +1453,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                     address(this)
                 )
             );
+    }
+
+    /// @inheritdoc I_TTSwap_Market
+    function cancelNonce() external override {
+        nonces[msg.sender] = nonces[msg.sender] + 1;
     }
 }
