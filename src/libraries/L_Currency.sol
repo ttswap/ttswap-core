@@ -8,6 +8,7 @@ import {IERC20} from "../interfaces/IERC20.sol";
 import {IDAIPermit} from "../interfaces/IDAIPermit.sol";
 import {L_Transient} from "./L_Transient.sol";
 import {TTSwapError} from "./L_Error.sol";
+import {toUint128} from "./L_TTSwapUINT256.sol";
 
 address constant NATIVE = address(1);
 // // mainnet
@@ -233,7 +234,7 @@ library L_CurrencyLibrary {
         bytes calldata trandata
     ) internal {
         address to = address(this);
-        transferFrom(token, from, to, executor, uint128(amount), trandata);
+        transferFrom(token, from, to, executor, toUint128(amount), trandata);
     }
 
     function transferFromInter(
@@ -350,9 +351,5 @@ library L_CurrencyLibrary {
     function to_uint160(uint256 amount) internal pure returns (uint160) {
         if (amount != uint160(amount)) revert TTSwapError(52);
         return uint160(amount);
-    }
-
-    function to_uint256(address amount) internal pure returns (uint256 a) {
-        return uint256(uint160(amount));
     }
 }

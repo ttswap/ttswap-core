@@ -420,7 +420,6 @@ library L_Good {
         S_GoodInvestReturn memory investResult_,
         uint128 enpower
     ) internal {
-     
         // Calculate the invest virtual quantity
         // The user receives virtual shares magnified by the power/leverage factor.
 
@@ -489,10 +488,7 @@ library L_Good {
         // Updates a tracking counter in the config (likely for fee/limit calculations), accounting for the leverage.
         _self.goodConfig = add(
             _self.goodConfig,
-            toTTSwapUINT256(
-                0,
-                investResult_.investQuantity - _invest
-            )
+            toTTSwapUINT256(0, investResult_.investQuantity - _invest)
         );
     }
 
@@ -546,8 +542,10 @@ library L_Good {
     {
         // Cache proof fields to avoid repeated SLOADs on the same storage slots
         uint128 proofShares0 = _investProof.shares.amount0();
+        //amount0 :normal good virtual quantity of proof, amount1 :normal good actual quantity of proof
         uint128 proofInvest0 = _investProof.invest.amount0();
         uint128 proofInvest1 = _investProof.invest.amount1();
+        //amount0 :total value of proof,amount1 :total actual value of proof
         uint128 proofState0 = _investProof.state.amount0();
         uint128 proofState1 = _investProof.state.amount1();
 
@@ -567,8 +565,9 @@ library L_Good {
                 _params._goodshares
             ) // Actual quantity to divest (normal good)
         );
-        // Calculate the total value (in terms of the value good) corresponding to the divested portion.
+        // calculate the value from the proof (in terms of the value good) corresponding to the divested portion.
         // Uses proof-time value ratios to preserve value accounting across virtual/actual quantities.
+        // amount0 :total value of proof in terms of the normal good,amount1 :total actual value of proof in terms of the normal good
         disinvestvalue = toTTSwapUINT256(
             toTTSwapUINT256(proofState0, proofInvest0).getamount0fromamount1(
                 normalGoodResult1_.virtualDisinvestQuantity
@@ -578,7 +577,7 @@ library L_Good {
             )
         );
 
-        // Ensure disinvestment conditions are met
+        // ensure the divested value and quantity are within valid ranges.
         // Check limits on how much value can be withdrawn at once to prevent manipulation.
         if (
             disinvestvalue.amount0() >
@@ -606,12 +605,13 @@ library L_Good {
         if (normalGoodResult1_.profit < normalGoodResult1_.actual_fee)
             revert TTSwapError(34);
         // Update main good states
-        // Remove the profit/withdrawn amount from the pool's reserves.
         _self.currentState = sub(
             _self.currentState,
             toTTSwapUINT256(
                 normalGoodResult1_.profit,
-                normalGoodResult1_.profit
+                normalGoodResult1_.virtualDisinvestQuantity +
+                    normalGoodResult1_.profit -
+                    normalGoodResult1_.actualDisinvestQuantity
             )
         );
 
@@ -621,13 +621,15 @@ library L_Good {
             toTTSwapUINT256(normalGoodResult1_.shares, disinvestvalue.amount0())
         );
         // Add the collected fee back into the pool reserves.
-        _self.currentState = add(
-            _self.currentState,
-            toTTSwapUINT256(
-                normalGoodResult1_.actual_fee,
-                normalGoodResult1_.actual_fee
-            )
-        );
+        if (normalGoodResult1_.actual_fee > 0) {
+            _self.currentState = add(
+                _self.currentState,
+                toTTSwapUINT256(
+                    normalGoodResult1_.actual_fee,
+                    normalGoodResult1_.actual_fee
+                )
+            );
+        }
 
         _self.goodConfig = sub(
             _self.goodConfig,
@@ -657,6 +659,7 @@ library L_Good {
             // Calculate disinvestment results for value good
             // proofShares0 already cached above; cache remaining proof fields
             uint128 proofShares1 = _investProof.shares.amount1();
+            //amount0 :value good virtual quantity of proof,amount1 :value good actual quantity of proof
             uint128 proofValueInvest0 = _investProof.valueinvest.amount0();
             uint128 proofValueInvest1 = _investProof.valueinvest.amount1();
             valueGoodResult2_ = S_GoodDisinvestReturn(
@@ -669,13 +672,14 @@ library L_Good {
                 toTTSwapUINT256(proofValueInvest1, proofShares0)
                     .getamount0fromamount1(_params._goodshares)
             );
-            // Ensure value good disinvestment conditions are met
+            // ensure the value good's divested quantity is within valid ranges.
             if (
                 disinvestvalue.amount0() >
                 _valueGoodState.goodConfig.getDisinvestChips(
                     _valueGoodState.investState.amount1()
                 )
             ) revert TTSwapError(28);
+            // Check limits on how much value can be withdrawn at once to prevent manipulation.
             if (
                 valueGoodResult2_.virtualDisinvestQuantity >
                 _valueGoodState.goodConfig.getDisinvestChips(
@@ -683,25 +687,32 @@ library L_Good {
                 )
             ) revert TTSwapError(29);
 
+            // Calculate the current value of the user's shares based on the *current* state of the pool.
             valueGoodResult2_.profit = toTTSwapUINT256(
                 _valueGoodState.currentState.amount0(),
                 _valueGoodState.investState.amount0()
             ).getamount0fromamount1(valueGoodResult2_.shares);
+
+            // Calculate the fee for disinvesting.
             valueGoodResult2_.actual_fee = _valueGoodState
                 .goodConfig
                 .getDisinvestFee(valueGoodResult2_.virtualDisinvestQuantity);
+            // Ensure profit exceeds fees.
             if (valueGoodResult2_.profit < valueGoodResult2_.actual_fee)
                 revert TTSwapError(34);
 
             // Update value good states
+            // Reduce the global investment state (shares and value) by the amount being withdrawn.
             _valueGoodState.currentState = sub(
                 _valueGoodState.currentState,
                 toTTSwapUINT256(
-                    valueGoodResult2_.actualDisinvestQuantity,
-                    valueGoodResult2_.virtualDisinvestQuantity
+                    valueGoodResult2_.profit,
+                    valueGoodResult2_.virtualDisinvestQuantity +
+                        valueGoodResult2_.profit -
+                        valueGoodResult2_.actualDisinvestQuantity
                 )
             );
-
+            // Reduce the global investment state (shares and value) by the amount being withdrawn.
             _valueGoodState.investState = sub(
                 _valueGoodState.investState,
                 toTTSwapUINT256(
@@ -709,24 +720,27 @@ library L_Good {
                     disinvestvalue.amount1()
                 )
             );
-
-            _valueGoodState.currentState = add(
-                _valueGoodState.currentState,
-                toTTSwapUINT256(
-                    valueGoodResult2_.actual_fee,
-                    valueGoodResult2_.actual_fee
-                )
-            );
+            // Add the collected fee back into the pool reserves.
+            if (valueGoodResult2_.actual_fee > 0) {
+                _valueGoodState.currentState = add(
+                    _valueGoodState.currentState,
+                    toTTSwapUINT256(
+                        valueGoodResult2_.actual_fee,
+                        valueGoodResult2_.actual_fee
+                    )
+                );
+            }
+            // Remove the virtual quantity of goods redeemed from the good's configuration.
             _valueGoodState.goodConfig = sub(
                 _valueGoodState.goodConfig,
                 valueGoodResult2_.virtualDisinvestQuantity -
                     valueGoodResult2_.actualDisinvestQuantity
             );
-
+            // Net profit = Gross withdrawn value - Initial invested actual quantity.
             valueGoodResult2_.profit =
                 valueGoodResult2_.profit -
                 valueGoodResult2_.actualDisinvestQuantity;
-
+            // Allocate fees
             allocateFee(
                 _valueGoodState,
                 valueGoodResult2_.profit,

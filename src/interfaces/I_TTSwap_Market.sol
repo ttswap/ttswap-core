@@ -248,7 +248,7 @@ interface I_TTSwap_Market {
      * @param _goodid2 The ID of the second good
      * @param _swapQuantity The amount of _goodid1 to swap
      *        - amount0: The quantity of the input good
-     *        - amount1: The limit quantity of the output good
+     *        - amount1: The minimum gross quantity of the output good before any relayer execution fee
      * @param _referral when side is buy, _referral is the referral address when side is sell, _referral is the address to receive the fee
      * @param data Encoded transfer authorization for the input token (Permit/Transfer).
      * @param _trader The trader; `msg.sender` may be a relayer distinct from `_trader` when `signature` is valid.
@@ -269,13 +269,13 @@ interface I_TTSwap_Market {
     ) external payable returns (uint256 good1change, uint256 good2change);
 
     /**
-     * @notice Pays a fixed output amount to recipient using inverse pricing.
+     * @notice Pays a fixed gross output amount using inverse pricing.
      * @param _goodid1 Input good id (payer side).
      * @param _goodid2 Output good id (recipient side).
      * @param _swapQuantity Packed swap params:
      *        - amount0: max input limit.
-     *        - amount1: target output amount.
-     * @param _recipient Address receiving output good.
+     *        - amount1: target gross output amount before any relayer execution fee.
+     * @param _recipient Address receiving output good. In relayer mode, net delivery may be lower because execution fee is deducted from gross output.
      * @param data Additional transfer data for input token (Permit/Transfer).
      * @param _trader The trader; `msg.sender` may be a relayer distinct from `_trader` when `signature` is valid.
      * @param signature EIP-712 signature over the pay payload; **verified** when `msg.sender != _trader`.
@@ -483,6 +483,9 @@ interface I_TTSwap_Market {
         external
         view
         returns (uint256 good1correntstate, uint256 good2correntstate);
+    
+    /// @notice Allows users to proactively increment the nonce to invalidate previously signed offline代付 signatures
+    function cancelNonce() external;
 }
 
 /**
