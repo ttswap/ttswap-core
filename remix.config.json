@@ -6,7 +6,7 @@
       "evmVersion": "cancun",
 		"optimizer": {
 			"enabled": true,
-			"runs": 50
+			"runs": 200
 		},
       "outputSelection": {
         "*": {
