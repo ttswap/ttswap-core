@@ -389,14 +389,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             _initial.amount0() < 500000000000000
         ) revert TTSwapError(35);
         if (goods[_erc20address].owner != address(0)) revert TTSwapError(5);
-
         _erc20address.transferFrom(
             msg.sender,
             msg.sender,
             _initial.amount1(),
             _normaldata
         );
-
         goods[_erc20address].init(_initial, _goodConfig);
 
         uint256 proofId = S_ProofKey(msg.sender, _erc20address, address(0))
@@ -793,13 +791,13 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 goods[_goodid1].investState.amount1()
             );
             if (msg.sender == _trader) {
+                _goodid1.safeTransfer(_recipient, _swapQuantity.amount1());
                 _goodid1.transferFrom(
                     _trader,
                     msg.sender,
                     _swapQuantity.amount1(),
                     data
                 );
-                _goodid1.safeTransfer(_recipient, _swapQuantity.amount1());
                 good2change = (good2change << 128);
             } else {
                 // Relayer commission calculation.
@@ -1095,7 +1093,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
         // Unstake the corresponding amount of value from the TTS contract.
         // This reduces the user's staking rewards going forward.
-        L_Proof.unstake(TTS_CONTRACT, msg.sender, divestvalue.amount0());
+        valuegood != address(0)
+            ? L_Proof.unstake(TTS_CONTRACT, msg.sender, divestvalue.amount1()*2)
+            : L_Proof.unstake(TTS_CONTRACT, msg.sender, divestvalue.amount1());
 
         emit e_disinvestProof(
             _proofid,

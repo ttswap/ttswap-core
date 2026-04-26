@@ -438,8 +438,8 @@ library L_Good {
             if (_self.goodConfig.isvaluegood()) {
                 // 价值代币：线性公式
                 investResult_.investValue = toTTSwapUINT256(
-                investResult_.goodValues,
-                investResult_.goodCurrentQuantity
+                    investResult_.goodValues,
+                    investResult_.goodCurrentQuantity
                 ).getamount0fromamount1(investResult_.investQuantity);
             } else {
                 // 普通代币：衰减公式（与 swap 同构）
@@ -622,13 +622,13 @@ library L_Good {
         );
         // Add the collected fee back into the pool reserves.
         if (normalGoodResult1_.actual_fee > 0) {
-        _self.currentState = add(
-            _self.currentState,
-            toTTSwapUINT256(
-                normalGoodResult1_.actual_fee,
-                normalGoodResult1_.actual_fee
-            )
-        );
+            _self.currentState = add(
+                _self.currentState,
+                toTTSwapUINT256(
+                    normalGoodResult1_.actual_fee,
+                    normalGoodResult1_.actual_fee
+                )
+            );
         }
 
         _self.goodConfig = sub(
@@ -722,13 +722,13 @@ library L_Good {
             );
             // Add the collected fee back into the pool reserves.
             if (valueGoodResult2_.actual_fee > 0) {
-            _valueGoodState.currentState = add(
-                _valueGoodState.currentState,
-                toTTSwapUINT256(
-                    valueGoodResult2_.actual_fee,
-                    valueGoodResult2_.actual_fee
-                )
-            );
+                _valueGoodState.currentState = add(
+                    _valueGoodState.currentState,
+                    toTTSwapUINT256(
+                        valueGoodResult2_.actual_fee,
+                        valueGoodResult2_.actual_fee
+                    )
+                );
             }
             // Remove the virtual quantity of goods redeemed from the good's configuration.
             _valueGoodState.goodConfig = sub(
