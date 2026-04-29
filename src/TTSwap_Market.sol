@@ -791,17 +791,22 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 goods[_goodid1].investState.amount1()
             );
             if (msg.sender == _trader) {
-                _goodid1.safeTransfer(_recipient, _swapQuantity.amount1());
                 _goodid1.transferFrom(
                     _trader,
                     msg.sender,
                     _swapQuantity.amount1(),
                     data
                 );
+                _goodid1.safeTransfer(_recipient, _swapQuantity.amount1());
                 good2change = (good2change << 128);
             } else {
                 // Relayer commission calculation.
-
+                _goodid1.transferFrom(
+                    _trader,
+                    msg.sender,
+                    _swapQuantity.amount1(),
+                    data
+                );
                 feeQuantity = good1change.getamount0fromamount1(executeFee);
                 if (feeQuantity > _swapQuantity.amount1())
                     revert TTSwapError(50);
@@ -811,12 +816,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                     revert TTSwapError(55);
                 _goodid1.safeTransfer(_recipient, good2change);
                 good2change = (good2change << 128) + feeQuantity;
-                _goodid1.transferFrom(
-                    _trader,
-                    msg.sender,
-                    _swapQuantity.amount1(),
-                    data
-                );
             }
             emit e_payGood(
                 _goodid1,
@@ -1094,7 +1093,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         // Unstake the corresponding amount of value from the TTS contract.
         // This reduces the user's staking rewards going forward.
         valuegood != address(0)
-            ? L_Proof.unstake(TTS_CONTRACT, msg.sender, divestvalue.amount1()*2)
+            ? L_Proof.unstake(
+                TTS_CONTRACT,
+                msg.sender,
+                divestvalue.amount1() * 2
+            )
             : L_Proof.unstake(TTS_CONTRACT, msg.sender, divestvalue.amount1());
 
         emit e_disinvestProof(
