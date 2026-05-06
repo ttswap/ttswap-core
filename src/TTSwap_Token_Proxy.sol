@@ -22,7 +22,7 @@ contract TTSwap_Token_Proxy {
     uint256 internal ttstokenconfig;
     bool public upgradeable;
     uint256 internal stakestate;
-    uint128 internal left_share = 45_000_000_000_000;
+    uint128 internal left_share = 45_000_000_000_000; //restore this value to 45_000_000_000_000_000_000 @ v1.16.0
     uint128 internal publicsell;
     mapping(address => uint256) internal userConfig;
 

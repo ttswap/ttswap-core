@@ -1094,7 +1094,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         // Unstake the corresponding amount of value from the TTS contract.
         // This reduces the user's staking rewards going forward.
         valuegood != address(0)
-            ? L_Proof.unstake(TTS_CONTRACT, msg.sender, divestvalue.amount1()*2)
+            ? L_Proof.unstake(
+                TTS_CONTRACT,
+                msg.sender,
+                divestvalue.amount1() * 2
+            )
             : L_Proof.unstake(TTS_CONTRACT, msg.sender, divestvalue.amount1());
 
         emit e_disinvestProof(
