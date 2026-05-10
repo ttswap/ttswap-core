@@ -102,13 +102,15 @@ interface I_TTSwap_Market {
     /// @param swapvalue The trade value
     /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
     /// @param good2change The status of the bought good (amount0: fee, amount1: quantity)
+    /// @param external_info External business metadata (e.g., payment order id or other extra info).
     event e_buyGood(
         address indexed sellgood,
         address indexed forgood,
         uint256 swapvalue,
         uint256 good1change,
         uint256 good2change,
-        address _trader
+        address _trader,
+        uint256 external_info
     );
     /// @notice Emitted when a user makes a payment using goods
     /// @param sellgood The ID of the good being sold/used for payment
@@ -117,7 +119,7 @@ interface I_TTSwap_Market {
     /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
     /// @param good2change The status of the received good (amount0: fee, amount1: quantity)
     /// @param _trader The address of the trader initiating the payment
-    /// @param data_hash The hash of the transaction data for verification
+    /// @param external_info The hash of the transaction data for verification
     event e_payGood(
         address indexed sellgood,
         address indexed forgood,
@@ -126,7 +128,7 @@ interface I_TTSwap_Market {
         uint256 good2change,
         address _trader,
         address _recipient,
-        uint256 data_hash
+        uint256 external_info
     );
 
     /// @notice Emitted when a user invests in a normal good

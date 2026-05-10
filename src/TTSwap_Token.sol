@@ -295,6 +295,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         if (_share.chips == 0) revert TTSwapError(73);
         if (_share.leftamount == 0) revert TTSwapError(74);
         if (_share.metric > 120) revert TTSwapError(75);
+        if (left_share < _share.leftamount) revert TTSwapError(67);
         left_share -= _share.leftamount;
         if (shares[owner].leftamount == 0) {
             shares[owner] = _share;

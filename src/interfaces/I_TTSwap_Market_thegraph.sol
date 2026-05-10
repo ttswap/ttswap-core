@@ -61,9 +61,6 @@ interface I_TTSwap_Market {
         address _trader
     );
 
-
-
-
     /// @notice Emitted when a good is created and initialized
     /// @param _proofNo The ID of the investment proof
     /// @param _goodid The ID of the good
@@ -98,6 +95,24 @@ interface I_TTSwap_Market {
         uint256 good2change,
         address _trader
     );
+
+    /// @notice Emitted when a user buys a good
+    /// @param sellgood The ID of the good being sold
+    /// @param forgood The ID of the good being bought
+    /// @param swapvalue The trade value
+    /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
+    /// @param good2change The status of the bought good (amount0: fee, amount1: quantity)
+    /// @param external_info External business metadata (e.g., payment order id or other extra info).
+    event e_buyGood(
+        address indexed sellgood,
+        address indexed forgood,
+        uint256 swapvalue,
+        uint256 good1change,
+        uint256 good2change,
+        address _trader,
+        uint256 external_info
+    );
+
     /// @notice Emitted when a user makes a payment using goods
     /// @param sellgood The ID of the good being sold/used for payment
     /// @param forgood The ID of the good being received
@@ -105,7 +120,7 @@ interface I_TTSwap_Market {
     /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
     /// @param good2change The status of the received good (amount0: fee, amount1: quantity)
     /// @param _trader The address of the trader initiating the payment
-    /// @param data_hash The hash of the transaction data for verification
+    /// @param external_info The hash of the transaction data for verification
     event e_payGood(
         address indexed sellgood,
         address indexed forgood,
@@ -114,7 +129,7 @@ interface I_TTSwap_Market {
         uint256 good2change,
         address _trader,
         address _recipient,
-        uint256 data_hash
+        uint256 external_info
     );
 
 
@@ -224,7 +239,7 @@ interface I_TTSwap_Market {
         bytes calldata data,
         address _trader,
         bytes calldata signature,
-        uint256 data_hash
+        uint256 external_info
     ) external payable returns (uint256 good1change, uint256 good2change);
 
     /// @notice Invest in a normal good
