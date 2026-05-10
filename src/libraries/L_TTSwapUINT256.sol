@@ -229,6 +229,11 @@ function mulDiv(
 /// @title L_TTSwapUINT256Library
 /// @notice A library for operations on T_BalanceUINT256
 library L_TTSwapUINT256Library {
+    function get64bit(uint256 a) internal pure returns (uint64 b) {
+        assembly {
+            b := a
+        }
+    }
     /// @notice Extracts the first 128-bit amount from a T_BalanceUINT256
     /// @param balanceDelta The T_BalanceUINT256 to extract from
     /// @return _amount0 The extracted first 128-bit amount

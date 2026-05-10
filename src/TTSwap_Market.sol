@@ -542,7 +542,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
      * @param data Additional data for the input token transfer (Permit/Transfer).
      * @param _trader The address of the trader initiating the swap (must match signer if signature used).
      * @param signature The EIP-712 signature authorizing the trade (if msg.sender != _trader).
-     * @param deadline Unix timestamp; if non-zero and `block.timestamp > deadline`, reverts (TTSwapError(49)). Included in EIP-712 struct hash.
+     * @param external_info External business metadata (e.g., payment order id or other extra info).
      * @return good1change The state change of the input good:
      *         - amount0: Fee quantity deducted.
      *         - amount1: Actual input quantity swapped.
@@ -564,7 +564,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata data,
         address _trader,
         bytes calldata signature,
-        uint256 deadline
+        uint256 external_info
     )
         external
         payable
@@ -582,7 +582,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                         keccak256(
                             abi.encode(
                                 keccak256(
-                                    "buyGood(address _trader,address referral,address _goodid1,address _goodid2,uint256 _swapQuantity,bytes data,uint256 deadline,uint256 nonce)"
+                                    "buyGood(address _trader,address referral,address _goodid1,address _goodid2,uint256 _swapQuantity,bytes data,uint256 external_info,uint256 nonce)"
                                 ),
                                 _trader,
                                 _recipient,
@@ -590,7 +590,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                                 _goodid2,
                                 _swapQuantity,
                                 keccak256(data),
-                                deadline,
+                                external_info,
                                 nonces[_trader]++
                             )
                         )
@@ -598,7 +598,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 ),
                 _trader
             );
-        if (deadline != 0 && block.timestamp > deadline) revert TTSwapError(49);
+        if (external_info.get64bit() != 0 && block.timestamp > external_info.get64bit()) revert TTSwapError(49);
         if (_goodid1 == _goodid2) revert TTSwapError(9);
         _checkGoodActive(_goodid1, 10, 12);
         _checkGoodActive(_goodid2, 11, 13);
@@ -651,7 +651,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 good2change.amount0(),
                 good2change.amount1() + good2change.amount0()
             ),
-            _trader
+            _trader,
+            external_info
         );
     }
 
@@ -727,8 +728,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 _trader
             );
         if (
-            block.timestamp > external_info.amount1() &&
-            external_info.amount1() != 0
+            block.timestamp > external_info.get64bit() &&
+            external_info.get64bit() != 0
         ) revert TTSwapError(53);
         if (_goodid1 != _goodid2) {
             // Gross-output flow: desired gross output quantity -> required input value -> required input quantity
