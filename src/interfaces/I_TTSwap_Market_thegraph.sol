@@ -10,25 +10,17 @@ interface I_TTSwap_Market {
     /// @notice Emitted when a good's configuration is updated
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
-    event e_updateGoodConfig(
-        address _goodid,
-        uint256 _goodConfig,
-        address _trader
-    );
+    event e_updateGoodConfig(address _goodid, uint256 _goodConfig,address _trader);
 
     /// @notice Emitted when a good's configuration is modified by market admin
     /// @param _goodid The ID of the good
     /// @param _goodconfig The new configuration
-    event e_modifyGoodConfig(
-        address _goodid,
-        uint256 _goodconfig,
-        address _trader
-    );
+    event e_modifyGoodConfig(address _goodid, uint256 _goodconfig,address _trader);
 
     /// @notice Emitted when a good's owner is changed
     /// @param goodid The ID of the good
     /// @param to The new owner's address
-    event e_changegoodowner(address goodid, address to, address _trader);
+    event e_changegoodowner(address goodid, address to,address _trader);
 
     /// @notice Emitted when market commission is collected
     /// @param _goodid Array of good IDs
@@ -42,7 +34,7 @@ interface I_TTSwap_Market {
     /// @notice Emitted when welfare is delivered to investors
     /// @param goodid The ID of the good
     /// @param welfare The amount of welfare
-    event e_goodWelfare(address goodid, uint128 welfare, address _trader);
+    event e_goodWelfare(address goodid, uint128 welfare,address _trader);
 
     /// @notice Emitted when a meta good is created and initialized
     /// @dev The decimal precision of _initial.amount0() defaults to 6
@@ -110,6 +102,24 @@ interface I_TTSwap_Market {
         uint256 good2change,
         address _trader
     );
+
+    /// @notice Emitted when a user buys a good
+    /// @param sellgood The ID of the good being sold
+    /// @param forgood The ID of the good being bought
+    /// @param swapvalue The trade value
+    /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
+    /// @param good2change The status of the bought good (amount0: fee, amount1: quantity)
+    /// @param external_info External business metadata (e.g., payment order id or other extra info).
+    event e_buyGood(
+        address indexed sellgood,
+        address indexed forgood,
+        uint256 swapvalue,
+        uint256 good1change,
+        uint256 good2change,
+        address _trader,
+        uint256 external_info
+    );
+
     /// @notice Emitted when a user makes a payment using goods
     /// @param sellgood The ID of the good being sold/used for payment
     /// @param forgood The ID of the good being received
@@ -117,7 +127,7 @@ interface I_TTSwap_Market {
     /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
     /// @param good2change The status of the received good (amount0: fee, amount1: quantity)
     /// @param _trader The address of the trader initiating the payment
-    /// @param data_hash The hash of the transaction data for verification
+    /// @param external_info The hash of the transaction data for verification
     event e_payGood(
         address indexed sellgood,
         address indexed forgood,
@@ -126,8 +136,9 @@ interface I_TTSwap_Market {
         uint256 good2change,
         address _trader,
         address _recipient,
-        uint256 data_hash
+        uint256 external_info
     );
+
 
     /// @notice Emitted when a user invests in a normal good
     /// @param _proofNo The ID of the investment proof

@@ -102,13 +102,15 @@ interface I_TTSwap_Market {
     /// @param swapvalue The trade value
     /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
     /// @param good2change The status of the bought good (amount0: fee, amount1: quantity)
+    /// @param external_info External business metadata (e.g., payment order id or other extra info).
     event e_buyGood(
         address indexed sellgood,
         address indexed forgood,
         uint256 swapvalue,
         uint256 good1change,
         uint256 good2change,
-        address _trader
+        address _trader,
+        uint256 external_info
     );
     /// @notice Emitted when a user makes a payment using goods
     /// @param sellgood The ID of the good being sold/used for payment
@@ -117,7 +119,7 @@ interface I_TTSwap_Market {
     /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
     /// @param good2change The status of the received good (amount0: fee, amount1: quantity)
     /// @param _trader The address of the trader initiating the payment
-    /// @param data_hash The hash of the transaction data for verification
+    /// @param external_info The hash of the transaction data for verification
     event e_payGood(
         address indexed sellgood,
         address indexed forgood,
@@ -126,7 +128,7 @@ interface I_TTSwap_Market {
         uint256 good2change,
         address _trader,
         address _recipient,
-        uint256 data_hash
+        uint256 external_info
     );
 
     /// @notice Emitted when a user invests in a normal good
@@ -252,7 +254,7 @@ interface I_TTSwap_Market {
      * @param data Encoded transfer authorization for the input token (Permit/Transfer).
      * @param _trader The trader; `msg.sender` may be a relayer distinct from `_trader` when `signature` is valid.
      * @param signature EIP-712 signature over the buy payload; **verified** when `msg.sender != _trader`.
-     * @param deadline Unix timestamp; if non-zero and expired, reverts. Bound in EIP-712 struct; `0` means no expiry check on-chain.
+     * @param external_info External business metadata (e.g., payment order id or other extra info).
      * @return good1change amount0() good1tradefee,good1tradeamount
      * @return good2change amount0() good1tradefee,good2tradeamount
      */
@@ -264,7 +266,7 @@ interface I_TTSwap_Market {
         bytes calldata data,
         address _trader,
         bytes calldata signature,
-        uint256 deadline
+        uint256 external_info
     ) external payable returns (uint256 good1change, uint256 good2change);
 
     /**
@@ -407,7 +409,7 @@ interface I_TTSwap_Market {
     /// @param _goodid The good to lock
     /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
     /// @param signature Reserved for ABI compatibility; **not verified** here.
-    function lockGood(
+        function lockGood(
         address _goodid,
         address _trader,
         bytes calldata signature
@@ -416,7 +418,7 @@ interface I_TTSwap_Market {
     /// @notice Changes the owner of a good
     /// @param _goodid The ID of the good
     /// @param _to The new owner's address
-    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+     /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
     /// @param signature Reserved for ABI compatibility; **not verified** here.
     function changeGoodOwner(
         address _goodid,
@@ -455,7 +457,7 @@ interface I_TTSwap_Market {
 
     /// @notice Delivers welfare to investors
     /// @param goodid The ID of the good
-    /// @param welfare The amount of welfare
+    /// @param welfare The amount of welfare   
     /// @param data1 Transfer data for the token
     /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
     /// @param signature Reserved for ABI compatibility; **not verified** here.
