@@ -255,7 +255,7 @@ interface I_TTSwap_Market {
      * @param data Encoded transfer authorization for the input token (Permit/Transfer).
      * @param _trader The trader; `msg.sender` may be a relayer distinct from `_trader` when `signature` is valid.
      * @param signature EIP-712 signature over the buy payload; **verified** when `msg.sender != _trader`.
-     * @param deadline Unix timestamp; if non-zero and expired, reverts. Bound in EIP-712 struct; `0` means no expiry check on-chain.
+     * @param external_info External business metadata (e.g., payment order id or other extra info).
      * @return good1change amount0() good1tradefee,good1tradeamount
      * @return good2change amount0() good1tradefee,good2tradeamount
      */
@@ -267,7 +267,7 @@ interface I_TTSwap_Market {
         bytes calldata data,
         address _trader,
         bytes calldata signature,
-        uint256 deadline
+        uint256 external_info
     ) external payable returns (uint256 good1change, uint256 good2change);
 
     /**
