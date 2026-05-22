@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-// version 1.16.0
+// version 1.16.1
 pragma solidity 0.8.29;
 
 import {ERC20} from "./base/ERC20.sol";
@@ -653,10 +653,5 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     function burn(address from, uint256 amount) external onlymain {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(62);
         _burn(from, amount);
-    }
-    // only for fix left_share error exists @v1.16.0
-    function fixLeftShare() external onlymain {
-        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(62);
-        left_share = 45_000_000_000_000_000_000;
     }
 }
