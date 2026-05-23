@@ -34,6 +34,20 @@ library L_GoodConfigLibrary {
         return (config & (1 << 254)) != 0;
     }
 
+    /// @notice Checks if the good is frozen (trading paused).
+    /// @param config The configuration value.
+    /// @return a True if the good is frozen, false otherwise.
+    function isVerified(uint256 config) internal pure returns (bool a) {
+        return (config & (1 << 253)) != 0;
+    }
+
+    /// @notice Checks if the good is frozen (trading paused).
+    /// @param config The configuration value.
+    /// @return a True if the good is frozen, false otherwise.
+    function isPromised(uint256 config) internal pure returns (bool a) {
+        return (config & (1 << 253)) != 0;
+    }
+
     /// @notice Calculates the liquidity provider fee.
     /// @dev Extracts fee percentage from config bits [253...] and applies it to amount.
     /// @param config The configuration value.
@@ -45,7 +59,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(253, shl(2, config))
+                config := shr(253, shl(4, config))
                 config := mul(config, amount)
                 a := div(config, 10)
             }
@@ -63,7 +77,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(252, shl(5, config))
+                config := shr(252, shl(7, config))
                 config := mul(config, amount)
                 a := div(config, 50)
             }
@@ -81,7 +95,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(253, shl(9, config))
+                config := shr(253, shl(11, config))
                 config := mul(config, amount)
                 a := div(config, 25)
             }
@@ -99,7 +113,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(251, shl(12, config))
+                config := shr(251, shl(14, config))
                 config := mul(config, amount)
                 a := div(config, 100)
             }
@@ -117,7 +131,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(251, shl(17, config))
+                config := shr(251, shl(19, config))
                 config := mul(config, amount)
                 a := div(config, 100)
             }
@@ -135,7 +149,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(251, shl(22, config))
+                config := shr(251, shl(24, config))
                 config := mul(config, amount)
                 a := div(config, 100)
             }
@@ -153,7 +167,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint256 a) {
         unchecked {
             assembly {
-                config := shr(251, shl(22, config))
+                config := shr(251, shl(24, config))
                 config := mul(config, amount)
                 a := div(config, 100)
             }
@@ -167,7 +181,7 @@ library L_GoodConfigLibrary {
     function getLimitPower(uint256 config) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                a := shr(251, shl(27, config))
+                a := shr(251, shl(29, config))
             }
             if (a == 0) {
                 a = 100;
@@ -177,96 +191,32 @@ library L_GoodConfigLibrary {
         }
     }
 
-    /// @notice Checks if the configuration has the "Apply" flag set.
+    /// @notice Retrieves the power factor (leverage/multiplier) from the configuration.
+    /// @dev Extracts the power value from config bits [251...]. Defaults to 1 if 0.
     /// @param config The configuration value.
-    /// @return a True if the apply flag is set, false otherwise.
-    function getApply(uint256 config) internal pure returns (bool a) {
-        return (config & (1 << 223)) > 0;
-    }
-
-    /// @notice Calculate the investment fee for a given amount
-    /// @param config The configuration value
-    /// @param amount The investment amount
-    /// @return a The calculated investment fee
-    function getInvestFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
+    /// @return a The power factor.
+    function getSafeLine(uint256 config) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(250, shl(33, config))
-                config := mul(config, amount)
-                a := div(config, 10000)
+                a := shr(246, shl(35, config))
             }
         }
     }
 
-    /// @notice Calculate the full investment quantity (before fee deduction).
-    /// @dev This is the inverse of fee calculation, used when determining how much initial input is needed to yield a target output amount after fees.
-    /// @param config The configuration value.
-    /// @param amount The target investment amount (net of fees).
-    /// @return a The gross investment amount required.
-    function getInvestFullFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
-        unchecked {
-            assembly {
-                config := shr(250, shl(33, config))
-                a := div(mul(amount, 10000), sub(10000, config))
-            }
+    function getK1(uint256 config) internal pure returns (uint128 a) {
+        assembly {
+            a := shr(244, shl(57, config))
         }
+        return a == 0 ? 20000 : a * 10;
     }
 
-    /// @notice Calculate the disinvestment fee for a given amount
-    /// @param config The configuration value
-    /// @param amount The disinvestment amount
-    /// @return a The calculated disinvestment fee
-    function getDisinvestFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
-        unchecked {
-            assembly {
-                config := shr(250, shl(39, config))
-                config := mul(config, amount)
-                a := div(config, 10000)
-            }
+    function getK2(uint256 config) internal pure returns (uint128 a) {
+        assembly {
+            a := shr(244, shl(57, config))
         }
-    }
-
-    /// @notice Calculate the buying fee for a given amount
-    /// @param config The configuration value
-    /// @param amount The buying amount
-    /// @return a The calculated buying fee
-    function getBuyFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
-        unchecked {
-            assembly {
-                config := shr(249, shl(45, config))
-                config := mul(config, amount)
-                a := div(config, 10000)
-            }
-        }
-    }
-
-    /// @notice Calculate the selling fee for a given amount
-    /// @param config The configuration value
-    /// @param amount The selling amount
-    /// @return a The calculated selling fee
-    function getSellFee(
-        uint256 config,
-        uint256 amount
-    ) internal pure returns (uint128 a) {
-        unchecked {
-            assembly {
-                config := shr(249, shl(52, config))
-                config := mul(config, amount)
-                a := div(config, 10000)
-            }
-        }
+        a = a == 0 ? 20000 : a * 10;
+        a = (a * 10000) / (a - 10000);
+        return a;
     }
 
     /// @notice Get the swap chips for a given amount
@@ -275,7 +225,7 @@ library L_GoodConfigLibrary {
     function getPower(uint256 config) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                a := shr(251, shl(64, config))
+                a := shr(251, shl(69, config))
             }
         }
         return a == 0 ? 100 : 100 * a;
@@ -293,27 +243,119 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128) {
         uint128 a;
         assembly {
-            a := shr(246, shl(69, config))
+            a := shr(246, shl(74, config))
         }
         if (a == 0) return amount;
         return (amount / a);
     }
 
-    function getK1(uint256 config) internal pure returns (uint128 a) {
-        assembly {
-            a := shr(240, shl(79, config))
+    /// @notice Calculate the investment fee for a given amount
+    /// @param config The configuration value
+    /// @param amount The investment amount
+    /// @return a The calculated investment fee
+    function getInvestFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
+        unchecked {
+            assembly {
+                config := shr(250, shl(82, config))
+                config := mul(config, amount)
+                a := div(config, 10000)
+            }
         }
-        return a == 0 ? 20000 : a * 10;
     }
 
-    function getK2(uint256 config) internal pure returns (uint128 a) {
-        assembly {
-            a := shr(240, shl(79, config))
+    /// @notice Calculate the full investment quantity (before fee deduction).
+    /// @dev This is the inverse of fee calculation, used when determining how much initial input is needed to yield a target output amount after fees.
+    /// @param config The configuration value.
+    /// @param amount The target investment amount (net of fees).
+    /// @return a The gross investment amount required.
+    function getInvestFullFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
+        unchecked {
+            assembly {
+                config := shr(250, shl(82, config))
+                a := div(mul(amount, 10000), sub(10000, config))
+            }
         }
-        a = a == 0 ? 20000 : a * 10;
-        a = (a * 10000) / (a - 10000);
-        return a;
     }
+
+    /// @notice Calculate the disinvestment fee for a given amount
+    /// @param config The configuration value
+    /// @param amount The disinvestment amount
+    /// @return a The calculated disinvestment fee
+    function getDisinvestFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
+        unchecked {
+            assembly {
+                config := shr(250, shl(88, config))
+                config := mul(config, amount)
+                a := div(config, 10000)
+            }
+        }
+    }
+
+    /// @notice Calculate the buying fee for a given amount
+    /// @param config The configuration value
+    /// @param amount The buying amount
+    /// @return a The calculated buying fee
+    function getBuyFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
+        unchecked {
+            assembly {
+                config := shr(249, shl(94, config))
+                config := mul(config, amount)
+                a := div(config, 10000)
+            }
+        }
+    }
+
+    /// @notice Calculate the selling fee for a given amount
+    /// @param config The configuration value
+    /// @param amount The selling amount
+    /// @return a The calculated selling fee
+    function getSellFee(
+        uint256 config,
+        uint256 amount
+    ) internal pure returns (uint128 a) {
+        unchecked {
+            assembly {
+                config := shr(249, shl(101, config))
+                config := mul(config, amount)
+                a := div(config, 10000)
+            }
+        }
+    }
+
+    /// @notice Calculate the selling fee for a given amount
+    /// @param config The configuration value
+    /// @return a The calculated selling fee
+    function getContractType(uint256 config) internal pure returns (uint128 a) {
+        unchecked {
+            assembly {
+                a := shr(244, shl(108, config))
+            }
+        }
+    }
+
+    /// @notice Calculate the selling fee for a given amount
+    /// @param config The configuration value
+    /// @return a The calculated selling fee
+    function getERCType(uint256 config) internal pure returns (uint8 a) {
+        unchecked {
+            assembly {
+                a := shr(248, shl(120, config))
+            }
+        }
+    }
+
     /// @notice Validates if a configuration value is well-formed and consistent.
     /// @dev Checks that the sum of all fee components (liquidity, operator, gate, referal, customer, platform) equals 100%.
     /// Each component is extracted from specific bit ranges and normalized.

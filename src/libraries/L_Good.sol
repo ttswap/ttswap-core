@@ -4,7 +4,7 @@ pragma solidity 0.8.29;
 import {L_Proof} from "./L_Proof.sol";
 import {TTSwapError} from "./L_Error.sol";
 import {L_GoodConfigLibrary} from "./L_GoodConfig.sol";
-
+import {T_GoodKey} from "../type/T_GoodKey.sol";
 import {S_GoodState, S_ProofState} from "../interfaces/I_TTSwap_Market.sol";
 import {
     L_TTSwapUINT256Library,
@@ -37,6 +37,17 @@ library L_Good {
     //1638416512<<223  (6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6)<<223
     uint256 internal constant initialConfig =
         0x30d4204000000000000000000000000000000000000000000000000000000000;
+
+    function toGoodKey(
+        S_GoodState storage _self
+    ) internal view returns (T_GoodKey memory) {
+        return
+            T_GoodKey({
+                ercType: _self.goodConfig.getERCType(),
+                contractAddress: _self.contractAddress,
+                uid: _self.uid
+            });
+    }
 
     /**
      * @notice Update the good configuration only goodowner
@@ -161,7 +172,7 @@ library L_Good {
             uint256(_invest.amount1());
         if (
             config1 > config2 ||
-            !self.goodConfig.getApply() ||
+            !self.goodConfig.isPromised() ||
             _trader != self.owner
         ) {
             return true;
@@ -351,71 +362,6 @@ library L_Good {
     function investGood(
         S_GoodState storage _self,
         uint128 _invest,
-        S_GoodInvestReturn memory investResult_,
-        uint128 enpower
-    ) internal {
-        // Calculate the invest virtual quantity
-        // The user receives virtual shares magnified by the power/leverage factor.
-
-        // calculate the fee quantity
-        // Calculate investment fee based on the virtual quantity.
-        investResult_.investFeeQuantity = _self.goodConfig.getInvestFee(
-            _invest
-        );
-        _invest = _invest - investResult_.investFeeQuantity;
-        // Virtual quantity = actual input * leverage (enpower in basis points).
-        investResult_.investQuantity = (_invest * enpower) / 100;
-
-        // Calculate the actual investment value based from investQuantity on the current state
-        // Determines the monetary value (virtual USD/ETH) of the new shares relative to the pool's total value.
-        investResult_.investValue = toTTSwapUINT256(
-            investResult_.goodValues,
-            investResult_.goodCurrentQuantity
-        ).getamount0fromamount1(investResult_.investQuantity);
-
-        // Calculate the invest share based from investQuantity on the invest state
-        // Mints shares proportional to the new virtual quantity vs the total existing virtual quantity.
-        investResult_.investShare = toTTSwapUINT256(
-            investResult_.goodShares,
-            investResult_.goodInvestQuantity
-        ).getamount0fromamount1(_invest);
-
-        // add invest quantity to token1 pool
-        // Update the pool's total virtual quantity.
-        _self.currentState = add(
-            _self.currentState,
-            toTTSwapUINT256(
-                _invest + investResult_.investFeeQuantity,
-                investResult_.investQuantity + investResult_.investFeeQuantity
-            )
-        );
-
-        // Update the invest state with the new investment
-        // Add newly minted shares and the calculated value to the global investment state.
-        _self.investState = add(
-            _self.investState,
-            toTTSwapUINT256(
-                investResult_.investShare,
-                investResult_.investValue
-            )
-        );
-        // add invest true virtual quantity to good config
-        // Updates a tracking counter in the config (likely for fee/limit calculations), accounting for the leverage.
-        _self.goodConfig = add(
-            _self.goodConfig,
-            toTTSwapUINT256(0, investResult_.investQuantity - _invest)
-        );
-    }
-
-    /**
-     * @notice Invest in a good
-     * @dev Calculates fees, updates states, and returns investment results
-     * @param _self Storage pointer to the good state
-     * @param _invest Amount to invest actual quantity
-     */
-    function investOneTokenGood(
-        S_GoodState storage _self,
-        uint128 _invest,
         uint128 _investValue,
         S_GoodInvestReturn memory investResult_,
         uint128 enpower
@@ -520,23 +466,19 @@ library L_Good {
      * @notice Disinvest from a good and potentially its associated value good
      * @dev This function handles the complex process of disinvesting from a good, including fee calculations and state updates
      * @param _self Storage pointer to the main good state
-     * @param _valueGoodState Storage pointer to the value good state (if applicable)
      * @param _investProof Storage pointer to the investment proof state
      * @param _params Struct containing disinvestment parameters
      * @return normalGoodResult1_ Struct containing disinvestment results for the main good
-     * @return valueGoodResult2_ Struct containing disinvestment results for the value good (if applicable)
      * @return disinvestvalue The total value being disinvested
      */
     function disinvestGood(
         S_GoodState storage _self,
-        S_GoodState storage _valueGoodState,
         S_ProofState storage _investProof,
         S_GoodDisinvestParam memory _params
     )
         internal
         returns (
             S_GoodDisinvestReturn memory normalGoodResult1_,
-            S_GoodDisinvestReturn memory valueGoodResult2_,
             uint256 disinvestvalue
         )
     {
@@ -654,118 +596,13 @@ library L_Good {
                 normalGoodResult1_.actual_fee,
             _params._sender
         );
-        // Handle value good disinvestment if applicable
-        if (_investProof.valuegood != address(0)) {
-            // Calculate disinvestment results for value good
-            // proofShares0 already cached above; cache remaining proof fields
-            uint128 proofShares1 = _investProof.shares.amount1();
-            //amount0 :value good virtual quantity of proof,amount1 :value good actual quantity of proof
-            uint128 proofValueInvest0 = _investProof.valueinvest.amount0();
-            uint128 proofValueInvest1 = _investProof.valueinvest.amount1();
-            valueGoodResult2_ = S_GoodDisinvestReturn(
-                0,
-                0,
-                toTTSwapUINT256(proofShares1, proofShares0)
-                    .getamount0fromamount1(_params._goodshares), //divest shares
-                toTTSwapUINT256(proofValueInvest0, proofShares0)
-                    .getamount0fromamount1(_params._goodshares),
-                toTTSwapUINT256(proofValueInvest1, proofShares0)
-                    .getamount0fromamount1(_params._goodshares)
-            );
-            // ensure the value good's divested quantity is within valid ranges.
-            if (
-                disinvestvalue.amount0() >
-                _valueGoodState.goodConfig.getDisinvestChips(
-                    _valueGoodState.investState.amount1()
-                )
-            ) revert TTSwapError(28);
-            // Check limits on how much value can be withdrawn at once to prevent manipulation.
-            if (
-                valueGoodResult2_.virtualDisinvestQuantity >
-                _valueGoodState.goodConfig.getDisinvestChips(
-                    _valueGoodState.currentState.amount1()
-                )
-            ) revert TTSwapError(29);
-
-            // Calculate the current value of the user's shares based on the *current* state of the pool.
-            valueGoodResult2_.profit = toTTSwapUINT256(
-                _valueGoodState.currentState.amount0(),
-                _valueGoodState.investState.amount0()
-            ).getamount0fromamount1(valueGoodResult2_.shares);
-
-            // Calculate the fee for disinvesting.
-            valueGoodResult2_.actual_fee = _valueGoodState
-                .goodConfig
-                .getDisinvestFee(valueGoodResult2_.virtualDisinvestQuantity);
-            // Ensure profit exceeds fees.
-            if (valueGoodResult2_.profit < valueGoodResult2_.actual_fee)
-                revert TTSwapError(34);
-
-            // Update value good states
-            // Reduce the global investment state (shares and value) by the amount being withdrawn.
-            _valueGoodState.currentState = sub(
-                _valueGoodState.currentState,
-                toTTSwapUINT256(
-                    valueGoodResult2_.profit,
-                    valueGoodResult2_.virtualDisinvestQuantity +
-                        valueGoodResult2_.profit -
-                        valueGoodResult2_.actualDisinvestQuantity
-                )
-            );
-            // Reduce the global investment state (shares and value) by the amount being withdrawn.
-            _valueGoodState.investState = sub(
-                _valueGoodState.investState,
-                toTTSwapUINT256(
-                    valueGoodResult2_.shares,
-                    disinvestvalue.amount1()
-                )
-            );
-            // Add the collected fee back into the pool reserves.
-            if (valueGoodResult2_.actual_fee > 0) {
-                _valueGoodState.currentState = add(
-                    _valueGoodState.currentState,
-                    toTTSwapUINT256(
-                        valueGoodResult2_.actual_fee,
-                        valueGoodResult2_.actual_fee
-                    )
-                );
-            }
-            // Remove the virtual quantity of goods redeemed from the good's configuration.
-            _valueGoodState.goodConfig = sub(
-                _valueGoodState.goodConfig,
-                valueGoodResult2_.virtualDisinvestQuantity -
-                    valueGoodResult2_.actualDisinvestQuantity
-            );
-            // Net profit = Gross withdrawn value - Initial invested actual quantity.
-            valueGoodResult2_.profit =
-                valueGoodResult2_.profit -
-                valueGoodResult2_.actualDisinvestQuantity;
-            // Allocate fees
-            allocateFee(
-                _valueGoodState,
-                valueGoodResult2_.profit,
-                _params._gater,
-                _params._referral,
-                valueGoodResult2_.actualDisinvestQuantity -
-                    valueGoodResult2_.actual_fee,
-                _params._sender
-            );
-        }
-
         // Burn the investment proof
         _investProof.burnProof(
-            toTTSwapUINT256(
-                normalGoodResult1_.shares,
-                valueGoodResult2_.shares
-            ),
+            toTTSwapUINT256(normalGoodResult1_.shares, 0),
             disinvestvalue,
             toTTSwapUINT256(
                 normalGoodResult1_.virtualDisinvestQuantity,
                 normalGoodResult1_.actualDisinvestQuantity
-            ),
-            toTTSwapUINT256(
-                valueGoodResult2_.virtualDisinvestQuantity,
-                valueGoodResult2_.actualDisinvestQuantity
             )
         );
     }
