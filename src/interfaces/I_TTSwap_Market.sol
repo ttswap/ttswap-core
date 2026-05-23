@@ -150,14 +150,13 @@ interface I_TTSwap_Market {
     event e_getPromiseProof(uint256 _goodid, uint256 _proofid);
     function nonces(address _trader) external view returns (uint256);
 
-
     /// @notice Initialize a new good with single-token deposit at a user-specified price
     /// @param _goodKey The address of the ERC20 token representing the new good
     /// @param _initial amount0: user-specified total value, amount1: token quantity to deposit
     /// @param _goodConfig The good configuration settings (fees, limits, etc.)
     /// @param _normaldata The data for transferring the normal good (Permit/Transfer)
     /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
-    /// @param _signature Reserved for ABI compatibility; **not verified** here.   
+    /// @param _signature Reserved for ABI compatibility; **not verified** here.
     function initGood(
         T_GoodKey memory _goodKey,
         uint256 _initial,

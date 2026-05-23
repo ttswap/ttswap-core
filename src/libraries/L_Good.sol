@@ -132,25 +132,13 @@ library L_Good {
      * @dev Sets up the initial state, configuration, and owner of the good
      * @param self Storage pointer to the good state
      * @param _init Initial balance state
-     * @param _goodConfig Configuration of the good
      */
-    function init(
-        S_GoodState storage self,
-        uint256 _init,
-        uint256 _goodConfig
-    ) internal {
-        if (_goodConfig.getK1() <= 10000) {
-            revert TTSwapError(44);
-        }
+    function init(S_GoodState storage self, uint256 _init) internal {
         self.currentState = toTTSwapUINT256(_init.amount1(), _init.amount1());
         self.investState = toTTSwapUINT256(_init.amount1(), _init.amount0());
-        assembly {
-            _goodConfig := and(not(feeConfigMask), _goodConfig)
-            _goodConfig := add(_goodConfig, initialConfig)
-        }
-        if (_goodConfig.getPower() > 100) revert TTSwapError(25);
-        if (_goodConfig.getPower() < 100) revert TTSwapError(25);
-        self.goodConfig = _goodConfig;
+        self.goodConfig = L_GoodConfigLibrary.setRunTimeConfig(
+            L_GoodConfigLibrary.setInitialConfig()
+        );
         self.owner = msg.sender;
     }
 

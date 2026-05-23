@@ -13,6 +13,85 @@ pragma solidity 0.8.29;
 /// - Bits 223: isApply (1 = Application enabled)
 /// - Bits [63...]: Power factor (Leverage/Multiplier)
 library L_GoodConfigLibrary {
+    using L_GoodConfigLibrary for uint256;
+    // 6*2**249+1*2**245+5*2**242+8*2**237+8*2**232+2*2**227+1*2**221+80*2**211+2000*2**187+1*2**182+10*2**174+8*2**168+8*2**162+8*2**155+8*2**148
+    // lp fee:60% (6*2**249)
+    // operator:2% (1*2**245)
+    // gate fee:20% (5*2**242)
+    // referral fee:8% (8*2**237)
+    // customer fee:8% (8*2**232)
+    // platform fee:2% (2*2**227)
+    // limitpower:1 (1*2**221)
+    // safetyline:80% (80*2**211)
+    // k1:20000 (2000*2**187)
+    // enpower:1 (1*2**182)
+    // disinvest chips: 40 (10*2**174)
+    // invest fee:0.08% (8*2**168)
+    // disinvest fee:0.08% (8*2**162)
+    // buy fee:0.08% (8*2**155)
+    // sell fee:0.08% (8*2**148)
+
+    uint256 constant initial_config =
+        0xc3508102280003e804288204080000000000000000000000000000000000000;
+    //2**252-1-(2**227-1)
+    uint256 constant allocate_config_mask =
+        0xffffff800000000000000000000000000000000000000000000000000000000;
+    //2**174-1-(2**148-1)
+    uint256 constant fee_config_mask =
+        0x3ffffff0000000000000000000000000000000000000;
+    //2**148-1 -(2**136-1)
+    uint256 constant contract_type_mask =
+        0xfff0000000000000000000000000000000000;
+    //2**136-1 -(2**128-1)
+    uint256 constant erc_type_mask = 0xff00000000000000000000000000000000;
+
+    uint256 constant run_time_config_mask =
+        0x7ff80000000000000000000000000000000000000000000000000;
+
+    function setInitialConfig() internal pure returns (uint256) {
+        return initial_config;
+    }
+
+    function setAllocateConfig(
+        uint256 config,
+        uint256 allocate_config
+    ) internal pure returns (uint256) {
+        return
+            (config & ~allocate_config_mask) |
+            (allocate_config & allocate_config_mask);
+    }
+
+    function setFeeConfig(
+        uint256 config,
+        uint256 fee_config
+    ) internal pure returns (uint256) {
+        return (config & ~fee_config_mask) | (fee_config & fee_config_mask);
+    }
+
+    function setContractType(
+        uint256 config,
+        uint16 contract_type
+    ) internal pure returns (uint256 a) {
+        return
+            (config & ~contract_type_mask) |
+            ((contract_type << 136) & contract_type_mask);
+    }
+
+    function setERCType(
+        uint256 config,
+        uint8 erc_type
+    ) internal pure returns (uint256 a) {
+        return (config & ~erc_type_mask) | ((erc_type << 128) & erc_type_mask);
+    }
+
+    function setRunTimeConfig(
+        uint256 config
+    ) internal view returns (uint256 a) {
+        uint256 run_time_config = (block.timestamp % 4095) % 10;
+        require(config.getRunTimeConfig() == run_time_config, "transaction busy error");
+        return (config & ~run_time_config_mask) | (run_time_config << 199);
+    }
+
     /// @notice Checks if the good is configured as a value good.
     /// @param config The configuration value.
     /// @return a True if it's a value good, false otherwise.
@@ -203,6 +282,16 @@ library L_GoodConfigLibrary {
         }
     }
 
+    function getRunTimeConfig(
+        uint256 config
+    ) internal pure returns (uint256 a) {
+        unchecked {
+            assembly {
+                a := shr(244, shl(45, config))
+            }
+        }
+    }
+
     function getK1(uint256 config) internal pure returns (uint128 a) {
         assembly {
             a := shr(244, shl(57, config))
@@ -378,18 +467,18 @@ library L_GoodConfigLibrary {
         uint256 platform;
 
         assembly {
-            // liquid = ((config >> 251) & 0x7) * 10
-            liquid := mul(and(shr(251, config), 0x7), 10)
+            // liquid = ((config >> 249) & 0x7) * 10
+            liquid := mul(and(shr(249, config), 0x7), 10)
             // operator = ((config >> 247) & 0x7) * 2
-            operator := mul(and(shr(247, config), 0x7), 2)
-            // gate = ((config >> 244) & 0x7) * 4
-            gate := mul(and(shr(244, config), 0x7), 4)
-            // referal = (config >> 239) & 0x1F
-            referal := and(shr(239, config), 0x1F)
-            // cust = (config >> 234) & 0x1F
-            cust := and(shr(234, config), 0x1F)
-            // platform = (config >> 229) & 0x1F
-            platform := and(shr(229, config), 0x1F)
+            operator := mul(and(shr(245, config), 0x7), 2)
+            // gate = ((config >> 242) & 0x7) * 4
+            gate := mul(and(shr(242, config), 0x7), 4)
+            // referal = (config >> 237) & 0x1F
+            referal := and(shr(237, config), 0x1F)
+            // cust = (config >> 232) & 0x1F
+            cust := and(shr(232, config), 0x1F)
+            // platform = (config >> 227) & 0x1F
+            platform := and(shr(227, config), 0x1F)
         }
 
         // Check all components are non-zero and sum equals 100
