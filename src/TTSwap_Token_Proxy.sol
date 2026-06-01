@@ -34,7 +34,6 @@ contract TTSwap_Token_Proxy {
     /// @param _symbol The symbol of the token.
     /// @param _implementation The address of the initial Token implementation logic.
     constructor(
-
         address _dao_admin,
         uint256 _ttsconfig,
         string memory _name,

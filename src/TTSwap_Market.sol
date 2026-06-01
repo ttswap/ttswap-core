@@ -146,6 +146,7 @@ contract TTSwap_Market is I_TTSwap_Market {
     ) private view {
         // Storage pointer avoids recomputing the mapping key hash twice
         if (g.goodConfig.isFreeze()) revert TTSwapError(freezeErr);
+        if (g.goodConfig.isVerified()) revert TTSwapError(6);
         if (g.currentState == 0) revert TTSwapError(emptyErr);
         if (!g.goodConfig.isVerified()) revert TTSwapError(40);
     }
@@ -168,7 +169,7 @@ contract TTSwap_Market is I_TTSwap_Market {
             revert TTSwapError(36);
         if (
             _initial.amount0() > 2 ** 109 ||
-            _initial.amount0() < 500000000000000
+            _initial.amount0() < 500_000_000_000_000
         ) revert TTSwapError(35);
         if (goods[_goodKey.toId()].owner != address(0)) revert TTSwapError(5);
         _goodKey.transferFrom(
@@ -191,7 +192,7 @@ contract TTSwap_Market is I_TTSwap_Market {
         emit e_initGood(
             proofId,
             _goodKey.toId(),
-            _goodConfig,
+            _goodKey.composedata(),
             L_Proof.stake(TTS_CONTRACT, msg.sender, _initial.amount0()),
             _initial,
             _trader
@@ -211,14 +212,14 @@ contract TTSwap_Market is I_TTSwap_Market {
     /// @param _gooddata  Encoded transfer authorisation (plain approve / EIP-2612 / Permit2).
     /// @param signature Reserved for ABI compatibility; **not verified** here (C-01 scheme B). Do not rely on relayer semantics.
     /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`); receives the investment proof context in events.
-    /// @return bool  True on success.
+    /// @return result  True on success.
     function investGood(
         T_GoodKey memory _goodKey,
         uint256 _invest,
         bytes calldata _gooddata,
         bytes calldata signature,
         address _trader
-    ) external payable override guardedEntry msgValue returns (bool) {
+    ) external payable override guardedEntry msgValue returns (bool result) {
         _checkTrader(_trader);
         S_GoodState storage g = goods[_goodKey.toId()];
         _checkGoodActive(g, 10, 12);
@@ -432,179 +433,177 @@ contract TTSwap_Market is I_TTSwap_Market {
         );
     }
 
-    /**
-     * @dev Executes a payment or swap using specific output quantity (Pay).
-     * @param _goodKey1 The address of the input good (paying with).
-     * @param _goodKey2 The address of the output good (paying to).
-     * @param _swapQuantity The swap details:
-     *        - amount0: The maximum input quantity of _goodid1 (slippage protection).
-     *        - amount1: The target gross output quantity of _goodid2 before any relayer execution fee.
-     * @param _recipient The address to receive the payment (goods). In relayer mode, net delivery may be lower because execution fee is deducted from gross output.
-     * @param data Additional data for the input token transfer (Permit/Transfer).
-     * @param _trader The address of the trader initiating the payment (must match signer).
-     * @param signature The EIP-712 signature authorizing the payment (if msg.sender != _trader).
-     * @param external_info amount0: external business metadata (e.g. payment order id). amount1: deadline; if non-zero and `block.timestamp` exceeds it, reverts `TTSwapError(53)`.
-     * @return good1change The state change of the input good:
-     *         - amount0: Fee quantity deducted.
-     *         - amount1: Actual input quantity used.
-     * @return good2change The state change of the output good:
-     *         - amount0: Fee quantity deducted.
-     *         - amount1: Gross output quantity from the AMM / direct-pay path before any relayer execution fee.
-     * @notice This function calculates the input amount needed to get a specific gross output amount (inverse swap).
-     * If `_goodid1` == `_goodid2`, it performs a direct transfer path with relayer fee deduction semantics.
-     * @custom:security Protected by reentrancy guard.
-     * @custom:security Verifies EIP-712 signature if the caller is a relayer.
-     * @custom:security Checks max input limit (`_swapQuantity.amount0()`).
-     * @custom:security `external_info` is included in signature payload as business context metadata.
-     */
-    function payGood(
-        T_GoodKey memory _goodKey1,
-        T_GoodKey memory _goodKey2,
-        uint256 _swapQuantity,
-        address _recipient,
-        bytes calldata data,
-        address _trader,
-        bytes calldata signature,
-        uint256 external_info
-    )
-        external
-        payable
-        guardedEntry
-        msgValue
-        returns (uint256 good1change, uint256 good2change)
-    {
-        uint128 feeQuantity;
-        _checkGoodActive(goods[_goodKey1.toId()], 10, 12);
-        _checkGoodActive(goods[_goodKey2.toId()], 11, 13);
-        if (_recipient == address(0)) revert TTSwapError(32);
-        if (msg.sender != _trader)
-            signature.verify(
-                keccak256(
-                    abi.encodePacked(
-                        "\x19\x01",
-                        DOMAIN_SEPARATOR(),
-                        keccak256(
-                            abi.encode(
-                                keccak256(
-                                    "payGood(address _trader,address recipient,uint256 _goodid1,uint256 _goodid2,uint256 _swapQuantity,uint256 external_info,bytes data,uint256 nonce)"
-                                ),
-                                _trader,
-                                _recipient,
-                                _goodKey1.toId(),
-                                _goodKey2.toId(),
-                                _swapQuantity,
-                                external_info,
-                                keccak256(data),
-                                nonces[_trader]++
-                            )
-                        )
-                    )
-                ),
-                _trader
-            );
-        if (
-            block.timestamp > external_info.get64bit() &&
-            external_info.get64bit() != 0
-        ) revert TTSwapError(53);
-        if (_goodKey1.toId() != _goodKey2.toId()) {
-            // Gross-output flow: desired gross output quantity -> required input value -> required input quantity
-            good2change = goods[_goodKey2.toId()].good2Swap(
-                _swapQuantity.amount1(),
-                false
-            );
+    // /**
+    //  * @dev Executes a payment or swap using specific output quantity (Pay).
+    //  * @param _goodKey1 The address of the input good (paying with).
+    //  * @param _goodKey2 The address of the output good (paying to).
+    //  * @param _swapQuantity The swap details:
+    //  *        - amount0: The maximum input quantity of _goodid1 (slippage protection).
+    //  *        - amount1: The target gross output quantity of _goodid2 before any relayer execution fee.
+    //  * @param _recipient The address to receive the payment (goods). In relayer mode, net delivery may be lower because execution fee is deducted from gross output.
+    //  * @param data Additional data for the input token transfer (Permit/Transfer).
+    //  * @param _trader The address of the trader initiating the payment (must match signer).
+    //  * @param signature The EIP-712 signature authorizing the payment (if msg.sender != _trader).
+    //  * @param external_info amount0: external business metadata (e.g. payment order id). amount1: deadline; if non-zero and `block.timestamp` exceeds it, reverts `TTSwapError(53)`.
+    //  * @return good1change The state change of the input good:
+    //  *         - amount0: Fee quantity deducted.
+    //  *         - amount1: Actual input quantity used.
+    //  * @return good2change The state change of the output good:
+    //  *         - amount0: Fee quantity deducted.
+    //  *         - amount1: Gross output quantity from the AMM / direct-pay path before any relayer execution fee.
+    //  * @notice This function calculates the input amount needed to get a specific gross output amount (inverse swap).
+    //  * If `_goodid1` == `_goodid2`, it performs a direct transfer path with relayer fee deduction semantics.
+    //  * @custom:security Protected by reentrancy guard.
+    //  * @custom:security Verifies EIP-712 signature if the caller is a relayer.
+    //  * @custom:security Checks max input limit (`_swapQuantity.amount0()`).
+    //  * @custom:security `external_info` is included in signature payload as business context metadata.
+    //  */
+    // function payGood(
+    //     T_GoodKey memory _goodKey1,
+    //     T_GoodKey memory _goodKey2,
+    //     uint256 _swapQuantity,
+    //     address _recipient,
+    //     bytes calldata data,
+    //     address _trader,
+    //     bytes calldata signature,
+    //     uint256 external_info
+    // )
+    //     external
+    //     payable
+    //     guardedEntry
+    //     msgValue
+    //     returns (uint256 good1change, uint256 good2change)
+    // {
+    //     uint128 feeQuantity;
+    //     _checkGoodActive(goods[_goodKey1.toId()], 10, 12);
+    //     _checkGoodActive(goods[_goodKey2.toId()], 11, 13);
+    //     if (_recipient == address(0)) revert TTSwapError(32);
+    //     if (msg.sender != _trader)
+    //         signature.verify(
+    //             keccak256(
+    //                 abi.encodePacked(
+    //                     "\x19\x01",
+    //                     DOMAIN_SEPARATOR(),
+    //                     keccak256(
+    //                         abi.encode(
+    //                             keccak256(
+    //                                 "payGood(address _trader,address recipient,uint256 _goodid1,uint256 _goodid2,uint256 _swapQuantity,uint256 external_info,bytes data,uint256 nonce)"
+    //                             ),
+    //                             _trader,
+    //                             _recipient,
+    //                             _goodKey1.toId(),
+    //                             _goodKey2.toId(),
+    //                             _swapQuantity,
+    //                             external_info,
+    //                             keccak256(data),
+    //                             nonces[_trader]++
+    //                         )
+    //                     )
+    //                 )
+    //             ),
+    //             _trader
+    //         );
+    //     if (
+    //         block.timestamp > external_info.get64bit() &&
+    //         external_info.get64bit() != 0
+    //     ) revert TTSwapError(53);
+    //     if (_goodKey1.toId() != _goodKey2.toId()) {
+    //         // Gross-output flow: desired gross output quantity -> required input value -> required input quantity
+    //         good2change = goods[_goodKey2.toId()].good2Swap(
+    //             _swapQuantity.amount1(),
+    //             false
+    //         );
 
-            good1change = goods[_goodKey1.toId()].good1Swap(
-                good2change.amount1(),
-                false
-            );
-            if (
-                good1change.amount1() + good1change.amount0() >
-                _swapQuantity.amount0() &&
-                _swapQuantity.amount0() > 0
-            ) revert TTSwapError(15);
-            _goodKey1.transferFrom(
-                _trader,
-                msg.sender,
-                good1change.amount1() + good1change.amount0(),
-                data
-            );
-            // Transfer output tokens. In relayer mode, recipient receives gross output minus execution fee.
-            if (msg.sender == _trader) {
-                _goodKey2.safeTransfer(_recipient, _swapQuantity.amount1());
-            } else {
-                // Commission logic for relayer.
-
-                feeQuantity = goods[_goodKey2.toId()]
-                    .getGoodState()
-                    .getamount1fromamount0(executeFee);
-                if (feeQuantity > _swapQuantity.amount1())
-                    revert TTSwapError(50);
-                goods[_goodKey2.toId()].commission[msg.sender] += feeQuantity;
-                _goodKey2.safeTransfer(
-                    _recipient,
-                    _swapQuantity.amount1() - feeQuantity
-                );
-            }
-            emit e_payGood(
-                _goodKey1.toId(),
-                _goodKey2.toId(),
-                good2change.amount1(),
-                toTTSwapUINT256(good1change.amount0(), good1change.amount1()),
-                toTTSwapUINT256(
-                    good2change.amount0(),
-                    _swapQuantity.amount1() - good2change.amount0()
-                ),
-                _trader,
-                _recipient,
-                external_info
-            );
-        } else {
-            // Direct payment path (good1 == good2).
-            // No AMM swap; the function debits amount0 and, in relayer mode, deducts execution fee from delivery.
-
-            good1change = toTTSwapUINT256(
-                goods[_goodKey1.toId()].currentState.amount1(),
-                goods[_goodKey1.toId()].investState.amount1()
-            );
-            if (msg.sender == _trader) {
-                _goodKey1.transferFrom(
-                    _trader,
-                    msg.sender,
-                    _swapQuantity.amount1(),
-                    data
-                );
-                _goodKey1.safeTransfer(_recipient, _swapQuantity.amount1());
-                good2change = (good2change << 128);
-            } else {
-                // Relayer commission calculation.
-                _goodKey1.transferFrom(
-                    _trader,
-                    msg.sender,
-                    _swapQuantity.amount1(),
-                    data
-                );
-                feeQuantity = good1change.getamount0fromamount1(executeFee);
-                if (feeQuantity > _swapQuantity.amount1())
-                    revert TTSwapError(50);
-                good2change = _swapQuantity.amount1() - feeQuantity;
-                goods[_goodKey1.toId()].commission[msg.sender] += feeQuantity;
-                if (good2change > _swapQuantity.amount0())
-                    revert TTSwapError(55);
-                _goodKey1.safeTransfer(_recipient, good2change);
-                good2change = (good2change << 128) + feeQuantity;
-            }
-            emit e_payGood(
-                _goodKey1.toId(),
-                0,
-                good1change.getamount1fromamount0(_swapQuantity.amount1()),
-                _swapQuantity,
-                good2change,
-                _trader,
-                _recipient,
-                external_info
-            );
-        }
-    }
+    //         good1change = goods[_goodKey1.toId()].good1Swap(
+    //             good2change.amount1(),
+    //             false
+    //         );
+    //         if (
+    //             good1change.amount1() + good1change.amount0() >
+    //             _swapQuantity.amount0() &&
+    //             _swapQuantity.amount0() > 0
+    //         ) revert TTSwapError(15);
+    //         _goodKey1.transferFrom(
+    //             _trader,
+    //             msg.sender,
+    //             good1change.amount1() + good1change.amount0(),
+    //             data
+    //         );
+    //         // Transfer output tokens. In relayer mode, recipient receives gross output minus execution fee.
+    //         if (msg.sender == _trader) {
+    //             _goodKey2.safeTransfer(_recipient, _swapQuantity.amount1());
+    //         } else {
+    //             // Commission logic for relayer.
+    //             feeQuantity = goods[_goodKey2.toId()]
+    //                 .getGoodState()
+    //                 .getamount1fromamount0(executeFee);
+    //             if (feeQuantity > _swapQuantity.amount1())
+    //                 revert TTSwapError(50);
+    //             goods[_goodKey2.toId()].commission[msg.sender] += feeQuantity;
+    //             _goodKey2.safeTransfer(
+    //                 _recipient,
+    //                 _swapQuantity.amount1() - feeQuantity
+    //             );
+    //         }
+    //         emit e_payGood(
+    //             _goodKey1.toId(),
+    //             _goodKey2.toId(),
+    //             good2change.amount1(),
+    //             toTTSwapUINT256(good1change.amount0(), good1change.amount1()),
+    //             toTTSwapUINT256(
+    //                 good2change.amount0(),
+    //                 _swapQuantity.amount1() - good2change.amount0()
+    //             ),
+    //             _trader,
+    //             _recipient,
+    //             external_info
+    //         );
+    //     } else {
+    //         // Direct payment path (good1 == good2).
+    //         // No AMM swap; the function debits amount0 and, in relayer mode, deducts execution fee from delivery.
+    //         good1change = toTTSwapUINT256(
+    //             goods[_goodKey1.toId()].currentState.amount1(),
+    //             goods[_goodKey1.toId()].investState.amount1()
+    //         );
+    //         if (msg.sender == _trader) {
+    //             _goodKey1.transferFrom(
+    //                 _trader,
+    //                 msg.sender,
+    //                 _swapQuantity.amount1(),
+    //                 data
+    //             );
+    //             _goodKey1.safeTransfer(_recipient, _swapQuantity.amount1());
+    //             good2change = (good2change << 128);
+    //         } else {
+    //             // Relayer commission calculation.
+    //             _goodKey1.transferFrom(
+    //                 _trader,
+    //                 msg.sender,
+    //                 _swapQuantity.amount1(),
+    //                 data
+    //             );
+    //             feeQuantity = good1change.getamount0fromamount1(executeFee);
+    //             if (feeQuantity > _swapQuantity.amount1())
+    //                 revert TTSwapError(50);
+    //             good2change = _swapQuantity.amount1() - feeQuantity;
+    //             goods[_goodKey1.toId()].commission[msg.sender] += feeQuantity;
+    //             if (good2change > _swapQuantity.amount0())
+    //                 revert TTSwapError(55);
+    //             _goodKey1.safeTransfer(_recipient, good2change);
+    //             good2change = (good2change << 128) + feeQuantity;
+    //         }
+    //         emit e_payGood(
+    //             _goodKey1.toId(),
+    //             0,
+    //             good1change.getamount1fromamount0(_swapQuantity.amount1()),
+    //             _swapQuantity,
+    //             good2change,
+    //             _trader,
+    //             _recipient,
+    //             external_info
+    //         );
+    //     }
+    // }
 
     /**
      * @dev Disinvests from a proof by withdrawing invested tokens and collecting profits
@@ -837,7 +836,7 @@ contract TTSwap_Market is I_TTSwap_Market {
     /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
     /// @inheritdoc I_TTSwap_Market
-    function updateGoodConfig(
+    function modifyGoodByGoodOwner(
         uint256 _goodid,
         uint256 _goodConfig,
         address _trader,
@@ -845,7 +844,7 @@ contract TTSwap_Market is I_TTSwap_Market {
     ) external returns (bool) {
         _checkTrader(_trader);
         if (msg.sender != goods[_goodid].owner) revert TTSwapError(20);
-        goods[_goodid].updateGoodConfig(_goodConfig);
+        goods[_goodid].updateConfigbyGoodOwner(_goodConfig);
         emit e_updateGoodConfig(_goodid, goods[_goodid].goodConfig, _trader);
         return true;
     }
@@ -856,7 +855,7 @@ contract TTSwap_Market is I_TTSwap_Market {
     /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
     /// @inheritdoc I_TTSwap_Market
-    function modifyGoodConfig(
+    function modifyGoodByManager(
         uint256 _goodid,
         uint256 _goodConfig,
         address _trader,
@@ -864,7 +863,7 @@ contract TTSwap_Market is I_TTSwap_Market {
     ) external onlyMarketor returns (bool) {
         _checkTrader(_trader);
         if (!_goodConfig.checkGoodConfig()) revert TTSwapError(24);
-        goods[_goodid].modifyGoodConfig(_goodConfig);
+        goods[_goodid].updateConfigbyManager(_goodConfig);
         emit e_modifyGoodConfig(_goodid, goods[_goodid].goodConfig, _trader);
         return true;
     }
@@ -875,14 +874,14 @@ contract TTSwap_Market is I_TTSwap_Market {
     /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
     /// @inheritdoc I_TTSwap_Market
-    function modifyGoodCoreConfig(
+    function modifyGoodByAdmin(
         uint256 _goodid,
         uint256 _goodConfig,
         address _trader,
         bytes calldata signature
     ) external override onlyMarketadmin returns (bool) {
         _checkTrader(_trader);
-        goods[_goodid].modifyGoodCoreConfig(_goodConfig);
+        goods[_goodid].updateConfigbyAdmin(_goodConfig);
         emit e_modifyGoodConfig(_goodid, goods[_goodid].goodConfig, _trader);
         return true;
     }

@@ -343,13 +343,13 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         uint256 ttsgoodid= T_GoodKey({
             ercType: 1,
             contractAddress: address(this),
-            uid: 0
+            id: 0
         }).toId();
 
         uint256 usdtgoodid= T_GoodKey({
             ercType: 1,
             contractAddress: usdt,
-            uid: 0
+            id: 0
         }).toId();
 
         if (

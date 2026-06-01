@@ -24,19 +24,6 @@ library L_Good {
     using L_GoodConfigLibrary for uint256;
     using L_TTSwapUINT256Library for uint256;
     using L_Proof for S_ProofState;
-    //(2**256-1)-(2**223-1)+(2**161-1)
-    uint256 internal constant feeConfigMask =
-        0xffffffff8000000000000001ffffffffffffffffffffffffffffffffffffffff;
-    //        0xffffffff800000000000000000000000ffffffffffffffffffffffffffffffff;
-    //2**223-1
-    uint256 internal constant commissionConfigMask =
-        0x3fffffff80000000000000000000000000000000000000000000000000000000;
-
-    uint256 internal constant coreConfigMask =
-        0xc000000000000000000000000000000000000000000000000000000000000000;
-    //1638416512<<223  (6*2**28+ 1*2**24+ 5*2**21+8*2**16+8*2**11+2*2**6)<<223
-    uint256 internal constant initialConfig =
-        0x30d4204000000000000000000000000000000000000000000000000000000000;
 
     function toGoodKey(
         S_GoodState storage _self
@@ -45,35 +32,23 @@ library L_Good {
             T_GoodKey({
                 ercType: _self.goodConfig.getERCType(),
                 contractAddress: _self.contractAddress,
-                uid: _self.uid
+                id: _self.id
             });
     }
 
     /**
      * @notice Update the good configuration only goodowner
-     * @dev Preserves the top 33 bits of the existing config and updates the rest
+     * @dev enpower,disinvest chips,invest fee,disinvest fee,buy fee,sell fee
      * @param _self Storage pointer to the good state
      * @param _goodConfig New configuration value to be applied
      */
-    function updateGoodConfig(
+    function updateConfigbyGoodOwner(
         S_GoodState storage _self,
         uint256 _goodConfig
     ) internal {
         if (_self.goodConfig.getLimitPower() < _goodConfig.getPower())
             revert TTSwapError(23);
-        if (_goodConfig.getK1() <= 10000) {
-            revert TTSwapError(44);
-        }
-        uint128 oldK = _self.goodConfig.getK1();
-        uint128 newK = _goodConfig.getK1();
-        if (newK > oldK + 100 || oldK > newK + 100) revert TTSwapError(43);
-
-        uint256 tmpconfig = _self.goodConfig;
-        assembly {
-            _goodConfig := and(not(feeConfigMask), _goodConfig)
-            tmpconfig := add(and(tmpconfig, feeConfigMask), _goodConfig)
-        }
-        _self.goodConfig = tmpconfig;
+        _self.goodConfig = _self.goodConfig.updateGoodOwnerConfig(_goodConfig);
     }
 
     /**
@@ -82,50 +57,32 @@ library L_Good {
      * @param _self Storage pointer to the good state
      * @param _goodconfig The new configuration value to be applied
      */
-    function modifyGoodConfig(
+    function updateConfigbyManager(
         S_GoodState storage _self,
         uint256 _goodconfig
     ) internal {
         if (!_goodconfig.checkGoodConfig()) revert TTSwapError(24);
-        uint256 tmpconfig = _self.goodConfig;
-        assembly {
-            _goodconfig := and(commissionConfigMask, _goodconfig)
-            tmpconfig := add(
-                and(not(commissionConfigMask), tmpconfig),
-                _goodconfig
-            )
-        }
-        _self.goodConfig = tmpconfig;
+        _self.goodConfig = _self.goodConfig.updateManagerConfig(_goodconfig);
     }
 
-    /// @notice Updates only the core-config bit segment in a good's configuration.
-    /// @dev Applies `coreConfigMask` to keep only core bits from `_goodconfig`, then merges
-    ///      them into `_self.goodConfig` while preserving all non-core bit segments.
-    /// @param _self Storage pointer to the good state.
-    /// @param _goodconfig New config value containing the target core-config bits.
-    function modifyGoodCoreConfig(
+    /**
+     * @notice Modify the good configuration
+     * @dev This function modifies the good configuration by preserving the top 33 bits and updating the rest
+     * @param _self Storage pointer to the good state
+     * @param _goodconfig The new configuration value to be applied
+     */
+    function updateConfigbyAdmin(
         S_GoodState storage _self,
         uint256 _goodconfig
     ) internal {
-        uint256 tmpconfig = _self.goodConfig;
-        assembly {
-            _goodconfig := and(coreConfigMask, _goodconfig)
-            tmpconfig := add(and(not(coreConfigMask), tmpconfig), _goodconfig)
-        }
-        _self.goodConfig = tmpconfig;
+        if (!_goodconfig.checkGoodConfig()) revert TTSwapError(24);
+        _self.goodConfig = _self.goodConfig.updateAdminConfig(_goodconfig);
     }
 
-    /// @notice Locks a good by setting its lock flag in `goodConfig`.
-    /// @dev Sets bit 254 (`0x4000...0000`) and keeps all other bits unchanged.
-    ///      After locking, related market operations can enforce lock-aware restrictions.
+    /// @notice Locks a good by setting `isFreeze` (bit 246).
     /// @param _self Storage pointer to the good state.
     function lockGood(S_GoodState storage _self) internal {
-        uint256 tmpconfig = _self.goodConfig;
-        uint256 lockConfig = 0x4000000000000000000000000000000000000000000000000000000000000000;
-        assembly {
-            tmpconfig := add(and(tmpconfig, not(lockConfig)), lockConfig)
-        }
-        _self.goodConfig = tmpconfig;
+        _self.goodConfig = _self.goodConfig.setFreeze(true);
     }
     /**
      * @notice Initialize the good state
@@ -136,7 +93,7 @@ library L_Good {
     function init(S_GoodState storage self, uint256 _init) internal {
         self.currentState = toTTSwapUINT256(_init.amount1(), _init.amount1());
         self.investState = toTTSwapUINT256(_init.amount1(), _init.amount0());
-        self.goodConfig = L_GoodConfigLibrary.setRunTimeConfig(
+        self.goodConfig = L_GoodConfigLibrary.updateRunTimeConfig(
             L_GoodConfigLibrary.setInitialConfig()
         );
         self.owner = msg.sender;
@@ -195,21 +152,18 @@ library L_Good {
         if (side) {
             swap_fee = config.getSellFee(_swapParam);
             uint128 swap = _swapParam - swap_fee;
-            uint128 K = config.getK1();
+
             // ΔV = (K_A * V_A * Δa) / (K_A * Q_A + Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
-                (uint256(K) * uint256(swap) * uint256(current_value)) /
-                    (uint256(K) *
-                        uint256(current_quantity) +
-                        uint256(swap) *
-                        10000)
+                (2 * uint256(swap) * uint256(current_value)) /
+                    (2 * uint256(current_quantity) + uint256(swap))
             );
             _self.currentState = add(
                 _self.currentState,
                 toTTSwapUINT256(swap_fee, _swapParam)
             );
             if (
-                !_self.goodConfig.isvaluegood() &&
+                _self.goodConfig.isnormalgood() &&
                 _self.currentState.amount0() + _self.goodConfig.amount1() <
                 _self.currentState.amount1()
             ) {
@@ -218,18 +172,17 @@ library L_Good {
         } else {
             // waiting for eip 7954
             // Output-side (exact-out for value): use K_B from value-shifted R_B.
-            uint128 K = config.getK2();
+           
             // Δb = (K_B * Q_B * ΔV) / (K_B * V_B - ΔV), scaled by 100 for fee precision.
             if (
-                uint256(_swapParam) * 10000 >=
-                uint256(K) * uint256(current_value)
+                uint256(_swapParam)  >=
+                2 * uint256(current_value)
             ) revert TTSwapError(54);
             swapTemp = uint128(
-                (uint256(K) * uint256(_swapParam) * uint256(current_quantity)) /
-                    (uint256(K) *
+                (2 * uint256(_swapParam) * uint256(current_quantity)) /
+                    (2 *
                         uint256(current_value) -
-                        uint256(_swapParam) *
-                        10000)
+                        uint256(_swapParam) )
             );
             swap_fee = config.getSellFee(swapTemp);
             _self.currentState = add(
@@ -264,14 +217,13 @@ library L_Good {
 
         if (side) {
             // Input-side (exact-in for value): K_B uses value-shifted R_B to update depth.
-            uint128 K = config.getK2();
+           
             // Δb = (K_B * Q_B * ΔV) / (K_B * V_B + ΔV), scaled by 100 for fee precision.
             swapTemp = uint128(
-                (uint256(K) * uint256(_swapParam) * uint256(current_quantity)) /
-                    (uint256(K) *
+                (2 * uint256(_swapParam) * uint256(current_quantity)) /
+                    (2 *
                         uint256(current_value) +
-                        uint256(_swapParam) *
-                        10000)
+                        uint256(_swapParam) )
             );
             swap_fee = config.getBuyFee(swapTemp);
             swapTemp = swapTemp - swap_fee;
@@ -283,18 +235,14 @@ library L_Good {
             swap_fee = config.getBuyFee(_swapParam);
             uint128 swap = _swapParam + swap_fee;
             // Quantity-view exact-out: solve for ΔV using K_A derived from quantity shift.
-            uint128 K = config.getK1();
             if (
-                uint256(_swapParam) * 10000 >=
-                uint256(K) * uint256(current_value)
+                uint256(_swapParam)  >=
+                2* uint256(current_value)
             ) revert TTSwapError(51);
             // ΔV = (K_A * V_A * Δa) / (K_A * Q_A - Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
-                (uint256(K) * uint256(swap) * uint256(current_value)) /
-                    (uint256(K) *
-                        uint256(current_quantity) -
-                        uint256(swap) *
-                        10000)
+                (2 * uint256(swap) * uint256(current_value)) /
+                    (2 * uint256(current_quantity) - uint256(swap))
             );
             if (swap_fee > 0)
                 _self.currentState = add(
@@ -306,7 +254,7 @@ library L_Good {
                 toTTSwapUINT256(0, swap)
             );
             if (
-                !_self.goodConfig.isvaluegood() &&
+                _self.goodConfig.isnormalgood() &&
                 _self.currentState.amount0() + _self.goodConfig.amount1() <
                 _self.currentState.amount1()
             ) {
@@ -377,15 +325,14 @@ library L_Good {
                 ).getamount0fromamount1(investResult_.investQuantity);
             } else {
                 // 普通代币：衰减公式（与 swap 同构）
-                uint128 K = _self.goodConfig.getK1();
+
                 investResult_.investValue = uint128(
-                    (uint256(K) *
+                    (2 *
                         uint256(investResult_.goodValues) *
                         uint256(investResult_.investQuantity)) /
-                        (uint256(K) *
+                        (2 *
                             uint256(investResult_.goodCurrentQuantity) +
-                            uint256(investResult_.investQuantity) *
-                            10000)
+                            uint256(investResult_.investQuantity))
                 );
             }
         } else {
@@ -597,7 +544,7 @@ library L_Good {
 
     /**
      * @notice Allocate fees to various parties
-     * @dev This function handles the allocation of fees to the market creator, gater, referrer, and liquidity providers
+     * @dev This function handles the allocation of fees to the market creator, gater, referrer, and liqidity providers
      * @param _self Storage pointer to the good state
      * @param _profit The total profit to be allocated
      * @param _gater The address of the gater (if applicable)
@@ -618,7 +565,7 @@ library L_Good {
         _profit -= marketfee;
 
         // Calculate individual fees based on market configuration
-        uint128 liquidFee = _goodconfig.getLiquidFee(_profit);
+        uint128 liqidFee = _goodconfig.getLiquidFee(_profit);
         uint128 sellerFee = _goodconfig.getOperatorFee(_profit);
         uint128 gaterFee = _goodconfig.getGateFee(_profit);
         uint128 referFee = _goodconfig.getReferFee(_profit);
@@ -632,15 +579,15 @@ library L_Good {
             // If no referrer, distribute fees differently
             if (_gater == address(0)) {
                 _self.commission[address(0)] += (_profit -
-                    liquidFee +
+                    liqidFee +
                     marketfee);
-                _self.commission[_sender] += (liquidFee + _divestQuantity);
+                _self.commission[_sender] += (liqidFee + _divestQuantity);
             } else {
-                _self.commission[_sender] += (liquidFee + _divestQuantity);
+                _self.commission[_sender] += (liqidFee + _divestQuantity);
                 _self.commission[_gater] += sellerFee + customerFee;
                 _self.commission[address(0)] += (_profit +
                     marketfee -
-                    liquidFee -
+                    liqidFee -
                     sellerFee -
                     customerFee);
             }
@@ -666,7 +613,7 @@ library L_Good {
             _self.commission[_referral] += referFee;
 
             _self.commission[address(0)] += marketfee;
-            _self.commission[_sender] += (liquidFee +
+            _self.commission[_sender] += (liqidFee +
                 customerFee +
                 _divestQuantity);
         }

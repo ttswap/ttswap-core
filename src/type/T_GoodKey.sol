@@ -13,7 +13,7 @@ import {toUint128} from "../libraries/L_TTSwapUINT256.sol";
 struct T_GoodKey {
     uint8 ercType; //1:erc20, 2:erc1155 3:erc6909
     address contractAddress;
-    uint256 uid;
+    uint256 id;
 }
 
 library T_GoodKeyLibrary {
@@ -86,9 +86,9 @@ library T_GoodKeyLibrary {
         } else if (goodkey.ercType == 1) {
             amount = IERC20(goodkey.contractAddress).balanceOf(_sender);
             // } else if {goodkey.ercType==2}else {
-            //     amount = IERC1155(goodkey.contractAddress).balanceOf(_sender,goodkey.uid);
+            //     amount = IERC1155(goodkey.contractAddress).balanceOf(_sender,goodkey.id);
             // } else if {goodkey.ercType==3}else {
-            //     amount = IERC6909(goodkey.contractAddress).balanceOf(_sender,goodkey.uid);
+            //     amount = IERC6909(goodkey.contractAddress).balanceOf(_sender,goodkey.id);
         } else {
             revert TTSwapError(42);
         }
@@ -362,5 +362,13 @@ library T_GoodKeyLibrary {
     function to_uint160(uint256 amount) internal pure returns (uint160) {
         if (amount != uint160(amount)) revert TTSwapError(52);
         return uint160(amount);
+    }
+
+    function composedata(
+        T_GoodKey memory goodkey
+    ) internal pure returns (uint256) {
+        return
+            uint256(uint160(goodkey.contractAddress)) +
+            (uint256(goodkey.ercType) << 160);
     }
 }

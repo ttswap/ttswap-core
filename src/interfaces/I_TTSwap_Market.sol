@@ -65,14 +65,13 @@ interface I_TTSwap_Market {
     /// @notice Emitted when a good is created and initialized
     /// @param _proofNo The ID of the investment proof
     /// @param _goodid The ID of the good
-    /// @param _goodConfig The configuration of the meta good (refer to the whitepaper for details)
     /// @param _construct The stake construct of mint tts token
     /// @param _normalinitial Normal good initialization parameters: amount0 is the quantity, amount1 is the value
     /// for verison <1.15.0
     event e_initGood(
         uint256 _proofNo,
         uint256 _goodid,
-        uint256 _goodConfig,
+        uint256 _goodinfo,
         uint256 _construct,
         uint256 _normalinitial,
         address _trader
@@ -153,14 +152,12 @@ interface I_TTSwap_Market {
     /// @notice Initialize a new good with single-token deposit at a user-specified price
     /// @param _goodKey The address of the ERC20 token representing the new good
     /// @param _initial amount0: user-specified total value, amount1: token quantity to deposit
-    /// @param _goodConfig The good configuration settings (fees, limits, etc.)
     /// @param _normaldata The data for transferring the normal good (Permit/Transfer)
     /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
     /// @param _signature Reserved for ABI compatibility; **not verified** here.
     function initGood(
         T_GoodKey memory _goodKey,
         uint256 _initial,
-        uint256 _goodConfig,
         bytes memory _normaldata,
         address _trader,
         bytes calldata _signature
@@ -213,31 +210,31 @@ interface I_TTSwap_Market {
         uint256 external_info
     ) external payable returns (uint256 good1change, uint256 good2change);
 
-    /**
-     * @notice Pays a fixed gross output amount using inverse pricing.
-     * @param _goodKey1 Input good id (payer side).
-     * @param _goodKey2 Output good id (recipient side).
-     * @param _swapQuantity Packed swap params:
-     *        - amount0: max input limit.
-     *        - amount1: target gross output amount before any relayer execution fee.
-     * @param _recipient Address receiving output good. In relayer mode, net delivery may be lower because execution fee is deducted from gross output.
-     * @param data Additional transfer data for input token (Permit/Transfer).
-     * @param _trader The trader; `msg.sender` may be a relayer distinct from `_trader` when `signature` is valid.
-     * @param signature EIP-712 signature over the pay payload; **verified** when `msg.sender != _trader`.
-     * @param external_info External business metadata (e.g., payment order id or other extra info).
-     * @return good1change Packed input-side change.
-     * @return good2change Packed output-side change.
-     */
-    function payGood(
-        T_GoodKey memory _goodKey1,
-        T_GoodKey memory _goodKey2,
-        uint256 _swapQuantity,
-        address _recipient,
-        bytes calldata data,
-        address _trader,
-        bytes calldata signature,
-        uint256 external_info
-    ) external payable returns (uint256 good1change, uint256 good2change);
+    // /**
+    //  * @notice Pays a fixed gross output amount using inverse pricing.
+    //  * @param _goodKey1 Input good id (payer side).
+    //  * @param _goodKey2 Output good id (recipient side).
+    //  * @param _swapQuantity Packed swap params:
+    //  *        - amount0: max input limit.
+    //  *        - amount1: target gross output amount before any relayer execution fee.
+    //  * @param _recipient Address receiving output good. In relayer mode, net delivery may be lower because execution fee is deducted from gross output.
+    //  * @param data Additional transfer data for input token (Permit/Transfer).
+    //  * @param _trader The trader; `msg.sender` may be a relayer distinct from `_trader` when `signature` is valid.
+    //  * @param signature EIP-712 signature over the pay payload; **verified** when `msg.sender != _trader`.
+    //  * @param external_info External business metadata (e.g., payment order id or other extra info).
+    //  * @return good1change Packed input-side change.
+    //  * @return good2change Packed output-side change.
+    //  */
+    // function payGood(
+    //     T_GoodKey memory _goodKey1,
+    //     T_GoodKey memory _goodKey2,
+    //     uint256 _swapQuantity,
+    //     address _recipient,
+    //     bytes calldata data,
+    //     address _trader,
+    //     bytes calldata signature,
+    //     uint256 external_info
+    // ) external payable returns (uint256 good1change, uint256 good2change);
 
     /// @notice Disinvest from a normal good
     /// @param _proofid ID of the investment proof
@@ -298,7 +295,7 @@ interface I_TTSwap_Market {
     /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
     /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
-    function updateGoodConfig(
+    function modifyGoodByGoodOwner(
         uint256 _goodid,
         uint256 _goodConfig,
         address _trader,
@@ -311,7 +308,7 @@ interface I_TTSwap_Market {
     /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
     /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
-    function modifyGoodConfig(
+    function modifyGoodByManager(
         uint256 _goodid,
         uint256 _goodConfig,
         address _trader,
@@ -323,7 +320,7 @@ interface I_TTSwap_Market {
     /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
     /// @param signature Reserved for ABI compatibility; **not verified** here.
     /// @return Success status
-    function modifyGoodCoreConfig(
+    function modifyGoodByAdmin(
         uint256 _goodid,
         uint256 _goodConfig,
         address _trader,
@@ -442,7 +439,7 @@ struct S_GoodState {
     address contractAddress;
     uint96 reserved2; //  contract type,asset type,contract saddress
     address owner;
-    uint256 uid;
+    uint256 id;
     uint256 currentState; //amount0:Present actual invest quantity, amount1:Present current virtual quantity
     uint256 investState; //amount0:shares, amount1:value
     uint256 extendsState1;
