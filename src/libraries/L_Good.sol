@@ -153,7 +153,7 @@ library L_Good {
             swap_fee = config.getSellFee(_swapParam);
             uint128 swap = _swapParam - swap_fee;
 
-            // ΔV = (K_A * V_A * Δa) / (K_A * Q_A + Δa), scaled by 100 for fee precision.
+            // ΔV = (2 * V_A * Δa) / (2 * Q_A + Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
                 (2 * uint256(swap) * uint256(current_value)) /
                     (2 * uint256(current_quantity) + uint256(swap))
@@ -162,27 +162,19 @@ library L_Good {
                 _self.currentState,
                 toTTSwapUINT256(swap_fee, _swapParam)
             );
-            if (
-                _self.goodConfig.isnormalgood() &&
-                _self.currentState.amount0() + _self.goodConfig.amount1() <
-                _self.currentState.amount1()
-            ) {
+            if (current_quantity + swap > _self.goodConfig.getSafeLine(_self.currentState.amount0() + _self.goodConfig.amount1())) {
                 revert TTSwapError(45);
             }
         } else {
             // waiting for eip 7954
-            // Output-side (exact-out for value): use K_B from value-shifted R_B.
-           
-            // Δb = (K_B * Q_B * ΔV) / (K_B * V_B - ΔV), scaled by 100 for fee precision.
-            if (
-                uint256(_swapParam)  >=
-                2 * uint256(current_value)
-            ) revert TTSwapError(54);
+            // Output-side (exact-out for value): use 2 from value-shifted R_B.
+
+            // Δb = (2 * Q_B * ΔV) / (2 * V_B - ΔV), scaled by 100 for fee precision.
+            if (uint256(_swapParam) >= 2 * uint256(current_value))
+                revert TTSwapError(54);
             swapTemp = uint128(
                 (2 * uint256(_swapParam) * uint256(current_quantity)) /
-                    (2 *
-                        uint256(current_value) -
-                        uint256(_swapParam) )
+                    (2 * uint256(current_value) - uint256(_swapParam))
             );
             swap_fee = config.getSellFee(swapTemp);
             _self.currentState = add(
@@ -216,14 +208,12 @@ library L_Good {
         uint128 swapTemp;
 
         if (side) {
-            // Input-side (exact-in for value): K_B uses value-shifted R_B to update depth.
-           
-            // Δb = (K_B * Q_B * ΔV) / (K_B * V_B + ΔV), scaled by 100 for fee precision.
+            // Input-side (exact-in for value): 2 uses value-shifted R_B to update depth.
+
+            // Δb = (2 * Q_B * ΔV) / (2 * V_B + ΔV), scaled by 100 for fee precision.
             swapTemp = uint128(
                 (2 * uint256(_swapParam) * uint256(current_quantity)) /
-                    (2 *
-                        uint256(current_value) +
-                        uint256(_swapParam) )
+                    (2 * uint256(current_value) + uint256(_swapParam))
             );
             swap_fee = config.getBuyFee(swapTemp);
             swapTemp = swapTemp - swap_fee;
@@ -234,12 +224,11 @@ library L_Good {
         } else {
             swap_fee = config.getBuyFee(_swapParam);
             uint128 swap = _swapParam + swap_fee;
-            // Quantity-view exact-out: solve for ΔV using K_A derived from quantity shift.
-            if (
-                uint256(_swapParam)  >=
-                2* uint256(current_value)
-            ) revert TTSwapError(51);
-            // ΔV = (K_A * V_A * Δa) / (K_A * Q_A - Δa), scaled by 100 for fee precision.
+
+            if (current_quantity + swap > _self.goodConfig.getSafeLine(_self.currentState.amount0() + _self.goodConfig.amount1())) {
+                revert TTSwapError(45);
+            }
+            // ΔV = (2 * V_A * Δa) / (2 * Q_A - Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
                 (2 * uint256(swap) * uint256(current_value)) /
                     (2 * uint256(current_quantity) - uint256(swap))

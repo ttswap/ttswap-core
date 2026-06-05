@@ -131,7 +131,10 @@ library L_GoodConfigLibrary {
     }
 
     /// @notice Sets or clears bit 255 (`isValueGood`).
-    function setValueGood(uint256 config, bool value_good) internal pure returns (uint256 a) {
+    function setValueGood(
+        uint256 config,
+        bool value_good
+    ) internal pure returns (uint256 a) {
         if (value_good) {
             return (config | (1 << 255));
         } else {
@@ -147,15 +150,16 @@ library L_GoodConfigLibrary {
     }
 
     /// @notice Sets or clears bit 246 (`isFreeze`).
-    function setFreeze(uint256 config, bool freeze) internal pure returns (uint256 a) {
+    function setFreeze(
+        uint256 config,
+        bool freeze
+    ) internal pure returns (uint256 a) {
         if (freeze) {
             return (config | (1 << 246));
         } else {
             return (config & ~uint256(1 << 246));
         }
     }
-    
-
 
     /// @notice Reads ERC token type from bits 254-247.
     function getERCType(uint256 config) internal pure returns (uint8 a) {
@@ -186,7 +190,10 @@ library L_GoodConfigLibrary {
     }
 
     /// @notice Sets or clears bit 245 (`isVerified`).
-    function setVerified(uint256 config, bool verified) internal pure returns (uint256 a) {
+    function setVerified(
+        uint256 config,
+        bool verified
+    ) internal pure returns (uint256 a) {
         if (verified) {
             return (config | (1 << 245));
         } else {
@@ -199,7 +206,10 @@ library L_GoodConfigLibrary {
         return (config & (1 << 244)) != 0;
     }
     /// @notice Sets or clears bit 244 (`isPromise`).
-    function setPromised(uint256 config, bool promised) internal pure returns (uint256 a) {
+    function setPromised(
+        uint256 config,
+        bool promised
+    ) internal pure returns (uint256 a) {
         if (promised) {
             return (config | (1 << 244));
         } else {
@@ -328,6 +338,20 @@ library L_GoodConfigLibrary {
         }
     }
 
+    /// @notice Safety-line amount from bits 213-204: stored 0 → `amount`, else `stored × amount / 1000`.
+    function getSafeLine(
+        uint256 config,
+        uint128 amount
+    ) internal pure returns (uint128 a) {
+        unchecked {
+            assembly {
+                a := shr(246, shl(42, config))
+            }
+            if (a == 0) return amount;
+            return ((a * amount) / 1000);
+        }
+    }
+
     /// @notice Contract-type identifier from bits 203-192.
     function getContractType(uint256 config) internal pure returns (uint128 a) {
         unchecked {
@@ -347,7 +371,6 @@ library L_GoodConfigLibrary {
             }
         }
     }
-
 
     /// @notice Active swap power from bits 166-162, scaled ×100 (stored 0 → 100).
     function getPower(uint256 config) internal pure returns (uint128 a) {

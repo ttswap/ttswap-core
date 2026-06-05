@@ -19,20 +19,44 @@ struct T_GoodKey {
 library T_GoodKeyLibrary {
     address constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address constant _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    //testnet
+    // address constant dai = 0xCaFBbAd55eb09efe7bec8408Cff9932Be7D9A7fA;
+    // address constant _permit2 = 0xa50eb0d081E986c280efF32dae089939Ea07bd22;
     using T_GoodKeyLibrary for T_GoodKey;
 
+    /// @notice Derives a unique market good ID from `T_GoodKey`.
+    /// @dev Native / ERC-20: lower 160 bits of `contractAddress`.
+    ///      ERC-1155 / ERC-6909: `keccak256(packed, id)` where
+    ///      `packed = (ercType << 160) | uint160(contractAddress)` (one 32-byte word).
     function toId(
         T_GoodKey memory goodkey
     ) internal pure returns (uint256 goodid) {
         if (goodkey.isNative()) {
             return uint256(uint160(goodkey.contractAddress));
-        } else if (goodkey.ercType == 1) {
-            return uint256(uint160(goodkey.contractAddress));
-        } else if (goodkey.ercType == 2) {
-            return uint256(uint160(goodkey.contractAddress));
-        } else if (goodkey.ercType == 3) {
-            revert TTSwapError(42);
         }
+        if (goodkey.ercType == 1) {
+            return uint256(uint160(goodkey.contractAddress));
+        }
+        // if (goodkey.ercType == 2 || goodkey.ercType == 3) {
+        //     /// @solidity memory-safe-assembly
+        //     assembly {
+        //         // Pack ercType (1B) + contractAddress (20B) into one word: [ercType | address]
+        //         let packed := or(
+        //             shl(160, and(mload(goodkey), 0xff)),
+        //             and(
+        //                 mload(add(goodkey, 0x20)),
+        //                 0xffffffffffffffffffffffffffffffffffffffff
+        //             )
+        //         )
+        //         let ptr := mload(0x40)
+        //         mstore(ptr, packed)
+        //         mstore(add(ptr, 0x20), mload(add(goodkey, 0x40)))
+        //         goodid := keccak256(ptr, 0x40)
+        //         mstore(0x40, add(ptr, 0x40))
+        //     }
+        //     return goodid;
+        // }
+        revert TTSwapError(42);
     }
 
     struct S_Permit {
@@ -113,6 +137,9 @@ library T_GoodKeyLibrary {
         bytes calldata detail
     ) internal {
         bool success = false;
+        if (goodkey.ercType != 1) {
+            revert UnsupportedTransferType();
+        }
         if (goodkey.isNative()) {
             // Native ETH: value is tracked via L_Transient; executor must be the payer.
             if (executor != from) revert TTSwapError(39);
@@ -187,6 +214,7 @@ library T_GoodKeyLibrary {
                     to_uint160(amount),
                     token
                 );
+                success = true;
             } else if (_simplePermit.transfertype == 4) {
                 // Permit2 Permit + TransferFrom: set allowance on Permit2 then move tokens.
                 S_Permit2 memory _permit = abi.decode(
@@ -216,6 +244,7 @@ library T_GoodKeyLibrary {
                     to_uint160(amount),
                     token
                 );
+                success = true;
             } else if (_simplePermit.transfertype == 5) {
                 // Permit2 PermitTransferFrom: signature-based transfer without prior allowance.
                 S_Permit2 memory _permit = abi.decode(
@@ -238,10 +267,10 @@ library T_GoodKeyLibrary {
                     from,
                     bytes.concat(_permit.r, _permit.s, bytes1(_permit.v))
                 );
-            } else {
-                revert TTSwapError(42);
+                success = true;
             }
         }
+        if (!success) revert TTSwapError(42);
     }
 
     function transferFrom(

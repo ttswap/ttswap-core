@@ -82,7 +82,7 @@ contract TTSwap_Market is I_TTSwap_Market {
      */
     mapping(uint256 proofid => S_ProofState) private proofs;
     uint128 internal constant executeFee = 50_000_000_000; //5*10**10
-    string internal constant Version = "1.16.0";
+    string internal constant Version = "2.0.0";
 
     /**
      * @dev Constructor for TTSwap_Market
@@ -146,9 +146,10 @@ contract TTSwap_Market is I_TTSwap_Market {
     ) private view {
         // Storage pointer avoids recomputing the mapping key hash twice
         if (g.goodConfig.isFreeze()) revert TTSwapError(freezeErr);
-        if (g.goodConfig.isVerified()) revert TTSwapError(6);
         if (g.currentState == 0) revert TTSwapError(emptyErr);
-        if (!g.goodConfig.isVerified()) revert TTSwapError(40);
+        if (!g.goodConfig.isVerified()) revert TTSwapError(37);
+        if (g.goodConfig.getRunTimeConfig() == (block.timestamp % 4095) % 10)
+            revert TTSwapError(46);
     }
 
     /// @notice Initialize a new good with single-token deposit at a user-specified price
@@ -165,7 +166,7 @@ contract TTSwap_Market is I_TTSwap_Market {
         bytes calldata _signature
     ) external payable override guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
-        if (_initial.amount1() < 10000 || _initial.amount1() > 2 ** 109)
+        if (_initial.amount1() < 500000 || _initial.amount1() > 2 ** 109)
             revert TTSwapError(36);
         if (
             _initial.amount0() > 2 ** 109 ||
@@ -269,7 +270,7 @@ contract TTSwap_Market is I_TTSwap_Market {
             enpower
         );
 
-        if (normalInvest_.investValue < 1000000) revert TTSwapError(38);
+        if (normalInvest_.investValue < 1000000000000) revert TTSwapError(38);
 
         // Generate/Get proof ID.
         uint256 proofNo = S_ProofKey(msg.sender, _goodKey.toId()).toId();
@@ -287,6 +288,7 @@ contract TTSwap_Market is I_TTSwap_Market {
                 (normalInvest_.investQuantity * 100) / enpower //real quantity
             )
         );
+        g.goodConfig.updateRunTimeConfig();
         emit e_investGood(
             proofNo,
             _goodKey.toId(),
@@ -378,7 +380,7 @@ contract TTSwap_Market is I_TTSwap_Market {
         S_GoodState storage g1 = goods[_goodKey1.toId()];
         S_GoodState storage g2 = goods[_goodKey2.toId()];
         _checkGoodActive(g1, 10, 12);
-        _checkGoodActive(g2, 11, 13);
+        _checkGoodActive(g2, 10, 12);
         if (_recipient != address(0) && _recipient != _trader) {
             TTS_CONTRACT.setReferral(_trader, _recipient);
         }
@@ -416,6 +418,7 @@ contract TTSwap_Market is I_TTSwap_Market {
             );
         }
 
+        g2.goodConfig.updateRunTimeConfig();
         emit e_buyGood(
             _goodKey1.toId(),
             _goodKey2.toId(),
