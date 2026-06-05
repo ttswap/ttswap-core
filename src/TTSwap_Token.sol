@@ -4,6 +4,7 @@ pragma solidity 0.8.29;
 
 import {ERC20} from "./base/ERC20.sol";
 import {I_TTSwap_Market} from "./interfaces/I_TTSwap_Market.sol";
+import {T_GoodKey,T_GoodKeyLibrary} from "./type/T_GoodKey.sol";
 import {
     I_TTSwap_Token,
     s_share,
@@ -33,6 +34,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     using L_UserConfigLibrary for uint256;
     using L_CurrencyLibrary for address;
     using L_SignatureVerification for bytes;
+    using T_GoodKeyLibrary for T_GoodKey;
     address internal implementation;
     address internal immutable usdt;
     uint256 public override ttstokenconfig;
@@ -338,10 +340,22 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function shareMint() external override onlymain {
+        uint256 ttsgoodid= T_GoodKey({
+            ercType: 1,
+            contractAddress: address(this),
+            id: 0
+        }).toId();
+
+        uint256 usdtgoodid= T_GoodKey({
+            ercType: 1,
+            contractAddress: usdt,
+            id: 0
+        }).toId();
+
         if (
             !I_TTSwap_Market(marketcontract).ishigher(
-                address(this),
-                usdt,
+                ttsgoodid,
+                usdtgoodid,
                 2 ** shares[msg.sender].metric * 2 ** 128 + 20_000_000
             )
         ) revert TTSwapError(68);
@@ -653,10 +667,5 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     function burn(address from, uint256 amount) external onlymain {
         if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(62);
         _burn(from, amount);
-    }
-
-    function fixLeftShare() external onlymain {
-        if (!userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(62);
-        left_share = 45_000_000_000_000_000_000;
     }
 }

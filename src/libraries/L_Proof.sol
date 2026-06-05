@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import {  sub, add, L_TTSwapUINT256Library} from "./L_TTSwapUINT256.sol";
+import {sub, add, L_TTSwapUINT256Library} from "./L_TTSwapUINT256.sol";
 import {I_TTSwap_Token} from "../interfaces/I_TTSwap_Token.sol";
 import {S_ProofState, S_ProofKey} from "../interfaces/I_TTSwap_Market.sol";
 
@@ -17,32 +17,24 @@ library L_Proof {
      * @dev Updates the investment state of a proof after a new investment.
      * @param _self The storage pointer to the proof state being updated.
      * @param _currenctgood The address of the normal good being invested in.
-     * @param _valuegood The address of the value good (if applicable).
      * @param _shares The shares to add (amount0: normal shares, amount1: value shares).
      * @param _state The value state to add (amount0: total value, amount1: total actual value).
      * @param _invest The normal good investment to add (amount0: virtual, amount1: actual).
-     * @param _valueinvest The value good investment to add (amount0: virtual, amount1: actual).
      * @notice Updates the cumulative totals for shares, value, and investment quantities.
      * If this is the first investment (invest.amount1 == 0), it sets the `currentgood`.
      * If a value good is provided, it updates the `valuegood` address and amounts.
      */
     function updateInvest(
         S_ProofState storage _self,
-        address _currenctgood,
-        address _valuegood,
+        uint256 _currenctgood,
         uint256 _shares,
         uint256 _state,
-        uint256 _invest,
-        uint256 _valueinvest
+        uint256 _invest
     ) internal {
         if (_self.invest.amount1() == 0) _self.currentgood = _currenctgood;
         _self.shares = add(_self.shares, _shares);
         _self.state = add(_self.state, _state);
         _self.invest = add(_self.invest, _invest);
-        if (_valuegood != address(0)) {
-            if (_self.valuegood == address(0)) _self.valuegood = _valuegood;
-            _self.valueinvest = add(_self.valueinvest, _valueinvest);
-        }
     }
 
     /**
@@ -51,21 +43,14 @@ library L_Proof {
      * @param _shares The shares to subtract (amount0: normal shares, amount1: value shares).
      * @param _state The value state to subtract (amount0: total value, amount1: total actual value).
      * @param _invest The normal good investment to subtract (amount0: virtual, amount1: actual).
-     * @param _valueinvest The value good investment to subtract (amount0: virtual, amount1: actual).
      * @notice Reduces the cumulative totals. Used when a user withdraws liquidity.
      */
     function burnProof(
         S_ProofState storage _self,
         uint256 _shares,
         uint256 _state,
-        uint256 _invest,
-        uint256 _valueinvest
+        uint256 _invest
     ) internal {
-        // If there's a value good, calculate and burn the corresponding amount of value investment
-        if (_self.valuegood != address(0)) {
-            _self.valueinvest = sub(_self.valueinvest, _valueinvest);
-        }
-
         // Subtract the calculated investment from the total investment
         _self.invest = sub(_self.invest, _invest);
         // Reduce the total state by the burned value
@@ -115,9 +100,11 @@ library L_ProofIdLibrary {
      * @param proofKey The proof key structure containing owner and good addresses.
      * @return poolId The Keccak-256 hash of the proof key.
      */
-    function toId(S_ProofKey memory proofKey) internal pure returns (uint256 poolId) {
+    function toId(
+        S_ProofKey memory proofKey
+    ) internal pure returns (uint256 poolId) {
         assembly {
-            poolId := keccak256(proofKey,0x60)
+            poolId := keccak256(proofKey, 0x60)
         }
     }
 }

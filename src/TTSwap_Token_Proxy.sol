@@ -22,7 +22,7 @@ contract TTSwap_Token_Proxy {
     uint256 internal ttstokenconfig;
     bool public upgradeable;
     uint256 internal stakestate;
-    uint128 internal left_share = 45_000_000_000_000; //restore this value to 45_000_000_000_000_000_000 @ v1.16.0
+    uint128 internal left_share = 45_000_000_000_000_000_000; 
     uint128 internal publicsell;
     mapping(address => uint256) internal userConfig;
 
@@ -34,7 +34,6 @@ contract TTSwap_Token_Proxy {
     /// @param _symbol The symbol of the token.
     /// @param _implementation The address of the initial Token implementation logic.
     constructor(
-
         address _dao_admin,
         uint256 _ttsconfig,
         string memory _name,

@@ -7,6 +7,7 @@ error TTSwapUINT256SubOverflow();
 error TTSwapUINT256AddSubOverflow();
 error TTSwapUINT256SubAddOverflow();
 error TTSwapUINT256ToUint128Overflow();
+error TTSwapUINT256NotValid();
 
 using L_TTSwapUINT256Library for uint256;
 /// @notice Converts two uint128 values into a T_BalanceUINT256
@@ -299,5 +300,10 @@ library L_TTSwapUINT256Library {
                 amount0delta,
                 balanceDelta.amount0()
             );
+    }
+
+    function checkUint256Valid(uint256 a) internal pure  {
+        if ( a.amount1() < 10000 || a.amount1() > 2 ** 109) revert TTSwapUINT256NotValid();
+        if ( a.amount1() < 10000 || a.amount1() > 2 ** 109) revert TTSwapUINT256NotValid();
     }
 }
