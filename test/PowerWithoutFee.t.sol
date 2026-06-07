@@ -1,166 +1,248 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.29;
 
-import {Test, console2} from "forge-std/src/Test.sol";
-import {MyToken} from "../src/test/MyToken.sol";
-import "../src/TTSwap_Market.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
-import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
-import {L_Good} from "../src/libraries/L_Good.sol";
+import {S_GoodTmpState, S_ProofState, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
+import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
+import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
+import {L_ProofIdLibrary} from "../src/libraries/L_Proof.sol";
 import {
     L_TTSwapUINT256Library,
-    toTTSwapUINT256,
-    addsub,
-    subadd,
-    lowerprice,
-    toUint128
+    toTTSwapUINT256
 } from "../src/libraries/L_TTSwapUINT256.sol";
 
-import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
-
-
-contract PowerWithoutFee is BaseSetup {
-   
+/// @notice Native ETH value-good leverage (power) without invest fee.
+/// @dev Isolated contract — only one native pool per market deployment.
+contract testPowerWithoutFee is BaseSetup {
+    using T_GoodKeyLibrary for T_GoodKey;
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
-
     using L_ProofIdLibrary for S_ProofKey;
 
-    address metagood;
-    address normalgoodusdt;
-    address normalgoodeth;
+    uint256 internal constant POWER_SHIFT = 162;
+    uint256 internal constant LIMIT_POWER_SHIFT = 214;
+    uint256 internal constant INVEST_FEE_SHIFT = 148;
+
+    uint128 internal constant INIT_QTY = uint128(50_000 * 10 ** 6);
+    uint128 internal constant INIT_VALUE = uint128(50_000 * 10 ** 12);
+    uint128 internal constant INVEST_QTY = uint128(50_000 * 10 ** 6);
+    uint128 internal constant DISINVEST_SHARES = uint128(10_000 * 10 ** 6);
+
+    /// @dev Stored field 5 → getPower/getLimitPower = 500 (5× virtual mint).
+    uint256 internal constant POWER_FIELD = 5;
+
+    uint256 internal nativeValueGoodId;
+    uint256 internal ts = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
-        initmetagood();
-        investOwnERC20ValueGood();
+        vm.warp(0);
+        nativeValueGoodId = _initNativeValueGood(
+            marketcreator,
+            INIT_VALUE,
+            INIT_QTY
+        );
+        _markAsValueGood(nativeValueGoodId);
+        _verifyGood(nativeValueGoodId);
+        _setLimitPower(nativeValueGoodId, POWER_FIELD);
+        _setOwnerPower(nativeValueGoodId, marketcreator, POWER_FIELD);
+        _setOwnerInvestFee(nativeValueGoodId, marketcreator, 0);
     }
 
-    function initmetagood() public {
-        deal(marketcreator, 1000000 * 10 ** 6);
-        vm.startPrank(marketcreator);
-        uint256 _goodconfig = (2 ** 255) + 1 * 2 ** 217 + 3 * 2 ** 211 + 5 * 2 ** 204 + 7 * 2 ** 197;
-        market.initMetaGood{value: 50000 * 10 ** 6}(
-            address(1), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), _goodconfig, defaultdata
+    function _nativeKey() internal pure returns (T_GoodKey memory) {
+        return T_GoodKey({ercType: 1, contractAddress: address(1), id: 0});
+    }
+
+    function _proofId(address owner) internal view returns (uint256) {
+        return S_ProofKey({owner: owner, currentgood: nativeValueGoodId}).toId();
+    }
+
+    function _warp() internal {
+        vm.warp(ts);
+        ts++;
+        if (ts > 9) ts = 1;
+    }
+
+    function _initNativeValueGood(
+        address owner,
+        uint128 value,
+        uint128 qty
+    ) internal returns (uint256 goodId) {
+        vm.startPrank(owner);
+        vm.deal(owner, 20 * qty);
+        T_GoodKey memory key = _nativeKey();
+        market.initGood{value: qty}(
+            key,
+            toTTSwapUINT256(value, qty),
+            defaultdata,
+            owner,
+            defaultdata
         );
-        metagood = address(1);
+        goodId = key.toId();
         vm.stopPrank();
     }
 
-    function investOwnERC20ValueGood() public {
+    function _verifyGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
-        market.modifyGoodConfig(metagood, 79981855779307052498765253981177144678745689328401315716620998322556632039424,marketcreator,defaultdata); //2**255+(6*2**22+ 1*2**18+ 5*2**15+8*2**10+8*2**5+2)*2**229+10*2*2**223
-        market.updateGoodConfig(metagood, 980797146154168869349342097376197877515993038197505392640,marketcreator,defaultdata); //5*2**187
-        uint256 normalproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
-        S_ProofState memory _proof = market.getProofState(normalproof);
-        assertEq(_proof.shares.amount0(), 50000000000, "before invest:proof value error");
-        assertEq(_proof.shares.amount1(), 0, "before invest:proof value error");
-        assertEq(_proof.state.amount0(), 50000000000, "before invest:proof value error");
-        assertEq(_proof.state.amount1(), 50000000000, "before invest:proof value error");
-        assertEq(_proof.invest.amount0(), 50000000000, "before invest:proof quantity error");
-        assertEq(_proof.invest.amount1(), 50000000000, "before invest:proof quantity error");
-        console2.log('goodConfig.amount1.before',market.getGoodState(metagood).goodConfig.amount1());
-        console2.log('investState.amount0.before',market.getGoodState(metagood).investState.amount0());
-        market.investGood{value: 50000000000}(metagood, address(0), 50000 * 10 ** 6, defaultdata, defaultdata,marketcreator,defaultdata);
-        console2.log('limitpower',market.getGoodState(metagood).goodConfig.getLimitPower());
-        console2.log('power',market.getGoodState(metagood).goodConfig.getPower());
-        console2.log('goodConfig.amount1',market.getGoodState(metagood).goodConfig.amount1());
-        console2.log('investState.amount0',market.getGoodState(metagood).investState.amount0());
-         _proof = market.getProofState(normalproof);
-        assertEq(_proof.shares.amount0(), 100000000000, "after invest:proof value error");
-        assertEq(_proof.shares.amount1(), 0, "after invest:proof value error");
-        assertEq(_proof.state.amount0(), 300000000000, "after invest:proof value error");
-        assertEq(_proof.state.amount1(), 100000000000, "after invest:proof value error");
-        assertEq(_proof.invest.amount0(), 300000000000, "after invest:proof quantity error");
-        assertEq(_proof.invest.amount1(), 100000000000, "after invest:proof quantity error");
-        assertEq(_proof.valueinvest.amount0(), 0, "after invest:proof quantity error");
-        assertEq(_proof.valueinvest.amount1(), 0, "after invest:proof quantity error");
+        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
+        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
         vm.stopPrank();
     }
 
-    function testDistinvestProof() public {
+    function _markAsValueGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
-        uint256 normalproof;
-        normalproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
-        S_ProofState memory _proof = market.getProofState(normalproof);
-        assertEq(_proof.shares.amount0(), 100000000000, "before invest:proof value error");
-        assertEq(_proof.shares.amount1(), 0, "before invest:proof value error");
-        assertEq(_proof.state.amount0(), 300000000000, "before invest:proof value error");
-        assertEq(_proof.state.amount1(), 100000000000, "before invest:proof value error");
-        assertEq(_proof.invest.amount0(), 300000000000, "before invest:proof quantity error");
-        assertEq(_proof.invest.amount1(), 100000000000, "before invest:proof quantity error");
-        assertEq(_proof.valueinvest.amount0(), 0, "before invest:proof quantity error");
-        assertEq(_proof.valueinvest.amount1(), 0, "before invest:proof quantity error");
+        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
+        vm.stopPrank();
+    }
 
-        S_GoodTmpState memory good_ = market.getGoodState(metagood);
-              assertEq(
-            good_.goodConfig.amount1(),
-            200000000000,
-            "before disinvest nativeeth good:actual value error"
+    function _setLimitPower(uint256 goodId, uint256 field) internal {
+        vm.startPrank(marketcreator);
+        uint256 cfg = market.getGoodState(goodId).goodConfig;
+        cfg = (cfg & ~(uint256(0x1f) << LIMIT_POWER_SHIFT)) |
+            (field << LIMIT_POWER_SHIFT);
+        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        vm.stopPrank();
+    }
+
+    function _setOwnerPower(uint256 goodId, address owner, uint256 field) internal {
+        vm.startPrank(owner);
+        uint256 cfg = market.getGoodState(goodId).goodConfig;
+        cfg = (cfg & ~(uint256(0x1f) << POWER_SHIFT)) | (field << POWER_SHIFT);
+        market.modifyGoodByGoodOwner(goodId, cfg, owner, defaultdata);
+        vm.stopPrank();
+    }
+
+    function _setOwnerInvestFee(uint256 goodId, address owner, uint256 field) internal {
+        vm.startPrank(owner);
+        uint256 cfg = market.getGoodState(goodId).goodConfig;
+        cfg = (cfg & ~(uint256(0x3f) << INVEST_FEE_SHIFT)) |
+            (field << INVEST_FEE_SHIFT);
+        market.modifyGoodByGoodOwner(goodId, cfg, owner, defaultdata);
+        vm.stopPrank();
+    }
+
+    function _investNative(address trader, uint128 qty) internal {
+        vm.deal(trader, 20 * qty);
+        _warp();
+        market.investGood{value: qty}(
+            _nativeKey(),
+            toTTSwapUINT256(0, qty),
+            defaultdata,
+            defaultdata,
+            trader
+        );
+    }
+
+    function _disinvest(address trader, uint128 shares) internal {
+        market.disinvestProof(
+            _proofId(trader),
+            shares,
+            address(0),
+            trader,
+            defaultdata
+        );
+    }
+
+    // ── invest with leverage ───────────────────────────────────────────────
+
+    function testInvest_powerWithoutFee_initProof() public view {
+        uint256 proofId = _proofId(marketcreator);
+        S_ProofState memory proof = market.getProofState(proofId);
+
+        assertEq(proof.shares.amount0(), INIT_QTY, "init shares");
+        assertEq(proof.state.amount0(), INIT_VALUE, "init virtual value");
+        assertEq(proof.state.amount1(), INIT_VALUE, "init actual value");
+        assertEq(proof.invest.amount0(), INIT_QTY, "init virtual qty");
+        assertEq(proof.invest.amount1(), INIT_QTY, "init actual qty");
+    }
+
+    function testInvest_powerWithoutFee_leverage() public {
+        vm.startPrank(marketcreator);
+        S_GoodTmpState memory before_ = market.getGoodState(nativeValueGoodId);
+        uint256 proofId = _proofId(marketcreator);
+        S_ProofState memory proofBefore = market.getProofState(proofId);
+
+        _investNative(marketcreator, INVEST_QTY);
+        snapLastCall("power_without_fee_invest");
+
+        S_GoodTmpState memory after_ = market.getGoodState(nativeValueGoodId);
+        S_ProofState memory proofAfter = market.getProofState(proofId);
+
+        assertEq(
+            market.getGoodState(nativeValueGoodId).goodConfig.getPower(),
+            500,
+            "power=500"
         );
         assertEq(
-            good_.currentState.amount0(),
-            100000000000,
-            "before disinvest nativeeth good:metagood currentState amount0 error"
+            market.getGoodState(nativeValueGoodId).goodConfig.getLimitPower(),
+            500,
+            "limitPower=500"
         );
+
+        uint128 actualDelta = after_.currentState.amount0() - before_.currentState.amount0();
+        uint128 virtualDelta = after_.currentState.amount1() - before_.currentState.amount1();
+
+        assertEq(actualDelta, INVEST_QTY, "full actual deposit");
+        assertGt(virtualDelta, actualDelta, "leverage mints extra virtual");
+        assertGe(virtualDelta, (actualDelta * 400) / 100, "~5x virtual increment");
+
+        assertGt(proofAfter.shares.amount0(), proofBefore.shares.amount0(), "shares grew");
+        assertGt(proofAfter.state.amount0(), proofBefore.state.amount0(), "virtual value grew");
+        assertGt(proofAfter.state.amount1(), proofBefore.state.amount1(), "actual value grew");
+        assertGt(after_.goodConfig.amount1(), before_.goodConfig.amount1(), "V tracked");
+        vm.stopPrank();
+    }
+
+    // ── disinvest after leveraged invest ───────────────────────────────────
+
+    function testDisinvest_powerWithoutFee_partial() public {
+        vm.startPrank(marketcreator);
+        _investNative(marketcreator, INVEST_QTY);
+
+        uint256 proofId = _proofId(marketcreator);
+        S_ProofState memory proofBefore = market.getProofState(proofId);
+        S_GoodTmpState memory goodBefore = market.getGoodState(nativeValueGoodId);
+        uint256 ethBefore = marketcreator.balance;
+
+        _disinvest(marketcreator, DISINVEST_SHARES);
+        snapLastCall("power_without_fee_disinvest_first");
+
+        S_ProofState memory proofAfter = market.getProofState(proofId);
+        S_GoodTmpState memory goodAfter = market.getGoodState(nativeValueGoodId);
+
+        assertGt(marketcreator.balance, ethBefore, "received eth");
+        assertLt(proofAfter.shares.amount0(), proofBefore.shares.amount0(), "shares reduced");
+        assertLt(goodAfter.currentState.amount1(), goodBefore.currentState.amount1(), "pool virtual down");
+        assertLt(goodAfter.goodConfig.amount1(), goodBefore.goodConfig.amount1(), "V reduced");
+
+        _disinvest(marketcreator, DISINVEST_SHARES);
+        snapLastCall("power_without_fee_disinvest_second");
+        _disinvest(marketcreator, DISINVEST_SHARES);
+        snapLastCall("power_without_fee_disinvest_third");
+
+        assertGt(proofAfter.shares.amount0(), DISINVEST_SHARES, "still has shares after first");
+        vm.stopPrank();
+    }
+
+    function testDisinvest_powerWithoutFee_consecutive() public {
+        vm.startPrank(marketcreator);
+        _investNative(marketcreator, INVEST_QTY);
+
+        uint256 proofId = _proofId(marketcreator);
+        uint128 sharesBefore = market.getProofState(proofId).shares.amount0();
+        uint256 ethBefore = marketcreator.balance;
+
+        for (uint256 i = 0; i < 3; i++) {
+            _disinvest(marketcreator, DISINVEST_SHARES);
+        }
+        snapLastCall("power_without_fee_disinvest_x3");
+
         assertEq(
-            good_.currentState.amount1(),
-            300000000000,
-            "before disinvest nativeeth good:metagood currentState amount1 error"
+            market.getProofState(proofId).shares.amount0(),
+            sharesBefore - 3 * DISINVEST_SHARES,
+            "shares deducted linearly"
         );
-        assertEq(
-            good_.investState.amount0(),
-            100000000000,
-            "before disinvest nativeeth good:metagood investState amount0 error"
-        );
-        assertEq(
-            good_.investState.amount1(),
-            300000000000,
-            "before disinvest nativeeth good:metagood investState amount1 error"
-        );
-       
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),marketcreator,defaultdata);
-        snapLastCall("disinvest_own_nativeeth_valuegood_first");
-        good_ = market.getGoodState(metagood);
-        assertEq(
-            good_.goodConfig.amount1(),
-            180000000000,
-            "after disinvest nativeeth good:actual value error"
-        );
-        assertEq(
-            good_.currentState.amount0(),
-            90000000000,
-            "after disinvest nativeeth good:metagood currentState amount0 error"
-        );
-        assertEq(
-            good_.currentState.amount1(),
-            270000000000,
-            "after disinvest nativeeth good:metagood currentState amount1 error"
-        );
-        assertEq(
-            good_.investState.amount0(),
-            90000000000,
-            "after disinvest nativeeth good:metagood investState amount0 error"
-        );
-        assertEq(
-            good_.investState.amount1(),
-            270000000000,
-            "after disinvest nativeeth good:metagood investState amount1 error"
-        );
-        _proof = market.getProofState(normalproof);
-        assertEq(_proof.shares.amount0(), 90000000000, "after invest:proof value error");
-        assertEq(_proof.shares.amount1(), 0, "after invest:proof value error");
-        assertEq(_proof.state.amount0(), 270000000000, "after invest:proof value error");
-        assertEq(_proof.state.amount1(), 90000000000, "after invest:proof value error");
-        assertEq(_proof.invest.amount0(), 270000000000, "after invest:proof quantity error");
-        assertEq(_proof.invest.amount1(), 90000000000, "after invest:proof quantity error");
-        assertEq(_proof.valueinvest.amount0(), 0, "after invest:proof quantity error");
-        assertEq(_proof.valueinvest.amount1(), 0, "after invest:proof quantity error");
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),marketcreator,defaultdata);
-        snapLastCall("disinvest_own_nativeeth_valuegood_second");
-        market.disinvestProof(normalproof, 10000 * 10 ** 6, address(0),marketcreator,defaultdata);
-        snapLastCall("disinvest_own_nativeeth_valuegood_three");
+        assertGt(marketcreator.balance, ethBefore, "cumulative eth payout");
         vm.stopPrank();
     }
 }

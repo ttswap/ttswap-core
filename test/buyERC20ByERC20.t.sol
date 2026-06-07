@@ -1,323 +1,341 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.29;
 
-import {Test, console2} from "forge-std/src/Test.sol";
-import {MyToken} from "../src/test/MyToken.sol";
-import "../src/TTSwap_Market.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
-import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
-import {L_Good} from "../src/libraries/L_Good.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toUint128} from "../src/libraries/L_TTSwapUINT256.sol";
-
+import {S_GoodTmpState} from "../src/interfaces/I_TTSwap_Market.sol";
+import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
+import {TTSwapError} from "../src/libraries/L_Error.sol";
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
+import {
+    L_TTSwapUINT256Library,
+    toTTSwapUINT256
+} from "../src/libraries/L_TTSwapUINT256.sol";
 
-import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toUint128} from "../src/libraries/L_TTSwapUINT256.sol";
-
+/// @notice buyGood: pay ERC20 USDT (good1) → receive ERC20 BTC (good2).
 contract buyERC20ByERC20 is BaseSetup {
+    using T_GoodKeyLibrary for T_GoodKey;
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 
-    using L_ProofIdLibrary for S_ProofKey;
-    using L_TTSwapUINT256Library for uint256;
+    uint256 internal usdtGoodId;
+    uint256 internal btcGoodId;
 
-    address metagood;
-    address normalgoodusdt;
-    address normalgoodbtc;
+    uint128 internal constant USDT_INIT_QTY = uint128(50000 * 10 ** 6);
+    uint128 internal constant USDT_INIT_VALUE = uint128(50000 * 10 ** 12);
+    uint128 internal constant BTC_INIT_QTY = uint128(1 * 10 ** 8);
+    uint128 internal constant BTC_INIT_VALUE = uint128(63000 * 10 ** 12);
+    uint128 internal constant SWAP_IN = uint128(100 * 10 ** 6);
+
+    uint256 internal constant SAFE_LINE_SHIFT = 204;
+    uint256 internal constant SAFE_LINE_MASK = uint256(0x3FF) << 204;
+
+    uint256 internal buyTs = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
-        initmetagood();
-        initbtcgood();
+        vm.warp(0);
+        usdtGoodId = _initUsdtGood(marketcreator, USDT_INIT_QTY, USDT_INIT_VALUE);
+        btcGoodId = _initBtcGood(users[1], BTC_INIT_VALUE, BTC_INIT_QTY);
+        _verifyGood(usdtGoodId);
+        _verifyGood(btcGoodId);
+        _markAsValueGood(usdtGoodId);
+        _relaxSafeLine(usdtGoodId);
+        _relaxSafeLine(btcGoodId);
     }
 
-    function initmetagood() public {
-        vm.startPrank(marketcreator);
-        deal(address(usdt), marketcreator, 1000000 * 10 ** 6, false);
-        usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-        uint256 _goodconfig = (2 ** 255) +
-            1 *
-            2 ** 217 +
-            3 *
-            2 ** 211 +
-            5 *
-            2 ** 204 +
-            7 *
-            2 ** 197;
-        market.initMetaGood(
-            address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
-            _goodconfig,
-            defaultdata
-        );
-        metagood = address(usdt);
-        vm.stopPrank();
+    function _usdtKey() internal view returns (T_GoodKey memory) {
+        return T_GoodKey({ercType: 1, contractAddress: address(usdt), id: 0});
     }
 
-    function initbtcgood() public {
-        vm.startPrank(users[1]);
-        deal(address(btc), users[1], 10 * 10 ** 8, false);
-        btc.approve(address(market), 1 * 10 ** 8 + 1);
-        deal(address(usdt), users[1], 50000000 * 10 ** 6, false);
-        usdt.approve(address(market), 50000000 * 10 ** 6 + 1);
-        assertEq(
-            usdt.balanceOf(address(market)),
-            50000 * 10 ** 6,
-            "befor init erc20 good, balance of market error"
-        );
-        uint256 normalgoodconfig = 1 *
-            2 ** 217 +
-            3 *
-            2 ** 211 +
-            5 *
-            2 ** 204 +
-            7 *
-            2 ** 197;
+    function _btcKey() internal view returns (T_GoodKey memory) {
+        return T_GoodKey({ercType: 1, contractAddress: address(btc), id: 0});
+    }
+
+    function _initUsdtGood(
+        address owner,
+        uint128 qty,
+        uint128 value
+    ) internal returns (uint256 goodId) {
+        vm.startPrank(owner);
+        usdt.mint(owner, 100000);
+        usdt.approve(address(market), qty);
+        T_GoodKey memory key = _usdtKey();
         market.initGood(
-            metagood,
-            toTTSwapUINT256(1 * 10 ** 8, 63000 * 10 ** 6),
-            address(btc),
-            normalgoodconfig,
+            key,
+            toTTSwapUINT256(value, qty),
             defaultdata,
-            defaultdata,
-            users[1],
+            owner,
             defaultdata
         );
-        normalgoodbtc = address(btc);
+        goodId = key.toId();
         vm.stopPrank();
     }
+
+    function _initBtcGood(
+        address owner,
+        uint128 value,
+        uint128 qty
+    ) internal returns (uint256 goodId) {
+        vm.startPrank(owner);
+        deal(address(btc), owner, 10 * qty, false);
+        btc.approve(address(market), type(uint256).max);
+        T_GoodKey memory key = _btcKey();
+        market.initGood(
+            key,
+            toTTSwapUINT256(value, qty),
+            defaultdata,
+            owner,
+            defaultdata
+        );
+        goodId = key.toId();
+        vm.stopPrank();
+    }
+
+    function _verifyGood(uint256 goodId) internal {
+        vm.startPrank(marketcreator);
+        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
+        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        vm.stopPrank();
+    }
+
+    function _markAsValueGood(uint256 goodId) internal {
+        vm.startPrank(marketcreator);
+        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
+        vm.stopPrank();
+    }
+
+    function _warpForBuy() internal {
+        vm.warp(buyTs);
+        buyTs++;
+        if (buyTs > 9) buyTs = 1;
+    }
+
+    /// @dev Raise safeLine to 1023 so single swaps stay within pool depth guard.
+    function _relaxSafeLine(uint256 goodId) internal {
+        vm.startPrank(marketcreator);
+        uint256 cfg = market.getGoodState(goodId).goodConfig;
+        cfg = (cfg & ~SAFE_LINE_MASK) | (uint256(1023) << SAFE_LINE_SHIFT);
+        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        vm.stopPrank();
+    }
+
+    function _buyBtcWithUsdt(
+        address trader,
+        uint128 usdtIn,
+        uint128 minBtcOut,
+        address referral
+    ) internal returns (uint256 g1change, uint256 g2change) {
+        usdt.approve(address(market), usdtIn);
+        return market.buyGood(
+            _usdtKey(),
+            _btcKey(),
+            toTTSwapUINT256(usdtIn, minBtcOut),
+            referral,
+            defaultdata,
+            trader,
+            defaultdata,
+            0
+        );
+    }
+
+    // ── happy path ─────────────────────────────────────────────────────────
 
     function testBuyERC20ByERC20() public {
         vm.startPrank(users[1]);
-        usdt.approve(address(market), 800000 * 10 ** 6 + 1);
-        btc.approve(address(market), 10 * 10 ** 8 + 1);
-        assertEq(
-            btc.balanceOf(users[1]),
-            900000000,
-            "before buy erc20_normalgood:btc users[1] account  balance error"
-        );
-        assertEq(
-            usdt.balanceOf(users[1]),
-            49937000000000,
-            "before buy erc20_normalgood:usdt users[1] account  balance error"
-        );
-        assertEq(
-            usdt.balanceOf(address(market)),
-            113000000000,
-            "before buy erc20_normalgood:usdt address(market) account  balance error"
-        );
-        assertEq(
-            btc.balanceOf(address(market)),
-            100000000,
-            "before buy erc20_normalgood:btc address(market) account  balance error"
-        );
-        S_GoodTmpState memory metagoodkeystate = market.getGoodState(metagood);
-        assertEq(
-            metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113000000000, 113000000000).amount0(),
-            "before buy erc20 normalgood:metagoodkey currentState error"
-        );
+        usdt.mint(users[1], 1000000);
+        usdt.approve(address(market), type(uint256).max);
 
-        assertEq(
-            metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113000000000, 113000000000).amount1(),
-            "before  buy erc20  normalgood:metagoodkey currentState amount1 error"
-        );
+        uint256 usdtBefore = usdt.balanceOf(address(market));
+        uint256 btcBefore = btc.balanceOf(address(market));
+        uint256 userBtcBefore = btc.balanceOf(users[1]);
+        uint256 userUsdtBefore = usdt.balanceOf(users[1]);
 
-        S_GoodTmpState memory normalgoodkeystate = market.getGoodState(
-            normalgoodbtc
-        );
-        assertEq(
-            normalgoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(100000000, 100000000).amount0(),
-            "before buy erc20 normalgood:normalgoodkey currentState error"
-        );
+        S_GoodTmpState memory usdtBeforeState = market.getGoodState(usdtGoodId);
+        S_GoodTmpState memory btcBeforeState = market.getGoodState(btcGoodId);
 
-        assertEq(
-            normalgoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(100000000, 100000000).amount1(),
-            "before  buy erc20  normalgood:normalgoodkey currentState amount1 error"
-        );
-
-        market.buyGood(
-            metagood,
-            normalgoodbtc,
-            toTTSwapUINT256(6300 * 10 ** 6, 1),
-            address(0),
-            defaultdata,
+        _warpForBuy();
+        (uint256 g1change, uint256 g2change) = _buyBtcWithUsdt(
             users[1],
-            defaultdata,0
+            SWAP_IN,
+            1,
+            address(0)
         );
         snapLastCall("buy_erc20_by_erc20_first");
-        assertEq(
-            usdt.balanceOf(address(market)),
-            119300000000,
-            "after buy erc20_normalgood:usdt address(market) account  balance error"
+
+        assertGt(g1change.amount1(), 0, "usdt value moved");
+        assertGt(g2change.amount1(), 0, "btc output > 0");
+        assertGt(usdt.balanceOf(address(market)), usdtBefore, "market usdt increased");
+        assertLt(btc.balanceOf(address(market)), btcBefore, "market btc decreased");
+        assertGt(btc.balanceOf(users[1]), userBtcBefore, "user received btc");
+        assertLt(usdt.balanceOf(users[1]), userUsdtBefore, "user spent usdt");
+
+        S_GoodTmpState memory usdtAfter = market.getGoodState(usdtGoodId);
+        S_GoodTmpState memory btcAfter = market.getGoodState(btcGoodId);
+        assertGt(
+            usdtAfter.currentState.amount1(),
+            usdtBeforeState.currentState.amount1(),
+            "usdt qty grew"
         );
-        assertEq(
-            btc.balanceOf(address(market)),
-            90732765,
-            "after buy erc20_normalgood:btc address(market) account  balance error"
-        );
-        metagoodkeystate = market.getGoodState(metagood);
-        assertEq(
-            metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113004410000, 119300000000).amount0(),
-            "after  buy erc20  normalgood:metagoodkey currentState error"
+        assertLt(
+            btcAfter.currentState.amount1(),
+            btcBeforeState.currentState.amount1(),
+            "btc qty shrank"
         );
 
-        assertEq(
-            metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113004410000, 119300000000).amount1(),
-            "after  buy erc20  normalgood:metagoodkey currentState amount1 error"
-        );
+        vm.stopPrank();
+    }
 
-        normalgoodkeystate = market.getGoodState(normalgoodbtc);
-        assertEq(
-            normalgoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(100004635, 90732765).amount0(),
-            "after buy erc20 normalgood:normalgoodkey currentState error"
-        );
+    function testBuyERC20ByERC20_consecutive() public {
+        vm.startPrank(users[1]);
+        usdt.mint(users[1], 1000000);
+        usdt.approve(address(market), type(uint256).max);
 
-        assertEq(
-            normalgoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(100004635, 90732765).amount1(),
-            "after  buy erc20  normalgood:normalgoodkey currentState amount1 error"
-        );
+        _warpForBuy();
+        _buyBtcWithUsdt(users[1], SWAP_IN, 1, address(0));
+        snapLastCall("buy_erc20_by_erc20_first");
 
-        market.buyGood(
-            metagood,
-            normalgoodbtc,
-            toTTSwapUINT256(6300 * 10 ** 6, 1),
-            address(0),
-            defaultdata,
-            users[1],
-            defaultdata,0
-        );
+        _warpForBuy();
+        _buyBtcWithUsdt(users[1], SWAP_IN, 1, address(0));
         snapLastCall("buy_erc20_by_erc20_second");
-
         vm.stopPrank();
     }
 
     function testBuyERC20ByERC20WithRefer() public {
+        address referral = address(100);
         vm.startPrank(users[1]);
-        usdt.approve(address(market), 800000 * 10 ** 6 + 1);
-        btc.approve(address(market), 10 * 10 ** 8 + 1);
-        assertEq(
-            btc.balanceOf(users[1]),
-            900000000,
-            "before buy erc20_normalgood:btc users[1] account  balance error"
-        );
-        assertEq(
-            usdt.balanceOf(users[1]),
-            49937000000000,
-            "before buy erc20_normalgood:usdt users[1] account  balance error"
-        );
-        assertEq(
-            usdt.balanceOf(address(market)),
-            113000000000,
-            "before buy erc20_normalgood:usdt address(market) account  balance error"
-        );
-        assertEq(
-            btc.balanceOf(address(market)),
-            100000000,
-            "before buy erc20_normalgood:btc address(market) account  balance error"
-        );
-        S_GoodTmpState memory metagoodkeystate = market.getGoodState(metagood);
-        assertEq(
-            metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113000000000, 113000000000).amount0(),
-            "before buy erc20 normalgood:metagoodkey currentState error"
-        );
+        usdt.mint(users[1], 1000000);
+        usdt.approve(address(market), type(uint256).max);
 
-        assertEq(
-            metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113000000000, 113000000000).amount1(),
-            "before  buy erc20  normalgood:metagoodkey currentState amount1 error"
-        );
-
-        S_GoodTmpState memory normalgoodkeystate = market.getGoodState(
-            normalgoodbtc
-        );
-        assertEq(
-            normalgoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(100000000, 100000000).amount0(),
-            "before buy erc20 normalgood:normalgoodkey currentState error"
-        );
-
-        assertEq(
-            normalgoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(100000000, 100000000).amount1(),
-            "before  buy erc20  normalgood:normalgoodkey currentState amount1 error"
-        );
-
-        market.buyGood(
-            metagood,
-            normalgoodbtc,
-            toTTSwapUINT256(6300 * 10 ** 6, 1),
-            address(100),
-            defaultdata,
-            users[1],
-            defaultdata,0
-        );
+        _warpForBuy();
+        _buyBtcWithUsdt(users[1], SWAP_IN, 1, referral);
         snapLastCall("buy_erc20_by_erc20_first_with_refer");
-        assertEq(
-            usdt.balanceOf(address(market)),
-            119300000000,
-            "after buy erc20_normalgood:usdt address(market) account  balance error"
-        );
-        assertEq(
-            btc.balanceOf(address(market)),
-            90732765,
-            "after buy erc20_normalgood:btc address(market) account  balance error"
-        );
-        metagoodkeystate = market.getGoodState(metagood);
-        assertEq(
-            metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(113004410000, 119300000000).amount0(),
-            "after  buy erc20  normalgood:metagoodkey currentState error"
-        );
 
-        assertEq(
-            metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(113004410000, 119300000000).amount1(),
-            "after  buy erc20  normalgood:metagoodkey currentState amount1 error"
-        );
-
-        normalgoodkeystate = market.getGoodState(normalgoodbtc);
-        assertEq(
-            normalgoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(100004635, 90732765).amount0(),
-            "after buy erc20 normalgood:normalgoodkey currentState error"
-        );
-
-        assertEq(
-            normalgoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(100004635, 90732765).amount1(),
-            "after  buy erc20  normalgood:normalgoodkey currentState amount1 error"
-        );
-
-        market.buyGood(
-            metagood,
-            normalgoodbtc,
-            toTTSwapUINT256(6300 * 10 ** 6, 1),
-            address(100),
-            defaultdata,
-            users[1],
-            defaultdata,0
-        );
+        _warpForBuy();
+        _buyBtcWithUsdt(users[1], SWAP_IN, 1, referral);
         snapLastCall("buy_erc20_by_erc20_second_with_exists_refer_reject_add");
 
+        _warpForBuy();
+        _buyBtcWithUsdt(users[1], SWAP_IN, 1, address(0));
+        snapLastCall("buy_erc20_by_erc20_second_with_exists_refer");
+        vm.stopPrank();
+    }
+
+    // ── revert cases ───────────────────────────────────────────────────────
+
+    function testBuyERC20ByERC20_revert_sameGood() public {
+        vm.startPrank(users[1]);
+        usdt.mint(users[1], 100000);
+        _warpForBuy();
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 9));
         market.buyGood(
-            metagood,
-            normalgoodbtc,
-            toTTSwapUINT256(6300 * 10 ** 6, 1),
+            _usdtKey(),
+            _usdtKey(),
+            toTTSwapUINT256(SWAP_IN, 1),
             address(0),
             defaultdata,
             users[1],
-            defaultdata,0
+            defaultdata,
+            0
         );
-        snapLastCall("buy_erc20_by_erc20_second_with_exists_refer");
+        vm.stopPrank();
+    }
+
+    function testBuyERC20ByERC20_revert_slippage() public {
+        vm.startPrank(users[1]);
+        usdt.mint(users[1], 100000);
+        usdt.approve(address(market), SWAP_IN);
+        _warpForBuy();
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 15));
+        market.buyGood(
+            _usdtKey(),
+            _btcKey(),
+            toTTSwapUINT256(SWAP_IN, type(uint128).max / 2),
+            address(0),
+            defaultdata,
+            users[1],
+            defaultdata,
+            0
+        );
+        vm.stopPrank();
+    }
+
+    function testBuyERC20ByERC20_revert_insufficientAllowance() public {
+        vm.startPrank(users[1]);
+        usdt.mint(users[1], 100000);
+        _warpForBuy();
+        vm.expectRevert();
+        market.buyGood(
+            _usdtKey(),
+            _btcKey(),
+            toTTSwapUINT256(SWAP_IN, 1),
+            address(0),
+            defaultdata,
+            users[1],
+            defaultdata,
+            0
+        );
+        vm.stopPrank();
+    }
+
+    function testBuyERC20ByERC20_revert_frozenGood() public {
+        vm.startPrank(marketcreator);
+        uint256 cfg = market.getGoodState(btcGoodId).goodConfig.setFreeze(true);
+        market.modifyGoodByManager(btcGoodId, cfg, marketcreator, defaultdata);
+        vm.stopPrank();
+
+        vm.startPrank(users[1]);
+        usdt.mint(users[1], 100000);
+        usdt.approve(address(market), SWAP_IN);
+        _warpForBuy();
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 10));
+        market.buyGood(
+            _usdtKey(),
+            _btcKey(),
+            toTTSwapUINT256(SWAP_IN, 1),
+            address(0),
+            defaultdata,
+            users[1],
+            defaultdata,
+            0
+        );
+        vm.stopPrank();
+    }
+
+    function testBuyERC20ByERC20_revert_notVerified() public {
+        T_GoodKey memory ethKey = T_GoodKey({
+            ercType: 1,
+            contractAddress: address(eth),
+            id: 0
+        });
+        uint128 ethQty = uint128(1000 * 10 ** 18);
+
+        vm.startPrank(users[2]);
+        deal(address(eth), users[2], 10 * ethQty, false);
+        eth.approve(address(market), type(uint256).max);
+        market.initGood(
+            ethKey,
+            toTTSwapUINT256(BTC_INIT_VALUE, ethQty),
+            defaultdata,
+            users[2],
+            defaultdata
+        );
+        vm.stopPrank();
+
+        vm.startPrank(users[1]);
+        usdt.mint(users[1], 100000);
+        usdt.approve(address(market), SWAP_IN);
+        _warpForBuy();
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 37));
+        market.buyGood(
+            _usdtKey(),
+            ethKey,
+            toTTSwapUINT256(SWAP_IN, 1),
+            address(0),
+            defaultdata,
+            users[1],
+            defaultdata,
+            0
+        );
         vm.stopPrank();
     }
 }

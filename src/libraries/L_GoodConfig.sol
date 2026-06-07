@@ -10,7 +10,7 @@ pragma solidity 0.8.29;
 /// | Bits      | Field           | Width | Scale / unit              | Default |
 /// |-----------|-----------------|-------|---------------------------|---------|
 /// | 255       | isValueGood     | 1     | flag                      | 0       |
-/// | 254-247   | ercType         | 8     | enum                      | 0       |
+/// | 254-247   | reserved1         | 8     |                      | 0       |
 /// | 246       | isFreeze        | 1     | flag                      | 0       |
 /// | 245       | isVerified      | 1     | flag                      | 0       |
 /// | 244       | isPromise       | 1     | flag                      | 0       |
@@ -108,7 +108,7 @@ library L_GoodConfigLibrary {
     function updateRunTimeConfig(
         uint256 config
     ) internal view returns (uint256 a) {
-        uint256 run_time_config = (block.timestamp % 4095) % 10;
+        uint256 run_time_config = (block.timestamp % 4095) / 10;
         require(
             config.getRunTimeConfig() == run_time_config,
             "transaction busy error"
@@ -161,28 +161,6 @@ library L_GoodConfigLibrary {
         }
     }
 
-    /// @notice Reads ERC token type from bits 254-247.
-    function getERCType(uint256 config) internal pure returns (uint8 a) {
-        unchecked {
-            assembly {
-                a := shr(248, shl(1, config))
-            }
-        }
-    }
-
-    /// @notice Writes ERC token type to bits 254-247 without touching bit 255.
-    function setERCType(
-        uint256 config,
-        uint8 erc_type
-    ) internal pure returns (uint256 a) {
-        unchecked {
-            assembly {
-                a := erc_type
-                a := shl(247, a)
-                a := add(and(config, not(erc_type_mask)), a)
-            }
-        }
-    }
 
     /// @notice Returns whether the good is verified (bit 245).
     function isVerified(uint256 config) internal pure returns (bool a) {
