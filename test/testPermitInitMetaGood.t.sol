@@ -1,64 +1,77 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
+pragma solidity 0.8.29;
 
-import {Test, console2} from "forge-std/src/Test.sol";
-import {MyToken} from "../src/test/MyToken.sol";
-import "../src/TTSwap_Market.sol";
-import {BaseSetup} from "./BaseSetup.t.sol";
-import { S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {Permit2} from "permit2/src/Permit2.sol";
+import {BaseSetup} from "./BaseSetup.t.sol";
+import {MyToken} from "../src/test/MyToken.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
 import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
 import {TTSwap_Market} from "../src/TTSwap_Market.sol";
-    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
-import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
-import {L_Good} from "../src/libraries/L_Good.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256} from "../src/libraries/L_TTSwapUINT256.sol";
-
-import {Permit2} from "permit2/src/Permit2.sol";
+import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
+import {S_GoodTmpState, S_ProofState} from "../src/interfaces/I_TTSwap_Market.sol";
+import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
 import {IAllowanceTransfer} from "../src/interfaces/IAllowanceTransfer.sol";
 import {ISignatureTransfer} from "../src/interfaces/ISignatureTransfer.sol";
-import "forge-gas-snapshot/src/GasSnapshot.sol";
+import {L_ProofIdLibrary} from "../src/libraries/L_Proof.sol";
+import {S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
+import {
+    L_TTSwapUINT256Library,
+    toTTSwapUINT256
+} from "../src/libraries/L_TTSwapUINT256.sol";
 
-contract testPermitInitMetaGood is Test, GasSnapshot {
+/// @notice v2.0 `initGood` with plain approve / EIP-2612 / Permit2 transfer paths.
+contract testPermitInitGood is BaseSetup {
+    using T_GoodKeyLibrary for T_GoodKey;
+    using L_TTSwapUINT256Library for uint256;
     using L_ProofIdLibrary for S_ProofKey;
 
-    using L_TTSwapUINT256Library for uint256;
-    using ECDSA for bytes32;
+    address internal constant PERMIT2 =
+        0xa50eb0d081E986c280efF32dae089939Ea07bd22;
 
-    address metagood;
+    bytes32 internal constant PERMIT_TYPEHASH =
+        keccak256(
+            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+        );
+    bytes32 internal constant PERMIT_DETAILS_TYPEHASH =
+        keccak256(
+            "PermitDetails(address token,uint160 amount,uint48 expiration,uint48 nonce)"
+        );
+    bytes32 internal constant PERMIT_SINGLE_TYPEHASH =
+        keccak256(
+            "PermitSingle(PermitDetails details,address spender,uint256 sigDeadline)PermitDetails(address token,uint160 amount,uint48 expiration,uint48 nonce)"
+        );
+    bytes32 internal constant TOKEN_PERMISSIONS_TYPEHASH =
+        keccak256("TokenPermissions(address token,uint256 amount)");
+    bytes32 internal constant PERMIT_TRANSFER_FROM_TYPEHASH =
+        keccak256(
+            "PermitTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline)TokenPermissions(address token,uint256 amount)"
+        );
 
-    MyToken internal kkkk;
+    uint256 internal constant INITIAL_CONFIG =
+        0x000c350810450000000000842882040800000000000000000000000000000000;
 
-    uint256 internal ownerPrivateKey;
-    uint256 internal spenderPrivateKey;
+    uint256 internal constant CREATOR_KEY = 0xA121;
+    uint256 internal constant OWNER_KEY = 0xA11CE;
+    uint256 internal constant SPENDER_KEY = 0xB0B;
 
-    address internal owner;
-    address internal spender;
-    uint256 internal marketcreatorkey;
+    uint128 internal constant INIT_VALUE = uint128(50_000 * 10 ** 12);
+    uint128 internal constant INIT_QTY = uint128(50_000 * 10 ** 6);
 
-    bytes32 private _PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+    MyToken internal permitToken;
+    Permit2 internal permit2Logic;
 
-    address payable[8] internal users;
-    MyToken btc;
-    MyToken usdt;
-    MyToken eth;
-    address marketcreator;
-    TTSwap_Market market;
-    TTSwap_Token tts_token;
-    TTSwap_Market_Proxy market_proxy;
-    bytes internal constant defaultdata = bytes("");
+    uint256 internal creatorKey;
+    address internal keyedCreator;
+    address internal permitOwner;
+    address internal permitSpender;
 
-    event debuggdata(bytes);
+    function setUp() public override {
+        creatorKey = CREATOR_KEY;
+        keyedCreator = vm.addr(creatorKey);
+        permitOwner = vm.addr(OWNER_KEY);
+        permitSpender = vm.addr(SPENDER_KEY);
 
-    Permit2 aabbpermit;
-
-    function setUp() public virtual {
-        marketcreatorkey = 0xA121;
-        marketcreator = vm.addr(marketcreatorkey);
-        aabbpermit = new Permit2();
-    
         users[0] = payable(address(1));
         users[1] = payable(address(2));
         users[2] = payable(address(3));
@@ -67,522 +80,443 @@ contract testPermitInitMetaGood is Test, GasSnapshot {
         users[5] = payable(address(15));
         users[6] = payable(address(16));
         users[7] = payable(address(17));
+        marketcreator = payable(keyedCreator);
+
         btc = new MyToken("BTC", "BTC", 8);
         usdt = new MyToken("USDT", "USDT", 6);
         eth = new MyToken("ETH", "ETH", 18);
-        vm.startPrank(marketcreator);
-        TTSwap_Token tts_token_logic = new TTSwap_Token(address(usdt));
-        TTSwap_Token_Proxy tts_token_proxy=new TTSwap_Token_Proxy( marketcreator,  2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
-        tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
+        permitToken = new MyToken("PTK", "PTK", 6);
 
+        vm.startPrank(keyedCreator);
+        TTSwap_Token tts_logic = new TTSwap_Token(address(usdt));
+        tts_token_proxy = new TTSwap_Token_Proxy(
+            keyedCreator,
+            2 ** 255 + 10000,
+            "TTSwap Token",
+            "TTS",
+            address(tts_logic)
+        );
+        tts_token = TTSwap_Token(payable(address(tts_token_proxy)));
         market = new TTSwap_Market(tts_token);
-        market_proxy = new TTSwap_Market_Proxy(tts_token,address(market));
+        market_proxy = new TTSwap_Market_Proxy(tts_token, address(market));
         market = TTSwap_Market(payable(address(market_proxy)));
 
-        tts_token.setTokenAdmin(marketcreator,true);
-        tts_token.setTokenManager(marketcreator,true);
+        tts_token.setTokenAdmin(keyedCreator, true);
+        tts_token.setTokenManager(keyedCreator, true);
         tts_token.setCallMintTTS(address(market), true);
-        tts_token.setMarketAdmin(marketcreator,true);
-        kkkk = new MyToken("USDT", "USDT", 6);
-
-        ownerPrivateKey = 0xA11CE;
-        spenderPrivateKey = 0xB0B;
-
-        owner = vm.addr(ownerPrivateKey);
-        spender = vm.addr(spenderPrivateKey);
-    }
-
-    struct SimplePermit {
-        uint8 transfertype;
-        bytes detail;
-    }
-
-    function testinitNativeMetaGoodaddress1() public {
-        vm.startPrank(marketcreator);
-        address nativeCurrency = address(1);
-        uint256 goodconfig = 2 ** 255;
-        vm.deal(marketcreator, 100000 * 10 ** 6);
-        assertEq(
-            marketcreator.balance,
-            100000 * 10 ** 6,
-            "before initial metagood:marketcreator account initial balance error"
-        );
-        assertEq(usdt.balanceOf(address(market)), 0, "before initial metagood:market account initial balance error");
-
-        market.initMetaGood{value: 50000 * 10 ** 6}(
-            nativeCurrency,
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            goodconfig,
-            abi.encode(L_CurrencyLibrary.S_transferData(1, ""))
-        );
-        snapLastCall("init_nativeerc20_metagood");
-        metagood = nativeCurrency;
-        assertEq(
-            marketcreator.balance,
-            100000 * 10 ** 6 - 50000 * 10 ** 6,
-            "after initial metagood:marketcreator account initial balance error"
-        );
-        assertEq(
-            address(market).balance, 50000 * 10 ** 6, "after initial metagood:market account initial balance error"
-        );
-
-        S_GoodTmpState memory good_ = market.getGoodState(metagood);
-        assertEq(
-            good_.currentState,
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            "after initial metagood:metagood currentState error"
-        );
-        assertEq(
-            good_.investState,
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            "after initial metagood:metagood investState error"
-        );
-     
-
-        assertEq(good_.goodConfig,79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
-
-        assertEq(good_.owner, marketcreator, "after initial metagood:metagood marketcreator error");
-
-        uint256 metaproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
-        S_ProofState memory _proof1 = market.getProofState(metaproof);
-        assertEq(_proof1.state.amount0(), 50000 * 10 ** 6, "after initial:proof value error");
-        assertEq(_proof1.invest.amount1(), 50000 * 10 ** 6, "after initial:proof quantity error");
-        assertEq(_proof1.valueinvest.amount1(), 0, "after initial:proof quantity error");
-
+        tts_token.setMarketAdmin(keyedCreator, true);
+        tts_token.setMarketManager(keyedCreator, true);
+        tts_token.setStakeAdmin(keyedCreator, true);
+        tts_token.setStakeManager(keyedCreator, true);
         vm.stopPrank();
+
+        permit2Logic = new Permit2();
+        vm.etch(PERMIT2, address(permit2Logic).code);
+        vm.warp(10);
     }
 
-    function testinitMetaGoodtype1() public {
-        vm.startPrank(marketcreator);
-        uint256 goodconfig = 2 ** 255;
-        usdt.mint(marketcreator, 100000);
-        usdt.approve(address(market), 50000 * 10 ** 6);
+    // ── helpers ────────────────────────────────────────────────────────────
 
-        assertEq(
-            usdt.balanceOf(marketcreator),
-            100000 * 10 ** 6,
-            "before initial metagood:marketcreator account initial balance error"
-        );
-        assertEq(usdt.balanceOf(address(market)), 0, "before initial metagood:market account initial balance error");
-
-        market.initMetaGood(address(usdt), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), goodconfig, defaultdata);
-        snapLastCall("init_erc20_metagood");
-        metagood = address(usdt);
-        assertEq(
-            usdt.balanceOf(marketcreator),
-            100000 * 10 ** 6 - 50000 * 10 ** 6,
-            "after initial metagood:marketcreator account initial balance error"
-        );
-        assertEq(
-            usdt.balanceOf(address(market)),
-            50000 * 10 ** 6,
-            "after initial metagood:market account initial balance error"
-        );
-
-        assertEq(
-            market.getGoodState(metagood).currentState,
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            "after initial metagood:metagood currentState error"
-        );
-        assertEq(
-            market.getGoodState(metagood).investState,
-            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
-            "after initial metagood:metagood investState error"
-        );
-      
-        assertEq(market.getGoodState(metagood).goodConfig, 79981855509707585827258856034506993808549382592029871491215273511520529547264, "after initial metagood:metagood goodConfig error");
-
-        assertEq(
-            market.getGoodState(metagood).owner, marketcreator, "after initial metagood:metagood marketcreator error"
-        );
-
-        uint256 metaproof = S_ProofKey(marketcreator, metagood, address(0)).toId();
-        S_ProofState memory _proof1 = market.getProofState(metaproof);
-        assertEq(_proof1.state.amount0(), 50000 * 10 ** 6, "after initial:proof value error");
-        assertEq(_proof1.invest.amount1(), 50000 * 10 ** 6, "after initial:proof quantity error");
-        assertEq(_proof1.valueinvest.amount1(), 0, "after initial:proof quantity error");
-
-        vm.stopPrank();
+    function _expectedGoodConfig() internal view returns (uint256) {
+        uint256 runSlot = (block.timestamp % 4095) % 10;
+        uint256 mask = 0x00000000000000007ff800000000000000000000000000000000000000000000;
+        return (INITIAL_CONFIG & ~mask) | (runSlot << 179);
     }
 
-    function testERC20permit() public {
-        deal(address(kkkk), owner, 100000, false);
-        uint256 bltim = block.timestamp;
-
-        bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, 1024, 0, bltim));
-
-        bytes32 digest = kkkk.DOMAIN_SEPARATOR().toTypedDataHash(structHash);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
-
-        vm.startPrank(spender);
-        assertEq(kkkk.allowance(owner, spender), 0);
-        assertEq(kkkk.nonces(owner), 0);
-        kkkk.permit(owner, spender, 1024, bltim, v, r, s);
-        vm.sleep(1);
-        assertEq(kkkk.nonces(owner), 1);
-        assertEq(kkkk.allowance(owner, spender), 1024);
-
-        assertEq(0, kkkk.balanceOf(users[2]), "before trnasferform error");
-        kkkk.transferFrom(owner, users[2], 1000);
-        assertEq(1000, kkkk.balanceOf(users[2]), "after trnasferform error");
-        vm.stopPrank();
+    function _tokenKey(address token) internal pure returns (T_GoodKey memory) {
+        return T_GoodKey({ercType: 1, contractAddress: token, id: 0});
     }
 
-    struct S_Permit2 {
-        uint256 value;
-        uint256 deadline;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
+    function _nativeKey() internal pure returns (T_GoodKey memory) {
+        return T_GoodKey({ercType: 1, contractAddress: address(1), id: 0});
     }
 
-    function testERC20permitinitmetagood() public {
-        deal(address(kkkk), marketcreator, 50000 * 10 ** 7, false);
-        uint256 bltim = block.timestamp + 10000;
+    function _proofId(address owner, uint256 goodId) internal pure returns (uint256) {
+        return S_ProofKey({owner: owner, currentgood: goodId}).toId();
+    }
+
+    function _encodeTransfer(
+        uint8 transferType,
+        bytes memory sigdata
+    ) internal pure returns (bytes memory) {
+        return abi.encode(T_GoodKeyLibrary.S_transferData(transferType, sigdata));
+    }
+
+    function _assertInitGoodState(
+        uint256 goodId,
+        address owner,
+        bool isNative,
+        address token,
+        uint128 qty
+    ) internal view {
+        if (isNative) {
+            assertEq(address(market).balance, qty, "market native balance");
+        } else {
+            assertEq(
+                IERC20(token).balanceOf(address(market)),
+                qty,
+                "market token balance"
+            );
+        }
+
+        S_GoodTmpState memory good_ = market.getGoodState(goodId);
+        assertEq(good_.currentState, toTTSwapUINT256(qty, qty), "currentState");
+        assertEq(good_.investState, toTTSwapUINT256(qty, INIT_VALUE), "investState");
+        assertEq(good_.goodConfig, _expectedGoodConfig(), "goodConfig");
+        assertEq(good_.owner, owner, "owner");
+
+        uint256 proofId = _proofId(owner, goodId);
+        S_ProofState memory proof = market.getProofState(proofId);
+        assertEq(proof.currentgood, goodId, "proof good");
+        assertEq(proof.state, toTTSwapUINT256(INIT_VALUE, INIT_VALUE), "proof state");
+        assertEq(proof.shares, toTTSwapUINT256(qty, 0), "proof shares");
+        assertEq(proof.invest, toTTSwapUINT256(qty, qty), "proof invest");
+    }
+
+    function _signEip2612(
+        MyToken token,
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint256 signerKey
+    ) internal view returns (T_GoodKeyLibrary.S_Permit memory permit) {
         bytes32 structHash = keccak256(
             abi.encode(
-                _PERMIT_TYPEHASH, marketcreator, address(market), 50000 * 10 ** 6, kkkk.nonces(marketcreator), bltim
+                PERMIT_TYPEHASH,
+                owner,
+                spender,
+                value,
+                token.nonces(owner),
+                deadline
             )
         );
-
-        bytes32 digest = kkkk.DOMAIN_SEPARATOR().toTypedDataHash(structHash);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(marketcreatorkey, digest);
-        //kkkk.permit(owner, address(this), 100e18, 1 days, v, r, s);
-
-        S_Permit2 memory ef = S_Permit2(50000 * 10 ** 6, bltim, v, r, s);
-
-        SimplePermit memory sp = SimplePermit(2, abi.encode(ef));
-        vm.startPrank(marketcreator);
-        market.initMetaGood(address(kkkk), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), 2 ** 255, abi.encode(sp));
-        vm.stopPrank();
+        bytes32 digest = ECDSA.toTypedDataHash(
+            token.DOMAIN_SEPARATOR(),
+            structHash
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, digest);
+        return T_GoodKeyLibrary.S_Permit(value, deadline, v, r, s);
     }
 
-    function testERC20permitinitmetagood2() public {
-        deal(address(kkkk), marketcreator, 50000 * 10 ** 7, false);
-        uint256 bltim = block.timestamp + 10000;
-        bytes32 structHash = keccak256(
+    function _signPermit2Single(
+        address token,
+        address,
+        address spender,
+        uint160 amount,
+        uint256 deadline,
+        uint256 signerKey
+    ) internal view returns (T_GoodKeyLibrary.S_Permit2 memory permit) {
+        IAllowanceTransfer.PermitSingle memory single = IAllowanceTransfer
+            .PermitSingle({
+                details: IAllowanceTransfer.PermitDetails({
+                    token: token,
+                    amount: amount,
+                    expiration: type(uint48).max,
+                    nonce: 0
+                }),
+                spender: spender,
+                sigDeadline: deadline
+            });
+
+        bytes32 permitHash = keccak256(
             abi.encode(
-                _PERMIT_TYPEHASH, marketcreator, address(market), 50000 * 10 ** 8, kkkk.nonces(marketcreator), bltim
+                PERMIT_DETAILS_TYPEHASH,
+                single.details.token,
+                single.details.amount,
+                single.details.expiration,
+                single.details.nonce
             )
         );
-
-        console2.log(1, kkkk.allowance(marketcreator, address(market)));
-
-        bytes32 digest = kkkk.DOMAIN_SEPARATOR().toTypedDataHash(structHash);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(marketcreatorkey, digest);
-        //kkkk.permit(owner, address(this), 100e18, 1 days, v, r, s);
-
-        S_Permit2 memory ef = S_Permit2(50000 * 10 ** 8, bltim, v, r, s);
-
-        SimplePermit memory sp = SimplePermit(2, abi.encode(ef));
-        vm.startPrank(marketcreator);
-        market.initMetaGood(address(kkkk), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), 2 ** 255, abi.encode(sp));
-
-        console2.log(2, kkkk.allowance(marketcreator, address(market)));
-        vm.stopPrank();
-    }
-
-    function testPermit2AllownanceApprove() public {
-        bytes memory code = address(aabbpermit).code;
-        address targetAddr = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-        vm.etch(targetAddr, code);
-        vm.startPrank(users[3]);
-        deal(address(kkkk), users[3], 100000000000, false);
-        kkkk.approve(targetAddr, 100000000000);
-        uint256 blt = block.timestamp;
-
-        console2.log(1, 1);
-        Permit2(targetAddr).approve(address(kkkk), users[4], 100000000000, uint48(blt + 100000));
-        console2.log(1, 2);
-        vm.stopPrank();
-        vm.startPrank(users[4]);
-        assertEq(100000000000, kkkk.balanceOf(users[3]), "before kkkk balanceof users3");
-        assertEq(0, kkkk.balanceOf(users[4]), "before kkkk balanceof users4");
-        Permit2(targetAddr).transferFrom(users[3], users[4], 100000, address(kkkk));
-
-        assertEq(100000000000 - 100000, kkkk.balanceOf(users[3]), "after kkkk balanceof users3");
-        assertEq(100000, kkkk.balanceOf(users[4]), "after kkkk balanceof users4");
-        vm.stopPrank();
-    }
-
-    function testPermit2AllownanceApproveInitMetaGood() public {
-        bytes memory code = address(aabbpermit).code;
-        address targetAddr = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-        vm.etch(targetAddr, code);
-        vm.startPrank(marketcreator);
-        deal(address(kkkk), marketcreator, 50000 * 10 ** 6, false);
-        kkkk.approve(targetAddr, 50000 * 10 ** 6);
-        uint256 blt = block.timestamp;
-
-        console2.log(1, 1);
-        Permit2(targetAddr).approve(address(kkkk), address(market), 50000 * 10 ** 6, uint48(blt + 100000));
-        console2.log(1, 2);
-
-        SimplePermit memory sp = SimplePermit(3, abi.encode(0));
-        assertEq(0, kkkk.balanceOf(address(market)), "before trnasferform error");
-        console2.log(3, kkkk.balanceOf(address(market)));
-        market.initMetaGood(address(kkkk), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), 2 ** 255, abi.encode(sp));
-        console2.log(4, kkkk.balanceOf(address(market)));
-        assertEq(50000 * 10 ** 6, kkkk.balanceOf(address(market)), "after trnasferform error");
-
-        vm.stopPrank();
-    }
-    /// @notice The permit data for a token
-
-    struct PermitDetails {
-        // ERC20 token address
-        address token;
-        // the maximum amount allowed to spend
-        uint160 amount;
-        // timestamp at which a spender's token allowances become invalid
-        uint48 expiration;
-        // an incrementing value indexed per owner,token,and spender for each signature
-        uint48 nonce;
-    }
-
-    /// @notice The permit message signed for a single token allowance
-    struct PermitSingle {
-        // the permit data for a single token alownce
-        PermitDetails details;
-        // address permissioned on the allowed tokens
-        address spender;
-        // deadline on the permit signature
-        uint256 sigDeadline;
-    }
-
-    function testPermit2AllownancePermitInitMetaGood() public {
-        bytes memory code = address(aabbpermit).code;
-        address targetAddr = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-        vm.etch(targetAddr, code);
-        vm.startPrank(marketcreator);
-        deal(address(kkkk), marketcreator, 50000 * 10 ** 6, false);
-        kkkk.approve(targetAddr, 50000 * 10 ** 6);
-        uint256 blt = block.timestamp;
-
-        console2.log(1, 2);
-
-        bytes32 _PERMIT_SINGLE_TYPEHASH = keccak256(
-            "PermitSingle(PermitDetails details,address spender,uint256 sigDeadline)PermitDetails(address token,uint160 amount,uint48 expiration,uint48 nonce)"
-        );
-        bytes32 _PERMIT_DETAILS_TYPEHASH =
-            keccak256("PermitDetails(address token,uint160 amount,uint48 expiration,uint48 nonce)");
-
-        (,, uint48 nonce) = Permit2(targetAddr).allowance(owner, address(kkkk), address(market));
-
-        console2.log(uint256(nonce), 3);
-        IAllowanceTransfer.PermitSingle memory _pd = IAllowanceTransfer.PermitSingle({
-            details: IAllowanceTransfer.PermitDetails({
-                token: address(kkkk),
-                amount: uint160(50000 * 10 ** 6),
-                expiration: type(uint48).max,
-                nonce: 0
-            }),
-            spender: address(market),
-            sigDeadline: uint48(blt + 100000)
-        });
-        bytes32 permitHash = keccak256(abi.encode(_PERMIT_DETAILS_TYPEHASH, _pd.details));
-        bytes32 domainSeparator = Permit2(targetAddr).DOMAIN_SEPARATOR();
-        bytes32 msgHash = keccak256(
+        bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
-                domainSeparator,
-                keccak256(abi.encode(_PERMIT_SINGLE_TYPEHASH, permitHash, _pd.spender, _pd.sigDeadline))
-            )
-        );
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(marketcreatorkey, msgHash);
-
-        S_Permit memory ef = S_Permit(50000 * 10 ** 6, uint48(blt + 100000), 0, v, r, s);
-        SimplePermit memory sp = SimplePermit(4, abi.encode(ef));
-        assertEq(0, kkkk.balanceOf(address(market)), "before trnasferform error");
-        console2.log(3, kkkk.balanceOf(address(market)));
-        market.initMetaGood(address(kkkk), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), 2 ** 255, abi.encode(sp));
-        console2.log(4, kkkk.balanceOf(address(market)));
-        assertEq(50000 * 10 ** 6, kkkk.balanceOf(address(market)), "after trnasferform error");
-
-        vm.stopPrank();
-    }
-
-    struct S_Permit {
-        uint256 value;
-        uint256 deadline;
-        uint256 nonce;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
-
-    function testPermit2Permit() public {
-        // 获取permit2合约的代码复制到固定地址
-        bytes memory code = address(aabbpermit).code;
-        address targetAddr = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-        vm.etch(targetAddr, code);
-
-        vm.startPrank(marketcreator);
-        // 铸造代币
-        deal(address(kkkk), marketcreator, 50000 * 10 ** 6, false);
-        // 授权给permit2合约
-        kkkk.approve(targetAddr, 50000 * 10 ** 6);
-        //获取当前的时间截
-        uint256 blt = block.timestamp;
-
-        //构建传递参数
-        ISignatureTransfer.PermitTransferFrom memory _pd = ISignatureTransfer.PermitTransferFrom(
-            ISignatureTransfer.TokenPermissions({token: address(kkkk), amount: uint256(50000 * 10 ** 6)}),
-            uint256(0), //nonce  (random/(2**8))<<8+permit2().nonceBitmap(marketor,random/(2**8))  random是一个随机数
-            uint256(blt + 100000)
-        );
-        bytes32 _TOKEN_PERMISSIONS_TYPEHASH = keccak256("TokenPermissions(address token,uint256 amount)");
-
-        bytes32 _PERMIT_TRANSFER_FROM_TYPEHASH = keccak256(
-            "PermitTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline)TokenPermissions(address token,uint256 amount)"
-        );
-
-        bytes32 tokenPermissions = keccak256(abi.encode(_TOKEN_PERMISSIONS_TYPEHASH, _pd.permitted));
-        bytes32 domainSeparator = Permit2(targetAddr).DOMAIN_SEPARATOR();
-        //打包数据
-        bytes32 msgHash = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                domainSeparator,
-                keccak256(
-                    abi.encode(_PERMIT_TRANSFER_FROM_TYPEHASH, tokenPermissions, users[4], _pd.nonce, _pd.deadline)
-                )
-            )
-        );
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(marketcreatorkey, msgHash);
-        vm.stopPrank();
-
-        vm.startPrank(users[4]);
-
-        ISignatureTransfer.SignatureTransferDetails memory bb =
-            ISignatureTransfer.SignatureTransferDetails({to: users[4], requestedAmount: 50000 * 10 ** 6});
-
-        assertEq(0, kkkk.balanceOf(users[4]), "before trnasferform error");
-        console2.log(3, kkkk.balanceOf(users[4]));
-        ISignatureTransfer(targetAddr).permitTransferFrom(_pd, bb, marketcreator, bytes.concat(r, s, bytes1(v)));
-        console2.log(4, kkkk.balanceOf(users[4]));
-        assertEq(50000 * 10 ** 6, kkkk.balanceOf(users[4]), "after trnasferform error");
-        vm.stopPrank();
-    }
-
-    function testPermit2Permit2() public {
-        // 获取permit2合约的代码复制到固定地址
-        bytes memory code = address(aabbpermit).code;
-        address targetAddr = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-        vm.etch(targetAddr, code);
-
-        vm.startPrank(marketcreator);
-        // 铸造代币
-        deal(address(kkkk), marketcreator, 100000 * 10 ** 6, false);
-        // 授权给permit2合约
-        kkkk.approve(targetAddr, 100000 * 10 ** 6);
-        //获取当前的时间截
-        uint256 blt = block.timestamp;
-
-        //构建传递参数
-        ISignatureTransfer.PermitTransferFrom memory _pd = ISignatureTransfer.PermitTransferFrom(
-            ISignatureTransfer.TokenPermissions({token: address(kkkk), amount: uint256(50000 * 10 ** 6)}),
-            uint256(0), //nonce  (random/(2**8))<<8+permit2().nonceBitmap(marketor,random/(2**8))  random是一个随机数
-            uint256(blt + 100000)
-        );
-        bytes32 _TOKEN_PERMISSIONS_TYPEHASH = keccak256("TokenPermissions(address token,uint256 amount)");
-
-        bytes32 _PERMIT_TRANSFER_FROM_TYPEHASH = keccak256(
-            "PermitTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline)TokenPermissions(address token,uint256 amount)"
-        );
-
-        bytes32 tokenPermissions = keccak256(abi.encode(_TOKEN_PERMISSIONS_TYPEHASH, _pd.permitted));
-        bytes32 domainSeparator = Permit2(targetAddr).DOMAIN_SEPARATOR();
-        //打包数据
-        bytes32 msgHash = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                domainSeparator,
-                keccak256(
-                    abi.encode(_PERMIT_TRANSFER_FROM_TYPEHASH, tokenPermissions, users[5], _pd.nonce, _pd.deadline)
-                )
-            )
-        );
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(marketcreatorkey, msgHash);
-
-        ISignatureTransfer.PermitTransferFrom memory _pd2 = ISignatureTransfer.PermitTransferFrom(
-            ISignatureTransfer.TokenPermissions({token: address(kkkk), amount: uint256(50000 * 10 ** 6)}),
-            2, //nonce  (random/(2**8))<<8+permit2().nonceBitmap(marketor,random/(2**8))  random是一个随机数
-            uint256(blt + 100000)
-        );
-
-        bytes32 tokenPermissions2 = keccak256(abi.encode(_TOKEN_PERMISSIONS_TYPEHASH, _pd2.permitted));
-        //打包数据
-        bytes32 msgHash2 = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                domainSeparator,
-                keccak256(
-                    abi.encode(_PERMIT_TRANSFER_FROM_TYPEHASH, tokenPermissions2, users[5], _pd2.nonce, _pd2.deadline)
-                )
-            )
-        );
-        (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(marketcreatorkey, msgHash2);
-        vm.stopPrank();
-
-        vm.startPrank(users[5]);
-
-        ISignatureTransfer.SignatureTransferDetails memory bb =
-            ISignatureTransfer.SignatureTransferDetails({to: users[5], requestedAmount: 50000 * 10 ** 6});
-
-        assertEq(0, kkkk.balanceOf(users[5]), "before trnasferform error");
-        console2.log(3, kkkk.balanceOf(users[5]));
-        ISignatureTransfer(targetAddr).permitTransferFrom(_pd, bb, marketcreator, bytes.concat(r, s, bytes1(v)));
-
-        ISignatureTransfer(targetAddr).permitTransferFrom(_pd2, bb, marketcreator, bytes.concat(r2, s2, bytes1(v2)));
-        console2.log(4, kkkk.balanceOf(users[5]));
-
-        vm.stopPrank();
-    }
-
-    function testPermit2PermitInitMetaGood() public {
-        bytes memory code = address(aabbpermit).code;
-        address targetAddr = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-        vm.etch(targetAddr, code);
-        vm.startPrank(marketcreator);
-        deal(address(kkkk), marketcreator, 50000 * 10 ** 6, false);
-        kkkk.approve(targetAddr, 50000 * 10 ** 6);
-        uint256 blt = block.timestamp;
-
-        ISignatureTransfer.PermitTransferFrom memory _pd = ISignatureTransfer.PermitTransferFrom({
-            permitted: ISignatureTransfer.TokenPermissions({token: address(kkkk), amount: uint256(50000 * 10 ** 6)}),
-            nonce: uint256(0),
-            deadline: uint256(blt + 10000)
-        });
-        bytes32 _TOKEN_PERMISSIONS_TYPEHASH = keccak256("TokenPermissions(address token,uint256 amount)");
-
-        bytes32 _PERMIT_TRANSFER_FROM_TYPEHASH = keccak256(
-            "PermitTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline)TokenPermissions(address token,uint256 amount)"
-        );
-
-        bytes32 tokenPermissions = keccak256(abi.encode(_TOKEN_PERMISSIONS_TYPEHASH, _pd.permitted));
-        bytes32 domainSeparator = Permit2(targetAddr).DOMAIN_SEPARATOR();
-        bytes32 msgHash = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                domainSeparator,
+                Permit2(PERMIT2).DOMAIN_SEPARATOR(),
                 keccak256(
                     abi.encode(
-                        _PERMIT_TRANSFER_FROM_TYPEHASH, tokenPermissions, address(market), _pd.nonce, _pd.deadline
+                        PERMIT_SINGLE_TYPEHASH,
+                        permitHash,
+                        single.spender,
+                        single.sigDeadline
                     )
                 )
             )
         );
-        console2.log(555, address(market));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(marketcreatorkey, msgHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, digest);
+        return T_GoodKeyLibrary.S_Permit2(amount, deadline, 0, v, r, s);
+    }
 
-        S_Permit memory ef = S_Permit(50000 * 10 ** 6, _pd.deadline, _pd.nonce, v, r, s);
-        SimplePermit memory sp = SimplePermit(5, abi.encode(ef));
-        assertEq(0, kkkk.balanceOf(address(market)), "before trnasferform error");
-        market.initMetaGood(address(kkkk), toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6), 2 ** 255, abi.encode(sp));
-        console2.log(4, kkkk.balanceOf(address(market)));
-        assertEq(50000 * 10 ** 6, kkkk.balanceOf(address(market)), "after trnasferform error");
+    function _signPermit2Transfer(
+        address token,
+        address,
+        address spender,
+        uint256 amount,
+        uint256 nonce,
+        uint256 deadline,
+        uint256 signerKey
+    ) internal view returns (T_GoodKeyLibrary.S_Permit2 memory permit) {
+        bytes32 tokenPermissions = keccak256(
+            abi.encode(TOKEN_PERMISSIONS_TYPEHASH, token, amount)
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                Permit2(PERMIT2).DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(
+                        PERMIT_TRANSFER_FROM_TYPEHASH,
+                        tokenPermissions,
+                        spender,
+                        nonce,
+                        deadline
+                    )
+                )
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, digest);
+        return T_GoodKeyLibrary.S_Permit2(amount, deadline, nonce, v, r, s);
+    }
+
+    // ── baseline init paths ────────────────────────────────────────────────
+
+    function testInitGood_erc20Approve() public {
+        vm.startPrank(keyedCreator);
+        deal(address(permitToken), keyedCreator, 100 * INIT_QTY, false);
+        permitToken.approve(address(market), INIT_QTY);
+
+        T_GoodKey memory key = _tokenKey(address(permitToken));
+        market.initGood(
+            key,
+            toTTSwapUINT256(INIT_VALUE, INIT_QTY),
+            defaultdata,
+            keyedCreator,
+            defaultdata
+        );
+        snapLastCall("init_good_erc20_approve");
+        _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
         vm.stopPrank();
     }
+
+    function testInitGood_nativeMsgValue() public {
+        vm.startPrank(keyedCreator);
+        vm.deal(keyedCreator, 100 * INIT_QTY);
+
+        T_GoodKey memory key = _nativeKey();
+        market.initGood{value: INIT_QTY}(
+            key,
+            toTTSwapUINT256(INIT_VALUE, INIT_QTY),
+            defaultdata,
+            keyedCreator,
+            defaultdata
+        );
+        snapLastCall("init_good_native_msgvalue");
+        _assertInitGoodState(key.toId(), keyedCreator, true, address(0), INIT_QTY);
+        vm.stopPrank();
+    }
+
+    // ── EIP-2612 ───────────────────────────────────────────────────────────
+
+    function testErc20Permit_standalone() public {
+        deal(address(permitToken), permitOwner, 100_000, false);
+        uint256 deadline = block.timestamp + 1 days;
+
+        T_GoodKeyLibrary.S_Permit memory permit = _signEip2612(
+            permitToken,
+            permitOwner,
+            permitSpender,
+            1024,
+            deadline,
+            OWNER_KEY
+        );
+
+        vm.startPrank(permitSpender);
+        permitToken.permit(
+            permitOwner,
+            permitSpender,
+            permit.value,
+            permit.deadline,
+            permit.v,
+            permit.r,
+            permit.s
+        );
+        assertEq(permitToken.allowance(permitOwner, permitSpender), 1024);
+        permitToken.transferFrom(permitOwner, users[2], 1000);
+        assertEq(permitToken.balanceOf(users[2]), 1000);
+        vm.stopPrank();
+    }
+
+    function testInitGood_eip2612Permit() public {
+        vm.startPrank(keyedCreator);
+        deal(address(permitToken), keyedCreator, 100 * INIT_QTY, false);
+
+        T_GoodKeyLibrary.S_Permit memory permit = _signEip2612(
+            permitToken,
+            keyedCreator,
+            address(market),
+            INIT_QTY,
+            block.timestamp + 10_000,
+            creatorKey
+        );
+
+        T_GoodKey memory key = _tokenKey(address(permitToken));
+        market.initGood(
+            key,
+            toTTSwapUINT256(INIT_VALUE, INIT_QTY),
+            _encodeTransfer(2, abi.encode(permit)),
+            keyedCreator,
+            defaultdata
+        );
+        snapLastCall("init_good_eip2612");
+        _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
+        vm.stopPrank();
+    }
+
+    // ── Permit2 allowance (type 3) ─────────────────────────────────────────
+
+    function testPermit2_allowanceTransfer_standalone() public {
+        vm.startPrank(users[3]);
+        deal(address(permitToken), users[3], 100_000_000_000, false);
+        permitToken.approve(PERMIT2, type(uint256).max);
+        Permit2(PERMIT2).approve(
+            address(permitToken),
+            users[4],
+            100_000_000_000,
+            uint48(block.timestamp + 100_000)
+        );
+        vm.stopPrank();
+
+        vm.startPrank(users[4]);
+        Permit2(PERMIT2).transferFrom(
+            users[3],
+            users[4],
+            100_000,
+            address(permitToken)
+        );
+        assertEq(permitToken.balanceOf(users[4]), 100_000);
+        vm.stopPrank();
+    }
+
+    function testInitGood_permit2Allowance() public {
+        vm.startPrank(keyedCreator);
+        deal(address(permitToken), keyedCreator, 100 * INIT_QTY, false);
+        permitToken.approve(PERMIT2, INIT_QTY);
+        Permit2(PERMIT2).approve(
+            address(permitToken),
+            address(market),
+            INIT_QTY,
+            uint48(block.timestamp + 100_000)
+        );
+
+        T_GoodKey memory key = _tokenKey(address(permitToken));
+        market.initGood(
+            key,
+            toTTSwapUINT256(INIT_VALUE, INIT_QTY),
+            _encodeTransfer(3, ""),
+            keyedCreator,
+            defaultdata
+        );
+        snapLastCall("init_good_permit2_allowance");
+        _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
+        vm.stopPrank();
+    }
+
+    // ── Permit2 PermitSingle (type 4) ──────────────────────────────────────
+
+    function testInitGood_permit2PermitSingle() public {
+        vm.startPrank(keyedCreator);
+        deal(address(permitToken), keyedCreator, 100 * INIT_QTY, false);
+        permitToken.approve(PERMIT2, type(uint256).max);
+
+        T_GoodKeyLibrary.S_Permit2 memory permit = _signPermit2Single(
+            address(permitToken),
+            keyedCreator,
+            address(market),
+            uint160(INIT_QTY),
+            block.timestamp + 100_000,
+            creatorKey
+        );
+
+        T_GoodKey memory key = _tokenKey(address(permitToken));
+        market.initGood(
+            key,
+            toTTSwapUINT256(INIT_VALUE, INIT_QTY),
+            _encodeTransfer(4, abi.encode(permit)),
+            keyedCreator,
+            defaultdata
+        );
+        snapLastCall("init_good_permit2_single");
+        _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
+        vm.stopPrank();
+    }
+
+    // ── Permit2 signature transfer (type 5) ────────────────────────────────
+
+    function testPermit2_signatureTransfer_standalone() public {
+        vm.startPrank(keyedCreator);
+        deal(address(permitToken), keyedCreator, 100 * INIT_QTY, false);
+        permitToken.approve(PERMIT2, type(uint256).max);
+
+        T_GoodKeyLibrary.S_Permit2 memory permit = _signPermit2Transfer(
+            address(permitToken),
+            keyedCreator,
+            users[4],
+            INIT_QTY,
+            0,
+            block.timestamp + 100_000,
+            creatorKey
+        );
+        vm.stopPrank();
+
+        vm.startPrank(users[4]);
+        ISignatureTransfer(PERMIT2).permitTransferFrom(
+            ISignatureTransfer.PermitTransferFrom({
+                permitted: ISignatureTransfer.TokenPermissions({
+                    token: address(permitToken),
+                    amount: INIT_QTY
+                }),
+                nonce: permit.nonce,
+                deadline: permit.deadline
+            }),
+            ISignatureTransfer.SignatureTransferDetails({
+                to: users[4],
+                requestedAmount: INIT_QTY
+            }),
+            keyedCreator,
+            bytes.concat(permit.r, permit.s, bytes1(permit.v))
+        );
+        assertEq(permitToken.balanceOf(users[4]), INIT_QTY);
+        vm.stopPrank();
+    }
+
+    function testInitGood_permit2SignatureTransfer() public {
+        vm.startPrank(keyedCreator);
+        deal(address(permitToken), keyedCreator, 100 * INIT_QTY, false);
+        permitToken.approve(PERMIT2, type(uint256).max);
+
+        T_GoodKeyLibrary.S_Permit2 memory permit = _signPermit2Transfer(
+            address(permitToken),
+            keyedCreator,
+            address(market),
+            INIT_QTY,
+            0,
+            block.timestamp + 10_000,
+            creatorKey
+        );
+
+        T_GoodKey memory key = _tokenKey(address(permitToken));
+        market.initGood(
+            key,
+            toTTSwapUINT256(INIT_VALUE, INIT_QTY),
+            _encodeTransfer(5, abi.encode(permit)),
+            keyedCreator,
+            defaultdata
+        );
+        snapLastCall("init_good_permit2_sigtransfer");
+        _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
+        vm.stopPrank();
+    }
+}
+
+interface IERC20 {
+    function balanceOf(address account) external view returns (uint256);
 }

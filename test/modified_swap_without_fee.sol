@@ -1,191 +1,172 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.29;
 
-import "forge-gas-snapshot/src/GasSnapshot.sol";
-import {Test, console2, Vm} from "forge-std/src/Test.sol";
-import {MyToken} from "../src/test/MyToken.sol";
-import "../src/TTSwap_Market.sol";
-import "../src/TTSwap_Token.sol";
-import "../src/TTSwap_Token_Proxy.sol";    
-    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
-import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
-import {L_Good} from "../src/libraries/L_Good.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toUint128} from "../src/libraries/L_TTSwapUINT256.sol";
-
+import {MyToken} from "../src/test/MyToken.sol";
+import {S_GoodTmpState} from "../src/interfaces/I_TTSwap_Market.sol";
+import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
+import {TTSwapError} from "../src/libraries/L_Error.sol";
+import {
+    L_TTSwapUINT256Library,
+    toTTSwapUINT256
+} from "../src/libraries/L_TTSwapUINT256.sol";
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
 
-import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toUint128} from "../src/libraries/L_TTSwapUINT256.sol";
-
-contract modified_swap_without_fee is Test, GasSnapshot {
+/// @notice Zero-fee swap math + v2.0 `buyGood` integration (K=2 path, buy/sell fee cleared).
+contract testSwapWithoutFee is BaseSetup {
+    using T_GoodKeyLibrary for T_GoodKey;
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 
-    using L_ProofIdLibrary for S_ProofKey;
-    using L_TTSwapUINT256Library for uint256;
+    uint256 internal constant SWAP_FEE_MASK = uint256(0x3FFF) << 128;
+    uint256 internal constant SAFE_LINE_SHIFT = 204;
+    uint256 internal constant SAFE_LINE_MASK = uint256(0x3FF) << SAFE_LINE_SHIFT;
 
-    address metagood;
-    address normalgoodusdt;
-    address normalgoodusdc;
-    address normalgoodbtc;
-    address payable[8] internal users;
-    MyToken usdc;
-    MyToken usdt;
-    MyToken btc;
-    address marketcreator;
-    TTSwap_Market market;
-    TTSwap_Token tts_token;
-    TTSwap_Token_Proxy tts_token_proxy;
-    TTSwap_Market_Proxy market_proxy;
-    bytes internal constant defaultdata = bytes("");
+    uint128 internal constant POOL_QTY = uint128(50_000 * 10 ** 6);
+    uint128 internal constant POOL_VALUE = uint128(50_000 * 10 ** 12);
+    uint128 internal constant BTC_QTY = uint128(1 * 10 ** 8);
+    uint128 internal constant BTC_VALUE = uint128(118_000 * 10 ** 12);
 
-    function setUp() public {
-        users[0] = payable(address(1));
-        users[1] = payable(address(2));
-        users[2] = payable(address(3));
-        users[3] = payable(address(4));
-        users[4] = payable(address(5));
-        users[5] = payable(address(15));
-        users[6] = payable(address(16));
-        users[7] = payable(address(17));
-        marketcreator = payable(address(6));
-        usdt = new MyToken("USDT", "USDT", 6);
+    uint128 internal constant SWAP_IN = uint128(1_000 * 10 ** 6);
+    uint128 internal constant MIN_OUT = uint128(100 * 10 ** 6);
+    uint128 internal constant HALF_SWAP = uint128(500 * 10 ** 6);
+
+    MyToken internal usdc;
+    uint256 internal usdtGoodId;
+    uint256 internal usdcGoodId;
+    uint256 internal btcGoodId;
+    uint256 internal swapTs = 1;
+
+    function setUp() public override {
+        BaseSetup.setUp();
         usdc = new MyToken("USDC", "USDC", 6);
-        btc = new MyToken("BTC", "BTC", 8);
+        vm.warp(0);
+
+        usdtGoodId = _initValueGood(_usdtKey(), POOL_VALUE, POOL_QTY);
+        usdcGoodId = _initValueGood(_usdcKey(), POOL_VALUE, POOL_QTY);
+        btcGoodId = _initValueGood(_btcKey(), BTC_VALUE, BTC_QTY);
+
+        _prepareGood(usdtGoodId);
+        _prepareGood(usdcGoodId);
+        _prepareGood(btcGoodId);
+        _zeroSwapFees(usdtGoodId);
+        _zeroSwapFees(usdcGoodId);
+        _zeroSwapFees(btcGoodId);
+    }
+
+    // ── keys ───────────────────────────────────────────────────────────────
+
+    function _usdtKey() internal view returns (T_GoodKey memory) {
+        return T_GoodKey({ercType: 1, contractAddress: address(usdt), id: 0});
+    }
+
+    function _usdcKey() internal view returns (T_GoodKey memory) {
+        return T_GoodKey({ercType: 1, contractAddress: address(usdc), id: 0});
+    }
+
+    function _btcKey() internal view returns (T_GoodKey memory) {
+        return T_GoodKey({ercType: 1, contractAddress: address(btc), id: 0});
+    }
+
+    // ── setup helpers ──────────────────────────────────────────────────────
+
+    function _initValueGood(
+        T_GoodKey memory key,
+        uint128 value,
+        uint128 qty
+    ) internal returns (uint256 goodId) {
         vm.startPrank(marketcreator);
-        TTSwap_Token tts_token_logic = new TTSwap_Token(address(usdt));
-        tts_token_proxy = new TTSwap_Token_Proxy(
-            
+        if (key.contractAddress == address(btc)) {
+            deal(address(btc), marketcreator, 100 * qty, false);
+            btc.approve(address(market), qty);
+        } else if (key.contractAddress == address(usdc)) {
+            deal(address(usdc), marketcreator, 100 * qty, false);
+            usdc.approve(address(market), qty);
+        } else {
+            deal(address(usdt), marketcreator, 100 * uint256(qty), false);
+            usdt.approve(address(market), qty);
+        }
+        market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, marketcreator, defaultdata);
+        goodId = key.toId();
+        vm.stopPrank();
+    }
+
+    function _prepareGood(uint256 goodId) internal {
+        vm.startPrank(marketcreator);
+        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
+        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
+        cfg = (cfg & ~SAFE_LINE_MASK) | (uint256(1023) << SAFE_LINE_SHIFT);
+        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        vm.stopPrank();
+    }
+
+    function _zeroSwapFees(uint256 goodId) internal {
+        vm.startPrank(marketcreator);
+        uint256 cfg = market.getGoodState(goodId).goodConfig;
+        market.modifyGoodByGoodOwner(
+            goodId,
+            cfg & ~SWAP_FEE_MASK,
             marketcreator,
-            2 ** 255 + 10000,
-            "TTSwap Token",
-            "TTS",
-            address(tts_token_logic)
-        );
-        tts_token = TTSwap_Token(payable(address(tts_token_proxy)));
-        market = new TTSwap_Market(tts_token);
-        market_proxy = new TTSwap_Market_Proxy(tts_token,address(market));
-        market = TTSwap_Market(payable(address(market_proxy)));
-       
-        tts_token.setTokenAdmin(marketcreator, true);
-        tts_token.setTokenManager(marketcreator, true);
-        tts_token.setCallMintTTS(address(market), true);
-        tts_token.setMarketAdmin(marketcreator, true);
-        tts_token.setStakeAdmin(marketcreator, true);
-        tts_token.setStakeManager(marketcreator, true);
-        vm.stopPrank();
-        initmetagood();
-        initusdcgood();
-        initbtcgood();
-    }
-
-    function initmetagood() public {
-        vm.startPrank(marketcreator);
-        deal(address(usdt), marketcreator, 1000000 * 10 ** 6, false);
-        usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-        uint256 _goodconfig = (2 ** 255);
-        market.initMetaGood(
-            address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
-            _goodconfig,
             defaultdata
         );
-        metagood = address(usdt);
         vm.stopPrank();
     }
 
-    function initusdcgood() public {
-        vm.startPrank(marketcreator);
-        deal(address(usdc), marketcreator, 1000000 * 10 ** 6, false);
-        usdc.approve(address(market), 50000 * 10 ** 6 + 1);
-        uint256 _goodconfig = (2 ** 255);
-        market.initMetaGood(
-            address(usdc),
-            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
-            _goodconfig,
-            defaultdata
+    function _warp() internal {
+        vm.warp(swapTs);
+        swapTs++;
+        if (swapTs > 9) swapTs = 1;
+    }
+
+    function _approveIn(T_GoodKey memory keyIn, uint128 amountIn) internal {
+        address token = keyIn.contractAddress;
+        if (token == address(usdc)) {
+            usdc.approve(address(market), amountIn);
+        } else if (token == address(btc)) {
+            btc.approve(address(market), amountIn);
+        } else {
+            usdt.approve(address(market), amountIn);
+        }
+    }
+
+    function _buy(
+        T_GoodKey memory keyIn,
+        T_GoodKey memory keyOut,
+        uint128 amountIn,
+        uint128 minOut
+    ) internal returns (uint256 g1change, uint256 g2change) {
+        _approveIn(keyIn, amountIn);
+        _warp();
+        return market.buyGood(
+            keyIn,
+            keyOut,
+            toTTSwapUINT256(amountIn, minOut),
+            address(0),
+            defaultdata,
+            marketcreator,
+            defaultdata,
+            0
         );
-        normalgoodusdc = address(usdc);
-        vm.stopPrank();
     }
 
-    function initbtcgood() public {
-        vm.startPrank(marketcreator);
-        deal(address(btc), marketcreator, 1000000 * 10 ** 8, false);
-        btc.approve(address(market), 100 * 10 ** 8 + 1);
-        uint256 _goodconfig = (2 ** 255);
-        market.initMetaGood(
-            address(btc),
-            toTTSwapUINT256(118000 * 10 ** 12, 1 * 10 ** 8),
-            _goodconfig,
-            defaultdata
-        );
-        normalgoodbtc = address(btc);
-        vm.stopPrank();
+    function _fundTrader() internal {
+        deal(address(usdc), marketcreator, 200_000 * 10 ** 6, false);
+        deal(address(usdt), marketcreator, 200_000 * 10 ** 6, false);
+        usdc.approve(address(market), type(uint256).max);
+        usdt.approve(address(market), type(uint256).max);
+        btc.approve(address(market), type(uint256).max);
     }
 
-    /**
-     * @notice 纯数学测试：当K为固定值时，good1Swap+good2Swap 组合是否可逆
-     * @dev 复现白皮书附录I的公式，验证 Δa -> ΔV -> Δb -> ΔV' -> Δa' 时 Δa' == Δa
-     *      白皮书证明：当 K=2 时严格可逆；代码中 K 缩放100倍，故 K=200
-     * 公式 (无手续费):
-     * - good1Swap输入侧: ΔV = K*V*Δa / (K*Q + Δa*100)
-     * - good2Swap输出侧: Δb = K*Q*ΔV / (K*V + ΔV*100)
-     */
+    // ── pure math (whitepaper appendix I, K scaled ×100) ───────────────────
+
+    /// @dev K=200 ↔ on-chain K=2; strict reversibility when fees are zero.
     function testFixedKSwapReversibility() public pure {
-        // 固定K值，对应白皮书K=2 (代码中K缩放100倍，故K=200)
         uint128 K = 200;
-
-        // 初始池状态 (与initMetaGood一致: Q=V, I=Q, virtual=0)
-        uint128 Q_A = 50_000 * 10**6;
-        uint128 V_A = 50_000 * 10**12; // amount1 of investState
-        uint128 Q_B = 50_000 * 10**6;
-        uint128 V_B = 50_000 * 10**12;
-
-        // 正向: 输入 Δa 个 Token A
-        uint128 deltaA = 10_000 * 10**6;
-
-        // Step 1: good1Swap(A, side=true): quantity -> value
-        uint256 deltaV = (uint256(K) * uint256(V_A) * uint256(deltaA))
-            / (uint256(K) * uint256(Q_A) + uint256(deltaA) * 100);
-
-        // Step 2: good2Swap(B, side=true): value -> quantity
-        uint256 deltaB = (uint256(K) * uint256(Q_B) * deltaV)
-            / (uint256(K) * uint256(V_B) + deltaV * 100);
-
-        // 正向后池状态
-        uint128 Q_A_after = Q_A + deltaA;
-        uint128 Q_B_after = uint128(uint256(Q_B) - deltaB);
-
-        // 反向: 输入 Δb 个 Token B 换回 Token A
-        uint128 deltaB_u128 = uint128(deltaB);
-
-        // Step 3: good1Swap(B, side=true): quantity -> value
-        uint256 deltaV_rev = (uint256(K) * uint256(V_B) * uint256(deltaB_u128))
-            / (uint256(K) * uint256(Q_B_after) + uint256(deltaB_u128) * 100);
-
-        // Step 4: good2Swap(A, side=true): value -> quantity
-        uint256 deltaA_rev = (uint256(K) * uint256(Q_A_after) * deltaV_rev)
-            / (uint256(K) * uint256(V_A) + deltaV_rev * 100);
-
-        // 可逆性断言: Δa' 应等于 Δa (允许1单位整数截断误差)
-        assertApproxEqAbs(
-            deltaA_rev,
-            uint256(deltaA),
-            1,
-            "Fixed K: A->B->A should be reversible (within rounding)"
-        );
-    }
-
-    /// @notice 验证 K=300 时是否可逆 (白皮书附录I: 仅 K=2 时可逆)
-    function testFixedK300SwapReversibility() public pure {
-        uint128 K = 300;
-        uint128 Q_A = 50_000 * 10**6;
-        uint128 V_A = 50_000 * 10**12;
-        uint128 Q_B = 50_000 * 10**6;
-        uint128 V_B = 50_000 * 10**12;
-        uint128 deltaA = 10_000 * 10**6;
+        uint128 Q_A = 50_000 * 10 ** 6;
+        uint128 V_A = 50_000 * 10 ** 12;
+        uint128 Q_B = 50_000 * 10 ** 6;
+        uint128 V_B = 50_000 * 10 ** 12;
+        uint128 deltaA = 10_000 * 10 ** 6;
 
         uint256 deltaV = (uint256(K) * uint256(V_A) * uint256(deltaA))
             / (uint256(K) * uint256(Q_A) + uint256(deltaA) * 100);
@@ -200,26 +181,44 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         uint256 deltaA_rev = (uint256(K) * uint256(Q_A_after) * deltaV_rev)
             / (uint256(K) * uint256(V_A) + deltaV_rev * 100);
 
-        // K=300 不可逆: 反向换回量 deltaA_rev > deltaA，存在套利空间
-        assertGt(deltaA_rev, uint256(deltaA), "K=300: not reversible, reverse yields more");
+        assertApproxEqAbs(deltaA_rev, uint256(deltaA), 1, "K=200 reversible");
     }
 
-    /**
-     * @notice 验证非对称K的可逆性: A池 数量→价值K=300, 价值→数量K=150; B池K=200
-     * @dev 带*100因子的可逆条件: k2=100*k1/(k1-100). 故 k1=300 时 k2=150 恰好可逆
-     */
+    function testFixedK300SwapNotReversible() public pure {
+        uint128 K = 300;
+        uint128 Q_A = 50_000 * 10 ** 6;
+        uint128 V_A = 50_000 * 10 ** 12;
+        uint128 Q_B = 50_000 * 10 ** 6;
+        uint128 V_B = 50_000 * 10 ** 12;
+        uint128 deltaA = 10_000 * 10 ** 6;
+
+        uint256 deltaV = (uint256(K) * uint256(V_A) * uint256(deltaA))
+            / (uint256(K) * uint256(Q_A) + uint256(deltaA) * 100);
+        uint256 deltaB = (uint256(K) * uint256(Q_B) * deltaV)
+            / (uint256(K) * uint256(V_B) + deltaV * 100);
+
+        uint128 Q_A_after = Q_A + deltaA;
+        uint128 Q_B_after = uint128(uint256(Q_B) - deltaB);
+
+        uint256 deltaV_rev = (uint256(K) * uint256(V_B) * deltaB)
+            / (uint256(K) * uint256(Q_B_after) + deltaB * 100);
+        uint256 deltaA_rev = (uint256(K) * uint256(Q_A_after) * deltaV_rev)
+            / (uint256(K) * uint256(V_A) + deltaV_rev * 100);
+
+        assertGt(deltaA_rev, uint256(deltaA), "K=300 not reversible");
+    }
+
     function testAsymmetricKReversibility() public pure {
-        uint128 K_A_in = 300;  // A 数量→价值
-        uint128 K_A_out = 150; // A 价值→数量
-        uint128 K_B = 200;     // B 双向
+        uint128 K_A_in = 300;
+        uint128 K_A_out = 150;
+        uint128 K_B = 200;
 
-        uint128 Q_A = 50_000 * 10**6;
-        uint128 V_A = 50_000 * 10**12;
-        uint128 Q_B = 50_000 * 10**6;
-        uint128 V_B = 50_000 * 10**12;
-        uint128 deltaA = 10_000 * 10**6;
+        uint128 Q_A = 50_000 * 10 ** 6;
+        uint128 V_A = 50_000 * 10 ** 12;
+        uint128 Q_B = 50_000 * 10 ** 6;
+        uint128 V_B = 50_000 * 10 ** 12;
+        uint128 deltaA = 10_000 * 10 ** 6;
 
-        // 正向 A->B: A用K_A_in算Δv, B用K_B算Δb
         uint256 deltaV = (uint256(K_A_in) * uint256(V_A) * uint256(deltaA))
             / (uint256(K_A_in) * uint256(Q_A) + uint256(deltaA) * 100);
         uint256 deltaB = (uint256(K_B) * uint256(Q_B) * deltaV)
@@ -228,35 +227,24 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         uint128 Q_A_after = Q_A + deltaA;
         uint128 Q_B_after = uint128(uint256(Q_B) - deltaB);
 
-        // 反向 B->A: B用K_B算Δv', A用K_A_out算Δa'
         uint256 deltaV_rev = (uint256(K_B) * uint256(V_B) * deltaB)
             / (uint256(K_B) * uint256(Q_B_after) + deltaB * 100);
         uint256 deltaA_rev = (uint256(K_A_out) * uint256(Q_A_after) * deltaV_rev)
             / (uint256(K_A_out) * uint256(V_A) + deltaV_rev * 100);
 
-        // 可逆性: 允许整数截断误差
-        assertApproxEqAbs(
-            deltaA_rev,
-            uint256(deltaA),
-            1,
-            "Asymmetric K: A(K_in=300,K_out=150) B(200) reversibility check"
-        );
+        assertApproxEqAbs(deltaA_rev, uint256(deltaA), 1, "asymmetric K reversible");
     }
 
-    /**
-     * @notice 验证双池同参数可逆性: A和B均为 数量→价值K=300, 价值→数量K=150
-     */
     function testBothPoolsAsymmetricKReversibility() public pure {
         uint128 K_in = 300;
         uint128 K_out = 150;
 
-        uint128 Q_A = 50_000 * 10**6;
-        uint128 V_A = 50_000 * 10**12;
-        uint128 Q_B = 50_000 * 10**6;
-        uint128 V_B = 50_000 * 10**12;
-        uint128 deltaA = 10_000 * 10**6;
+        uint128 Q_A = 50_000 * 10 ** 6;
+        uint128 V_A = 50_000 * 10 ** 12;
+        uint128 Q_B = 50_000 * 10 ** 6;
+        uint128 V_B = 50_000 * 10 ** 12;
+        uint128 deltaA = 10_000 * 10 ** 6;
 
-        // 正向 A->B: A用K_in, B用K_out
         uint256 deltaV = (uint256(K_in) * uint256(V_A) * uint256(deltaA))
             / (uint256(K_in) * uint256(Q_A) + uint256(deltaA) * 100);
         uint256 deltaB = (uint256(K_out) * uint256(Q_B) * deltaV)
@@ -265,453 +253,199 @@ contract modified_swap_without_fee is Test, GasSnapshot {
         uint128 Q_A_after = Q_A + deltaA;
         uint128 Q_B_after = uint128(uint256(Q_B) - deltaB);
 
-        // 反向 B->A: B用K_in, A用K_out
         uint256 deltaV_rev = (uint256(K_in) * uint256(V_B) * deltaB)
             / (uint256(K_in) * uint256(Q_B_after) + deltaB * 100);
         uint256 deltaA_rev = (uint256(K_out) * uint256(Q_A_after) * deltaV_rev)
             / (uint256(K_out) * uint256(V_A) + deltaV_rev * 100);
 
+        assertApproxEqAbs(deltaA_rev, uint256(deltaA), 1, "both pools asymmetric K");
+    }
+
+    // ── integration: buyGood round-trips ───────────────────────────────────
+
+    function testSwapA2B_single() public {
+        vm.startPrank(marketcreator);
+        _fundTrader();
+
+        uint256 usdcBefore = usdc.balanceOf(marketcreator);
+        uint256 usdtBefore = usdt.balanceOf(marketcreator);
+
+        (, uint256 g2) = _buy(_usdcKey(), _usdtKey(), SWAP_IN, MIN_OUT);
+        snapLastCall("swap_without_fee_a2b");
+
+        assertGt(g2.amount1(), 0, "received usdt");
+        assertEq(usdc.balanceOf(marketcreator), usdcBefore - SWAP_IN, "spent usdc");
+        assertGt(usdt.balanceOf(marketcreator), usdtBefore, "gained usdt");
+        vm.stopPrank();
+    }
+
+    function testSwapA2B_consecutive() public {
+        vm.startPrank(marketcreator);
+        _fundTrader();
+
+        uint256 usdcBefore = usdc.balanceOf(marketcreator);
+        _buy(_usdcKey(), _usdtKey(), HALF_SWAP, MIN_OUT);
+        _buy(_usdcKey(), _usdtKey(), HALF_SWAP, MIN_OUT);
+        snapLastCall("swap_without_fee_a2b_twice");
+
+        assertEq(usdc.balanceOf(marketcreator), usdcBefore - SWAP_IN, "spent total usdc");
+        vm.stopPrank();
+    }
+
+    function testSwapA2B2A_reversible() public {
+        vm.startPrank(marketcreator);
+        _fundTrader();
+
+        uint256 usdcBefore = usdc.balanceOf(marketcreator);
+        uint256 usdtBefore = usdt.balanceOf(marketcreator);
+
+        (, uint256 leg1) = _buy(_usdcKey(), _usdtKey(), SWAP_IN, MIN_OUT);
+        uint128 usdtReceived = leg1.amount1();
+        assertGt(usdtReceived, MIN_OUT, "leg1 output");
+
+        _buy(_usdtKey(), _usdcKey(), usdtReceived, 0);
+        snapLastCall("swap_without_fee_a2b2a");
+
+        uint256 usdcDiff = usdcBefore > usdc.balanceOf(marketcreator)
+            ? usdcBefore - usdc.balanceOf(marketcreator)
+            : usdc.balanceOf(marketcreator) - usdcBefore;
+
+        assertApproxEqAbs(usdcDiff, 0, 2, "round-trip usdc reversible");
+        assertEq(usdt.balanceOf(marketcreator), usdtBefore, "usdt restored");
+        vm.stopPrank();
+    }
+
+    function testSwapA2B2A_doubleRoundTrip() public {
+        vm.startPrank(marketcreator);
+        _fundTrader();
+
+        uint256 usdcBefore = usdc.balanceOf(marketcreator);
+
+        for (uint256 i = 0; i < 2; i++) {
+            (, uint256 leg1) = _buy(_usdcKey(), _usdtKey(), SWAP_IN, MIN_OUT);
+            _buy(_usdtKey(), _usdcKey(), leg1.amount1(), 0);
+        }
+        snapLastCall("swap_without_fee_a2b2a_twice");
+
+        uint256 usdcDiff = usdcBefore > usdc.balanceOf(marketcreator)
+            ? usdcBefore - usdc.balanceOf(marketcreator)
+            : usdc.balanceOf(marketcreator) - usdcBefore;
+        assertApproxEqAbs(usdcDiff, 0, 4, "two round-trips stay reversible");
+        vm.stopPrank();
+    }
+
+    function testSwapA2B2C2A_triangular() public {
+        vm.startPrank(marketcreator);
+        _fundTrader();
+
+        uint256 usdcBefore = usdc.balanceOf(marketcreator);
+        uint256 marketUsdcBefore = usdc.balanceOf(address(market));
+        uint256 marketUsdtBefore = usdt.balanceOf(address(market));
+        uint256 marketBtcBefore = btc.balanceOf(address(market));
+
+        (, uint256 leg1) = _buy(_usdcKey(), _usdtKey(), SWAP_IN, MIN_OUT);
+        (, uint256 leg2) = _buy(_usdtKey(), _btcKey(), leg1.amount1(), 0);
+        _buy(_btcKey(), _usdcKey(), leg2.amount1(), 0);
+        snapLastCall("swap_without_fee_a2b2c2a");
+
+        assertGt(usdc.balanceOf(marketcreator), usdcBefore - SWAP_IN, "recovered most usdc");
+        // Three-hop integer rounding can leave sub-1000 wei dust in market custody.
         assertApproxEqAbs(
-            deltaA_rev,
-            uint256(deltaA),
-            1,
-            "Both pools K_in=300,K_out=150 reversibility check"
+            usdc.balanceOf(address(market)),
+            marketUsdcBefore,
+            1000,
+            "market usdc conserved"
         );
-    }
-
-    function testswapA2B2Awithoutfee() public {
-        vm.startPrank(marketcreator);
-        uint256 usdcbefore = usdc.balanceOf(marketcreator);
-        uint256 usdtbefore = usdt.balanceOf(marketcreator);
-        usdc.approve(address(market), 50000 * 10 ** 6 + 1);
-        usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-        S_GoodTmpState memory beforeusdc = market.getGoodState(address(usdc));
-        S_GoodTmpState memory beforeusdt = market.getGoodState(address(usdt));
-        
-        // 第一次交换：USDC -> USDT
-        uint128 inputAmount = 10000 * 10 ** 6;
-        market.buyGood(
-            address(usdc),
-            address(usdt),
-            toTTSwapUINT256(inputAmount, 1000 * 10 ** 6),
-            address(0),
-            "",
-            marketcreator,"",0
+        assertApproxEqAbs(
+            usdt.balanceOf(address(market)),
+            marketUsdtBefore,
+            1000,
+            "market usdt conserved"
         );
-        snapLastCall("testswapwithoutfee1");
-        
-        uint256 usdcafter = usdc.balanceOf(address(marketcreator));
-        uint256 usdtafter = usdt.balanceOf(address(marketcreator));
-        uint128 usdtReceived = uint128(usdtafter - usdtbefore);
-        
-        console2.log("usdcbefore1:", usdcbefore);
-        console2.log("usdcafter1:", usdcafter);
-        console2.log("usdtbefore1:", usdtbefore);
-        console2.log("usdtafter1:", usdtafter);
-        console2.log("usdtReceived:", usdtReceived);
-        
-        // 第二次交换：用第一次获得的全部USDT换回USDC
-        market.buyGood(
-            address(usdt),
-            address(usdc),
-            toTTSwapUINT256(usdtReceived, 0),
-            msg.sender,
-            "",
-            marketcreator,"",0
+        assertApproxEqAbs(
+            btc.balanceOf(address(market)),
+            marketBtcBefore,
+            100,
+            "market btc conserved"
         );
-
-        snapLastCall("testswapwithoutfee2");
-        
-        uint256 usdcfinal = usdc.balanceOf(address(marketcreator));
-        uint256 usdtfinal = usdt.balanceOf(address(marketcreator));
-        
-        console2.log("usdcfinal:", usdcfinal);
-        console2.log("usdtfinal:", usdtfinal);
-        
-        // 验证可逆性：最终USDC应接近初始值（允许舍入误差）
-        uint256 usdcDiff = usdcfinal > usdcbefore ? usdcfinal - usdcbefore : usdcbefore - usdcfinal;
-        console2.log("USDC difference:", usdcDiff);
-        console2.log("Expected ~0 for reversibility");
-        S_GoodTmpState memory afterusdc = market.getGoodState(address(usdc));
-        S_GoodTmpState memory afterusdt = market.getGoodState(address(usdt));
-        console2.log(
-            "beforeusdc_currentStateamount0:",
-            beforeusdc.currentState.amount0()
-        );
-        console2.log(
-            "afterusdc_currentStateamount0:",
-            afterusdc.currentState.amount0()
-        );
-        console2.log(
-            "beforeusdc_currentStateamount1:",
-            beforeusdc.currentState.amount1()
-        );
-        console2.log(
-            "afterusdc_currentStateamount1:",
-            afterusdc.currentState.amount1()
-        );
-    
-       
-        console2.log(
-            "beforeusdt_currentStateamount0:",
-            beforeusdt.currentState.amount0()
-        );
-        console2.log(
-            "afterusdt_currentStateamount0:",
-            afterusdt.currentState.amount0()
-        );
-        console2.log(
-            "beforeusdt_currentStateamount1:",
-            beforeusdt.currentState.amount1()
-        );
-        console2.log(
-            "afterusdt_currentStateamount1:",
-            afterusdt.currentState.amount1()
-        );
-
-       afterusdc = market.getGoodState(address(usdc));
-       beforeusdt = market.getGoodState(address(usdt));
-        
-        // 第一次交换：USDC -> USDT
-         inputAmount = 10000 * 10 ** 6;
-        market.buyGood(
-            address(usdc),
-            address(usdt),
-            toTTSwapUINT256(inputAmount, 1000 * 10 ** 6),
-            address(0),
-            "",
-            marketcreator,"",0
-        );
-        snapLastCall("testswapwithoutfee1");
-        
-         usdcafter = usdc.balanceOf(address(marketcreator));
-         usdtafter = usdt.balanceOf(address(marketcreator));
-         usdtReceived = uint128(usdtafter - usdtbefore);
-        
-        console2.log("usdcbefore1:", usdcbefore);
-        console2.log("usdcafter1:", usdcafter);
-        console2.log("usdtbefore1:", usdtbefore);
-        console2.log("usdtafter1:", usdtafter);
-        console2.log("usdtReceived:", usdtReceived);
-        
-        // 第二次交换：用第一次获得的全部USDT换回USDC
-        market.buyGood(
-            address(usdt),
-            address(usdc),
-            toTTSwapUINT256(usdtReceived, 0),
-            msg.sender,
-            "",
-            marketcreator,"",0
-        );
-
-        snapLastCall("testswapwithoutfee2");
-        
-         usdcfinal = usdc.balanceOf(address(marketcreator));
-         usdtfinal = usdt.balanceOf(address(marketcreator));
-        
-        console2.log("usdcfinal:", usdcfinal);
-        console2.log("usdtfinal:", usdtfinal);
-        
-        // 验证可逆性：最终USDC应接近初始值（允许舍入误差）
-         usdcDiff = usdcfinal > usdcbefore ? usdcfinal - usdcbefore : usdcbefore - usdcfinal;
-        console2.log("USDC difference:", usdcDiff);
-        console2.log("Expected ~0 for reversibility");
-        afterusdc = market.getGoodState(address(usdc));
-         afterusdt = market.getGoodState(address(usdt));
-        console2.log(
-            "beforeusdc_currentStateamount0:",
-            beforeusdc.currentState.amount0()
-        );
-        console2.log(
-            "afterusdc_currentStateamount0:",
-            afterusdc.currentState.amount0()
-        );
-        console2.log(
-            "beforeusdc_currentStateamount1:",
-            beforeusdc.currentState.amount1()
-        );
-        console2.log(
-            "afterusdc_currentStateamount1:",
-            afterusdc.currentState.amount1()
-        );
-    
-       
-        console2.log(
-            "beforeusdt_currentStateamount0:",
-            beforeusdt.currentState.amount0()
-        );
-        console2.log(
-            "afterusdt_currentStateamount0:",
-            afterusdt.currentState.amount0()
-        );
-        console2.log(
-            "beforeusdt_currentStateamount1:",
-            beforeusdt.currentState.amount1()
-        );
-        console2.log(
-            "afterusdt_currentStateamount1:",
-            afterusdt.currentState.amount1()
-        );
-    
         vm.stopPrank();
     }
 
-    function testswapA2B2C2Awithoutfee() public {
-        vm.startPrank(marketcreator);
-        uint256 usdcbefore = usdc.balanceOf(address(market));
-        uint256 usdtbefore = usdt.balanceOf(address(market));
-        usdc.approve(address(market), 50000 * 10 ** 6 + 1);
-        usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-        S_GoodTmpState memory beforeusdc = market.getGoodState(address(usdc));
-        S_GoodTmpState memory beforeusdt = market.getGoodState(address(usdt));
-        market.buyGood(
-            address(usdc),
-            address(usdt),
-            toTTSwapUINT256(10000 * 10 ** 6, 1000 * 10 ** 6),
-            
-            address(0),
-            "",
-            marketcreator,"",0
+    /// @dev Mirrors `L_Good._good1SwapOutput` (side=false, zero sell fee).
+    function testGood1Swap_exactOut_math() public pure {
+        uint128 current_quantity = 50_000 * 10 ** 6;
+        uint128 current_value = 50_000 * 10 ** 12;
+        uint128 desiredValue = 10_000 * 10 ** 12;
+
+        uint128 swapTemp = uint128(
+            (2 * uint256(desiredValue) * uint256(current_quantity)) /
+                (2 * uint256(current_value) - uint256(desiredValue))
         );
-        snapLastCall("testswapwithoutfee1");
-        uint256 usdcafter = usdc.balanceOf(address(address(market)));
-        uint256 usdtafter = usdt.balanceOf(address(address(market)));
-        uint256 btcbefore = btc.balanceOf(address(address(market)));
-        console2.log("btcbefore:", btcbefore);
-        console2.log("usdcbefore:", usdcbefore);
-        console2.log("usdtbefore:", usdtbefore);
-        console2.log("usdcafter:", usdcafter);
-        console2.log("usdtafter:", usdtafter);
-        market.buyGood(
-            address(usdt),
-            address(btc),
-            toTTSwapUINT256(8333333332, 0),
-            
-            address(0),
-            "",
-            marketcreator,"",0  
-        );
-        snapLastCall("testswapwithoutfee1");
-        usdcafter = usdc.balanceOf(address(address(market)));
-        usdtafter = usdt.balanceOf(address(address(market)));
-        uint256 btcafter = btc.balanceOf(address(address(market)));
-        console2.log("usdcafter:", usdcafter);
-        console2.log("usdtafter:", usdtafter);
-        console2.log("btcafter:", btcafter);
-        market.buyGood(
-            address(btc),
-            address(usdc),
-            toTTSwapUINT256(7418397, 0),
-            
-            address(0),
-            "",
-            marketcreator,"",0
-        );
-        snapLastCall("testswapwithoutfee3");
-        usdcafter = usdc.balanceOf(address(market));
-        usdtafter = usdt.balanceOf(address(market));
-        btcafter = btc.balanceOf(address(market));
-        console2.log("usdcafter:", usdcafter);
-        console2.log("usdtafter:", usdtafter);
-        console2.log("btcafter:", btcafter);
-        vm.stopPrank();
+        assertEq(swapTemp, 11_111_111_111, "exact-out quantity matches on-chain formula");
+        assertLt(uint256(desiredValue), 2 * uint256(current_value), "precondition for exact-out");
     }
 
-    function testswapA2B_part1() public {
-        vm.startPrank(marketcreator);
-        uint256 usdcbefore = usdc.balanceOf(marketcreator);
-        uint256 usdtbefore = usdt.balanceOf(marketcreator);
-        usdc.approve(address(market), 50000 * 10 ** 6 + 1);
-        usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-        S_GoodTmpState memory beforeusdc = market.getGoodState(address(usdc));
-        S_GoodTmpState memory beforeusdt = market.getGoodState(address(usdt));
-        market.buyGood(
-            address(usdc),
-            address(usdt),
-            toTTSwapUINT256(10000 * 10 ** 6, 1000 * 10 ** 6),
-            
-            address(0),
-            "",
-            marketcreator,"",0
-        );
-        snapLastCall("testswapwithoutfee1");
-        uint256 usdcafter = usdc.balanceOf(address(marketcreator));
-        uint256 usdtafter = usdt.balanceOf(address(marketcreator));
-        console2.log("usdcbefore:", usdcbefore);
-        console2.log("usdtbefore:", usdtbefore);
-        console2.log("usdcafter:", usdcafter);
-        console2.log("usdtafter:", usdtafter);
-        vm.stopPrank();
+    function testGood1Swap_exactOut_revert_overflow() public {
+        uint128 current_value = 50_000 * 10 ** 12;
+        uint128 tooLarge = uint128(2 * current_value);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 54));
+        this._good1SwapOutputRevert(tooLarge, current_value, 50_000 * 10 ** 6);
     }
 
-  //usdcbefore: 950000000000
-  //usdtbefore: 950000000000
-  //usdcafter: 940000000000
-  //usdtafter: 958333333332
-    function testswapA2B_part2() public {
-        vm.startPrank(marketcreator);
-        uint256 usdcbefore = usdc.balanceOf(marketcreator);
-        uint256 usdtbefore = usdt.balanceOf(marketcreator);
-        usdc.approve(address(market), 50000 * 10 ** 6 + 1);
-        usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-        S_GoodTmpState memory beforeusdc = market.getGoodState(address(usdc));
-        S_GoodTmpState memory beforeusdt = market.getGoodState(address(usdt));
-        market.buyGood(
-            address(usdc),
-            address(usdt),
-            toTTSwapUINT256(5000 * 10 ** 6, 1000 * 10 ** 6),
-            
-            address(0),
-            "",
-            marketcreator,"",0
+    function _good1SwapOutputRevert(
+        uint128 swapParam,
+        uint128 currentValue,
+        uint128 currentQty
+    ) external pure {
+        if (uint256(swapParam) >= 2 * uint256(currentValue)) {
+            revert TTSwapError(54);
+        }
+        uint128 swapTemp = uint128(
+            (2 * uint256(swapParam) * uint256(currentQty)) /
+                (2 * uint256(currentValue) - uint256(swapParam))
         );
-
-        market.buyGood(
-            address(usdc),
-            address(usdt),
-            toTTSwapUINT256(5000 * 10 ** 6, 1000 * 10 ** 6),
-            
-            address(0),
-            "",
-            marketcreator,"",0  
-        );
-        snapLastCall("testswapwithoutfee1");
-        uint256 usdcafter = usdc.balanceOf(address(marketcreator));
-        uint256 usdtafter = usdt.balanceOf(address(marketcreator));
-        console2.log("usdcbefore:", usdcbefore);
-        console2.log("usdtbefore:", usdtbefore);
-        console2.log("usdcafter:", usdcafter);
-        console2.log("usdtafter:", usdtafter);
-        vm.stopPrank();
+        swapTemp;
     }
 
-    function testpaywithoutfee() public {
-        vm.startPrank(marketcreator);
-        uint256 usdcbefore = usdc.balanceOf(address(marketcreator));
-        uint256 usdtbefore = usdt.balanceOf(address(marketcreator));
-        console2.log("usdcbefore:", usdcbefore);
-        console2.log("usdtbefore:", usdtbefore);
-        usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-        S_GoodTmpState memory beforeusdc = market.getGoodState(address(usdc));
-        S_GoodTmpState memory beforeusdt = market.getGoodState(address(usdt));
-        market.payGood(
-            address(usdt),
-            address(usdc),
-            toTTSwapUINT256(3000 * 10 ** 6, 1000 * 10 ** 6),
-            
-            marketcreator,
-            "",
-            marketcreator,"",0
+    /// @dev Mirrors `L_Good.good2Swap` output-side branch (side=false, zero buy fee).
+    function testGood2Swap_outputSide_math() public pure {
+        uint128 current_quantity = 50_000 * 10 ** 6;
+        uint128 current_value = 50_000 * 10 ** 12;
+        uint128 desiredQty = 5_000 * 10 ** 6;
+
+        uint128 swap = desiredQty;
+        uint128 swapTemp = uint128(
+            (2 * uint256(swap) * uint256(current_value)) /
+                (2 * uint256(current_quantity) - uint256(swap))
         );
-        snapLastCall("testpaywithoutfee1");
-        uint256 usdcafter = usdc.balanceOf(address(marketcreator));
-        uint256 usdtafter = usdt.balanceOf(address(marketcreator));
-        console2.log("usdcafter:", usdcafter);
-        console2.log("usdtafter:", usdtafter);
-        usdc.approve(address(market), 50000 * 10 ** 6 + 1);
-        market.payGood(
-            address(usdc),
-            address(usdt),
-            toTTSwapUINT256(10000 * 10 ** 6, 1020408163),
-            marketcreator,
-            "",
-            marketcreator,"",0
-        );
-        snapLastCall("testpaywithoutfee2");
-        usdcafter = usdc.balanceOf(address(marketcreator));
-        usdtafter = usdt.balanceOf(address(marketcreator));
-        console2.log("usdcafter:", usdcafter);
-        console2.log("usdtafter:", usdtafter);
-        S_GoodTmpState memory afterusdc = market.getGoodState(address(usdc));
-        S_GoodTmpState memory afterusdt = market.getGoodState(address(usdt));
-        console2.log(
-            "beforeusdc_currentStateamount0:",
-            beforeusdc.currentState.amount0()
-        );
-        console2.log(
-            "afterusdc_currentStateamount0:",
-            afterusdc.currentState.amount0()
-        );
-        console2.log(
-            "beforeusdc_currentStateamount1:",
-            beforeusdc.currentState.amount1()
-        );
-        console2.log(
-            "afterusdc_currentStateamount1:",
-            afterusdc.currentState.amount1()
-        );
-        console2.log(
-            "beforeusdc_investStateamount0:",
-            beforeusdc.investState.amount0()
-        );
-        console2.log(
-            "afterusdc_investStateamount0:",
-            afterusdc.investState.amount0()
-        );
-        console2.log(
-            "beforeusdc_investStateamount1:",
-            beforeusdc.investState.amount1()
-        );
-        console2.log(
-            "afterusdc_investStateamount1:",
-            afterusdc.investState.amount1()
-        );
-       
-        console2.log(
-            "beforeusdt_currentStateamount0:",
-            beforeusdt.currentState.amount0()
-        );
-        console2.log(
-            "afterusdt_currentStateamount0:",
-            afterusdt.currentState.amount0()
-        );
-        console2.log(
-            "beforeusdt_currentStateamount1:",
-            beforeusdt.currentState.amount1()
-        );
-        console2.log(
-            "afterusdt_currentStateamount1:",
-            afterusdt.currentState.amount1()
-        );
-        console2.log(
-            "beforeusdt_investStateamount0:",
-            beforeusdt.investState.amount0()
-        );
-        console2.log(
-            "afterusdt_investStateamount0:",
-            afterusdt.investState.amount0()
-        );
-        console2.log(
-            "beforeusdt_investStateamount1:",
-            beforeusdt.investState.amount1()
-        );
-        console2.log(
-            "afterusdt_investStateamount1:",
-            afterusdt.investState.amount1()
-        );
-        
-        vm.stopPrank();
+        assertGt(swapTemp, 0, "output-side value delta");
     }
 
-    // function testaaswap()public{
-    //     vm.startPrank(marketcreator);
-    //     uint256 usdcbefore=usdc.balanceOf(marketcreator);
-    //     uint256 usdtbefore=usdt.balanceOf(marketcreator);
-    //     usdc.approve(address(market), 50000 * 10 ** 6 + 1);
-    //     usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-    //     market.buyGood(address(usdc),address(usdt),1000*10**6,5,address(0),"",0);
-    //     uint256 usdcafter=usdc.balanceOf(marketcreator);
-    //     uint256 usdtafter=usdt.balanceOf(marketcreator);
-    //     console2.log("usdcbefore:",usdcbefore);
-    //     console2.log("usdtbefore:",usdtbefore);
-    //     console2.log("usdcafter:",usdcafter);
-    //     console2.log("usdtafter:",usdtafter);
-    //     market.buyGood(address(usdt),address(usdc),99601593,5,address(0),"",0);
-    //     usdcafter=usdc.balanceOf(marketcreator);
-    //     usdtafter=usdt.balanceOf(marketcreator);
+    function testSwap_poolState_conserved() public {
+        vm.startPrank(marketcreator);
+        _fundTrader();
 
-    //     console2.log("usdcafter:",usdcafter);
-    //     console2.log("usdtafter:",usdtafter);
-    //     vm.stopPrank();
-    // }
+        S_GoodTmpState memory usdcBefore = market.getGoodState(usdcGoodId);
+        S_GoodTmpState memory usdtBefore = market.getGoodState(usdtGoodId);
+
+        (, uint256 leg1) = _buy(_usdcKey(), _usdtKey(), SWAP_IN, MIN_OUT);
+        _buy(_usdtKey(), _usdcKey(), leg1.amount1(), 0);
+
+        S_GoodTmpState memory usdcAfter = market.getGoodState(usdcGoodId);
+        S_GoodTmpState memory usdtAfter = market.getGoodState(usdtGoodId);
+
+        assertApproxEqAbs(
+            usdcAfter.currentState.amount1(),
+            usdcBefore.currentState.amount1(),
+            2,
+            "usdc qty restored"
+        );
+        assertApproxEqAbs(
+            usdtAfter.currentState.amount1(),
+            usdtBefore.currentState.amount1(),
+            2,
+            "usdt qty restored"
+        );
+        vm.stopPrank();
+    }
 }

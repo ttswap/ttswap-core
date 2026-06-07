@@ -13,7 +13,7 @@ interface I_TTSwap_Market {
     /// @param _goodid The ID of the good
     /// @param _goodConfig The new configuration
     event e_updateGoodConfig(
-        uint256 _goodid,
+        uint256 indexed _goodid,
         uint256 _goodConfig,
         address _trader
     );
@@ -22,7 +22,7 @@ interface I_TTSwap_Market {
     /// @param _goodid The ID of the good
     /// @param _goodconfig The new configuration
     event e_modifyGoodConfig(
-        uint256 _goodid,
+        uint256 indexed _goodid,
         uint256 _goodconfig,
         address _trader
     );
@@ -44,7 +44,7 @@ interface I_TTSwap_Market {
     /// @notice Emitted when welfare is delivered to investors
     /// @param goodid The ID of the good
     /// @param welfare The amount of welfare
-    event e_goodWelfare(uint256 goodid, uint128 welfare, address _trader);
+    event e_goodWelfare(uint256 indexed goodid, uint128 welfare, address _trader);
 
     /// @notice Emitted when a one token is invested or created
     /// @dev The decimal precision of _initial.amount0() defaults to 6
@@ -54,8 +54,8 @@ interface I_TTSwap_Market {
     /// @param _invest Market initialization parameters: amount0 is the value, amount1 is the quantity
     /// for verison <1.15.0
     event e_investGood(
-        uint256 _proofNo,
-        uint256 _goodid,
+        uint256 indexed _proofNo,
+        uint256 indexed _goodid,
         uint256 _construct,
         uint256 _value,
         uint256 _invest,
@@ -69,9 +69,10 @@ interface I_TTSwap_Market {
     /// @param _normalinitial Normal good initialization parameters: amount0 is the quantity, amount1 is the value
     /// for verison <1.15.0
     event e_initGood(
-        uint256 _proofNo,
-        uint256 _goodid,
+        uint256 indexed _proofNo,
+        uint256 indexed _goodid,
         uint256 _goodinfo,
+        uint256 _good_id,
         uint256 _construct,
         uint256 _normalinitial,
         address _trader
@@ -93,41 +94,26 @@ interface I_TTSwap_Market {
         address _trader,
         uint256 external_info
     );
-    /// @notice Emitted when a user makes a payment using goods
-    /// @param sellgood The ID of the good being sold/used for payment
-    /// @param forgood The ID of the good being received
-    /// @param swapvalue The trade value
-    /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
-    /// @param good2change The status of the received good (amount0: fee, amount1: quantity)
-    /// @param _trader The address of the trader initiating the payment
-    /// @param external_info The hash of the transaction data for verification
-    event e_payGood(
-        uint256 indexed sellgood,
-        uint256 indexed forgood,
-        uint256 swapvalue,
-        uint256 good1change,
-        uint256 good2change,
-        address _trader,
-        address _recipient,
-        uint256 external_info
-    );
+    // /// @notice Emitted when a user makes a payment using goods
+    // /// @param sellgood The ID of the good being sold/used for payment
+    // /// @param forgood The ID of the good being received
+    // /// @param swapvalue The trade value
+    // /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
+    // /// @param good2change The status of the received good (amount0: fee, amount1: quantity)
+    // /// @param _trader The address of the trader initiating the payment
+    // /// @param external_info The hash of the transaction data for verification
+    // event e_payGood(
+    //     uint256 indexed sellgood,
+    //     uint256 indexed forgood,
+    //     uint256 swapvalue,
+    //     uint256 good1change,
+    //     uint256 good2change,
+    //     address _trader,
+    //     address _recipient,
+    //     uint256 external_info
+    // );
 
-    /// @notice Emitted when a user invests in a normal good
-    /// @param _proofNo The ID of the investment proof
-    /// @param _normalgoodid Packed data: first 128 bits for good's ID, last 128 bits for stake construct
-    /// @param _valueGoodNo The ID of the value good
-    /// @param _value Investment value (amount0: virtual invest value, amount1: actual invest value)
-    /// @param _invest Normal good investment details (amount0: actual fee, amount1: actual invest quantity)
-    /// @param _valueinvest Value good investment details (amount0: actual fee, amount1: actual invest quantity)
-    event e_investGood(
-        uint256 indexed _proofNo,
-        address _normalgoodid,
-        address _valueGoodNo,
-        uint256 _value,
-        uint256 _invest,
-        uint256 _valueinvest,
-        address _trader
-    );
+
 
     /// @notice Emitted when a user disinvests from  good
     /// @param _proofNo The ID of the investment proof
@@ -146,7 +132,7 @@ interface I_TTSwap_Market {
         address _trader
     );
 
-    event e_getPromiseProof(uint256 _goodid, uint256 _proofid);
+    event e_getPromiseProof(uint256 indexed _goodid, uint256 _proofid);
     function nonces(address _trader) external view returns (uint256);
 
     /// @notice Initialize a new good with single-token deposit at a user-specified price
@@ -435,7 +421,8 @@ struct S_ProofState {
  */
 struct S_GoodState {
     uint256 goodConfig;
-    uint96 reserverd1; //commission config
+    uint88 reserverd1; //commission config
+    uint8 erctype;
     address contractAddress;
     uint96 reserved2; //  contract type,asset type,contract saddress
     address owner;

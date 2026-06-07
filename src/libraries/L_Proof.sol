@@ -104,7 +104,7 @@ library L_ProofIdLibrary {
         S_ProofKey memory proofKey
     ) internal pure returns (uint256 poolId) {
         assembly {
-            poolId := keccak256(proofKey, 0x60)
+            poolId := keccak256(proofKey, 0x40)
         }
     }
 }

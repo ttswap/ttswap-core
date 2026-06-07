@@ -1,487 +1,233 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.29;
 
-import {Test, console2} from "forge-std/src/Test.sol";
-import {MyToken} from "../src/test/MyToken.sol";
-import "../src/TTSwap_Market.sol";
+import {Vm} from "forge-std/src/Test.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
-import {S_ProofKey, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
-import {L_Good} from "../src/libraries/L_Good.sol";
-import {L_TTSwapUINT256Library, toTTSwapUINT256, addsub, subadd, lowerprice, toUint128} from "../src/libraries/L_TTSwapUINT256.sol";
-import {L_ProofIdLibrary, L_Proof} from "../src/libraries/L_Proof.sol";
-import {L_Good} from "../src/libraries/L_Good.sol";
-
+import {S_GoodTmpState, S_ProofState} from "../src/interfaces/I_TTSwap_Market.sol";
+import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
+import {
+    L_TTSwapUINT256Library,
+    toTTSwapUINT256
+} from "../src/libraries/L_TTSwapUINT256.sol";
 contract testInitNormalGood is BaseSetup {
-    using L_ProofIdLibrary for S_ProofKey;
+    using T_GoodKeyLibrary for T_GoodKey;
     using L_TTSwapUINT256Library for uint256;
 
-    address metagoodkey;
+    bytes32 internal constant INIT_GOOD_TOPIC =
+        keccak256(
+            "e_initGood(uint256,uint256,uint256,uint256,uint256,uint256,address)"
+        );
+
+    uint256 internal constant INITIAL_CONFIG =
+        0x000c350810450000000000842882040800000000000000000000000000000000;
+
+    uint256 internal metaGoodId;
+    uint128 internal constant BTC_QTY = uint128(1 * 10 ** 8);
+    uint128 internal constant INIT_VALUE = uint128(63000 * 10 ** 12);
 
     function setUp() public override {
         BaseSetup.setUp();
+        vm.warp(10);
+
         vm.startPrank(marketcreator);
-        deal(address(usdt), marketcreator, 100000 * 10 ** 6, false);
-        usdt.approve(address(market), 50000 * 10 ** 6 + 1);
-        uint256 _goodconfig = (2 ** 255) +
-            1 *
-            2 ** 217 +
-            3 *
-            2 ** 211 +
-            5 *
-            2 ** 204 +
-            7 *
-            2 ** 197;
-        market.initMetaGood(
-            address(usdt),
-            toTTSwapUINT256(50000 * 10 ** 12, 50000 * 10 ** 6),
-            _goodconfig,
+        T_GoodKey memory usdtKey = T_GoodKey({
+            ercType: 1,
+            contractAddress: address(usdt),
+            id: 0
+        });
+        uint128 metaQty = uint128(50000 * 10 ** 6);
+        uint128 metaValue = uint128(50000 * 10 ** 12);
+
+        usdt.mint(marketcreator, 100000);
+        usdt.approve(address(market), metaQty);
+        market.initGood(
+            usdtKey,
+            toTTSwapUINT256(metaValue, metaQty),
+            defaultdata,
+            marketcreator,
             defaultdata
         );
-        metagoodkey = address(usdt);
+        metaGoodId = usdtKey.toId();
         vm.stopPrank();
+    }
+
+    function _expectedGoodConfig() internal view returns (uint256) {
+        uint256 runSlot = (block.timestamp % 4095) % 10;
+        uint256 mask = 0x00000000000000007ff800000000000000000000000000000000000000000000;
+        return (INITIAL_CONFIG & ~mask) | (runSlot << 179);
+    }
+
+    function _proofIdFromInitGoodEvent() internal returns (uint256 proofId) {
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i = logs.length; i > 0; i--) {
+            if (logs[i - 1].topics[0] == INIT_GOOD_TOPIC) {
+                return uint256(logs[i - 1].topics[1]);
+            }
+        }
+        revert("e_initGood not found");
+    }
+
+    function _assertGoodState(
+        uint256 goodId,
+        address owner,
+        uint128 qty,
+        uint128 value
+    ) internal view {
+        S_GoodTmpState memory good_ = market.getGoodState(goodId);
+        assertEq(
+            good_.currentState,
+            toTTSwapUINT256(qty, qty),
+            "currentState error"
+        );
+        assertEq(
+            good_.investState,
+            toTTSwapUINT256(qty, value),
+            "investState error"
+        );
+        assertEq(
+            good_.goodConfig,
+            _expectedGoodConfig(),
+            "goodConfig error"
+        );
+        assertEq(good_.owner, owner, "owner error");
+    }
+
+    function _assertProofState(
+        uint256 proofId,
+        uint256 goodId,
+        uint128 qty,
+        uint128 value
+    ) internal view {
+        S_ProofState memory proof = market.getProofState(proofId);
+        assertEq(proof.currentgood, goodId, "proof currentgood error");
+        assertEq(
+            proof.state,
+            toTTSwapUINT256(value, value),
+            "proof state error"
+        );
+        assertEq(
+            proof.shares,
+            toTTSwapUINT256(qty, 0),
+            "proof shares error"
+        );
+        assertEq(
+            proof.invest,
+            toTTSwapUINT256(qty, qty),
+            "proof invest error"
+        );
     }
 
     function testinitNormalGood() public {
         vm.startPrank(users[1]);
-        deal(address(btc), users[1], 10 * 10 ** 8, false);
-        btc.approve(address(market), 1 * 10 ** 8 + 1);
-        deal(address(usdt), users[1], 100000 * 10 ** 6, false);
-        usdt.approve(address(market), 63000 * 10 ** 6 + 1);
+        T_GoodKey memory btcKey = T_GoodKey({
+            ercType: 1,
+            contractAddress: address(btc),
+            id: 0
+        });
+        uint256 btcGoodId = btcKey.toId();
+
+        deal(address(btc), users[1], 10 * BTC_QTY, false);
+        btc.approve(address(market), BTC_QTY);
 
         assertEq(
             usdt.balanceOf(address(market)),
             50000 * 10 ** 6,
-            "befor init erc20 good, balance of market error"
+            "before initGood: metagood balance unchanged"
         );
-        uint256 normalgoodconfig = 1 *
-            2 ** 217 +
-            3 *
-            2 ** 211 +
-            5 *
-            2 ** 204 +
-            7 *
-            2 ** 197;
+        assertEq(
+            btc.balanceOf(address(market)),
+            0,
+            "before initGood: market btc balance error"
+        );
+
+        vm.recordLogs();
         market.initGood(
-            metagoodkey,
-            toTTSwapUINT256(1 * 10 ** 8, 63000 * 10 ** 6),
-            address(btc),
-            normalgoodconfig,
-            defaultdata,
+            btcKey,
+            toTTSwapUINT256(INIT_VALUE, BTC_QTY),
             defaultdata,
             users[1],
             defaultdata
         );
         snapLastCall("init_ERC20_By_ERC20");
 
-        //normal good
-        address normalgoodkey = address(btc);
-
         assertEq(
             usdt.balanceOf(address(market)),
-            50000 * 10 ** 6 + 63000 * 10 ** 6,
-            "after initial normal good, balance of market error"
+            50000 * 10 ** 6,
+            "after initGood: metagood balance unchanged"
         );
-
         assertEq(
             btc.balanceOf(address(market)),
-            1 * 10 ** 8,
-            "after initial normal good, balance of market error"
+            BTC_QTY,
+            "after initGood: market btc balance error"
         );
-
-        assertEq(
-            usdt.balanceOf(users[1]),
-            100000 * 10 ** 6 - 63000 * 10 ** 6,
-            "after initial normal good, balance of market error"
-        );
-
         assertEq(
             btc.balanceOf(users[1]),
-            10 * 10 ** 8 - 1 * 10 ** 8,
-            "after initial normal good, balance of market error"
+            9 * BTC_QTY,
+            "after initGood: user btc balance error"
         );
 
-        S_GoodTmpState memory metagoodkeystate = market.getGoodState(
-            metagoodkey
-        );
+        _assertGoodState(btcGoodId, users[1], BTC_QTY, INIT_VALUE);
+
+        S_GoodTmpState memory metaState = market.getGoodState(metaGoodId);
         assertEq(
-            metagoodkeystate.goodConfig.amount0(),
-            uint256(
-                1 *
-                    2 ** 217 +
-                    3 *
-                    2 ** 211 +
-                    5 *
-                    2 ** 204 +
-                    7 *
-                    2 ** 197 +
-                    92709122 *
-                    2 ** 229
-            ).amount0(),
-            "1after initial normalgood:metagoodkey goodConfig "
+            metaState.currentState,
+            toTTSwapUINT256(50000 * 10 ** 6, 50000 * 10 ** 6),
+            "after initGood: metagood currentState unchanged"
         );
 
-        assertEq(
-            metagoodkeystate.goodConfig.amount1(),
-            0,
-            "1after initial normalgood:metagoodkey goodConfig amount1 error"
-        );
-
-        assertEq(
-            metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 
-            ).amount0(),
-            "1after initial normalgood:metagoodkey currentState amount0 error"
-        );
-
-        assertEq(
-            metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(
-               50000 * 10 ** 6 + 63000 * 10 ** 6,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 
-            ).amount1(),
-            "1after initial normalgood:metagoodkey currentState amount1 error"
-        );
-
-        assertEq(
-            metagoodkeystate.investState.amount0(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ).amount0(),
-            "1after initial normalgood:metagoodkey investState amount0 error"
-        );
-        assertEq(
-            metagoodkeystate.investState.amount1(),
-            112993700000000000,
-            "1after initial normalgood:metagoodkey investState amount1 error"
-        );
-
-        assertEq(
-            metagoodkeystate.goodConfig,
-            uint256(
-                1 *
-                    2 ** 217 +
-                    3 *
-                    2 ** 211 +
-                    5 *
-                    2 ** 204 +
-                    7 *
-                    2 ** 197 +
-                    92709122 *
-                    2 ** 229
-            ),
-            "2after initial normalgood:metagoodkey goodConfig error"
-        );
-
-        assertEq(
-            metagoodkeystate.owner,
-            marketcreator,
-            "after initial normalgood:metagoodkey marketcreator error"
-        );
-
-        ////////////////////////////////////////
-        S_GoodTmpState memory normalgoodstate = market.getGoodState(
-            normalgoodkey
-        );
-        assertEq(
-            normalgoodstate.currentState.amount0(),
-            100000000,
-            "after initial normalgood:normalgood currentState amount0()"
-        );
-
-        assertEq(
-            normalgoodstate.currentState.amount1(),
-            1 * 10 ** 8,
-            "after initial normalgood:normalgood currentState amount1()"
-        );
-        assertEq(
-            normalgoodstate.investState.amount0(),
-            toTTSwapUINT256(1 * 10 ** 8, 63000 * 10 ** 6).amount0(),
-            "after initial normalgood:normalgood investState error"
-        );
-
-        assertEq(
-            normalgoodstate.investState.amount1(),
-            toTTSwapUINT256(1 * 10 ** 8, 62993700000000000).amount1(),
-            "after initial normalgood:normalgood investState amount1 error"
-        );
-        assertEq(
-            normalgoodstate.goodConfig,
-            1 *
-                2 ** 217 +
-                3 *
-                2 ** 211 +
-                5 *
-                2 ** 204 +
-                7 *
-                2 ** 197 +
-                25600258 *
-                2 ** 229,
-            "after initial normalgood:normalgood goodConfig error"
-        );
-
-        assertEq(
-            normalgoodstate.owner,
-            users[1],
-            "after initial normalgood:normalgood owner error"
-        );
-
-        ///////////////////////////
-        uint256 normalproof = S_ProofKey(users[1], normalgoodkey, metagoodkey)
-            .toId();
-        S_ProofState memory _proof1 = market.getProofState(normalproof);
-        assertEq(
-            _proof1.shares.amount0(),
-            1 * 10 ** 8,
-            "after initial:proof normal shares error"
-        );
-        assertEq(
-            _proof1.shares.amount1(),
-            62993700000,
-            "after initial:proof value shares error"
-        );
-        assertEq(
-            _proof1.state.amount0(),
-            62993700000000000,
-            "after initial:proof virtual value error"
-        );
-        assertEq(
-            _proof1.state.amount1(),
-            62993700000000000,
-            "after initial:proof actual value error"
-        );
-        assertEq(
-            _proof1.invest.amount0(),
-            1 * 10 ** 8,
-            "after initial:normal good share error"
-        );
-
-        assertEq(
-            _proof1.invest.amount1(),
-            1 * 10 ** 8,
-            "after initial:normal good quantity error"
-        );
-
-        assertEq(
-            _proof1.valueinvest.amount0(),
-            62993700000,
-            "after initial:proof value good share error"
-        );
-
-        assertEq(
-            _proof1.valueinvest.amount1(),
-            62993700000,
-            "after initial:proof value good quantity error"
-        );
+        uint256 proofId = _proofIdFromInitGoodEvent();
+        _assertProofState(proofId, btcGoodId, BTC_QTY, INIT_VALUE);
 
         vm.stopPrank();
     }
 
     function testinitNativeETHNormalGood() public {
         vm.startPrank(users[1]);
-        deal(users[1], 10 * 10 ** 8);
-        deal(address(usdt), users[1], 100000 * 10 ** 6, false);
-        usdt.approve(address(market), 63000 * 10 ** 6 + 1);
-        assertEq(
-            users[1].balance,
-            10 * 10 ** 8,
-            "befor init erc20 good, balance of users[1] error"
-        );
+        T_GoodKey memory nativeKey = T_GoodKey({
+            ercType: 1,
+            contractAddress: address(1),
+            id: 0
+        });
+        uint256 nativeGoodId = nativeKey.toId();
+
+        vm.deal(users[1], 10 * BTC_QTY);
         assertEq(
             address(market).balance,
             0,
-            "befor init erc20 good, balance of market error"
+            "before initGood: market eth balance error"
         );
-        uint256 normalgoodconfig = 1 *
-            2 ** 217 +
-            3 *
-            2 ** 211 +
-            5 *
-            2 ** 204 +
-            7 *
-            2 ** 197;
-        market.initGood{value: 1 * 10 ** 8}(
-            metagoodkey,
-            toTTSwapUINT256(1 * 10 ** 8, 63000 * 10 ** 6),
-            address(1),
-            normalgoodconfig,
-            defaultdata,
+
+        vm.recordLogs();
+        market.initGood{value: BTC_QTY}(
+            nativeKey,
+            toTTSwapUINT256(INIT_VALUE, BTC_QTY),
             defaultdata,
             users[1],
             defaultdata
         );
         snapLastCall("init_NativeETH_By_ERC20");
-        vm.stopPrank();
 
         assertEq(
             usdt.balanceOf(address(market)),
-            50000 * 10 ** 6 + 63000 * 10 ** 6,
-            "after initial normal good, balance of market error"
+            50000 * 10 ** 6,
+            "after initGood: metagood balance unchanged"
         );
-
         assertEq(
             address(market).balance,
-            1 * 10 ** 8,
-            "after initial normal good, balance of market error"
+            BTC_QTY,
+            "after initGood: market eth balance error"
         );
-
-        assertEq(
-            usdt.balanceOf(users[1]),
-            100000 * 10 ** 6 - 63000 * 10 ** 6,
-            "after initial normal good, balance of market error"
-        );
-
         assertEq(
             users[1].balance,
-            10 * 10 ** 8 - 1 * 10 ** 8,
-            "after initial normal good, balance of market error"
+            9 * BTC_QTY,
+            "after initGood: user eth balance error"
         );
 
-        S_GoodTmpState memory metagoodkeystate = market.getGoodState(
-            metagoodkey
-        );
-        assertEq(
-            metagoodkeystate.currentState.amount0(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 
-            ).amount0(),
-            "after initial normalgood:metagoodkey currentState error"
-        );
+        _assertGoodState(nativeGoodId, users[1], BTC_QTY, INIT_VALUE);
 
-        assertEq(
-            metagoodkeystate.currentState.amount1(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 
-            ).amount1(),
-            "after initial normalgood:metagoodkey currentState amount1 error"
-        );
-        assertEq(
-            metagoodkeystate.investState.amount0(),
-            toTTSwapUINT256(
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2,
-                50000 * 10 ** 6 + 63000 * 10 ** 6 - 63000 * 10 ** 2
-            ).amount0(),
-            "after initial normalgood:metagoodkey investState error0"
-        );
-        assertEq(
-            metagoodkeystate.investState.amount1(),
-            112993700000000000,
-            "after initial normalgood:metagoodkey investState error1"
-        );
+        uint256 proofId = _proofIdFromInitGoodEvent();
+        _assertProofState(proofId, nativeGoodId, BTC_QTY, INIT_VALUE);
 
-        assertEq(
-            metagoodkeystate.goodConfig,
-            uint256(
-                1 *
-                    2 ** 217 +
-                    3 *
-                    2 ** 211 +
-                    5 *
-                    2 ** 204 +
-                    7 *
-                    2 ** 197 +
-                    92709122 *
-                    2 ** 229
-            ),
-            "4after initial normalgood:metagoodkey goodConfig error"
-        );
-
-        assertEq(
-            metagoodkeystate.owner,
-            marketcreator,
-            "after initial normalgood:metagoodkey marketcreator error"
-        );
-
-        address normalgoodkey = address(1);
-
-        ////////////////////////////////////////
-        S_GoodTmpState memory normalgoodstate = market.getGoodState(
-            normalgoodkey
-        );
-        assertEq(
-            normalgoodstate.currentState.amount0(),
-            1 * 10 ** 8,
-            "after initial normalgood:normalgood currentState amount0()"
-        );
-
-        assertEq(
-            normalgoodstate.currentState.amount1(),
-            1 * 10 ** 8,
-            "after initial normalgood:normalgood currentState amount1()"
-        );
-
-        assertEq(
-            normalgoodstate.goodConfig,
-            1 *
-                2 ** 217 +
-                3 *
-                2 ** 211 +
-                5 *
-                2 ** 204 +
-                7 *
-                2 ** 197 +
-                25600258 *
-                2 ** 229,
-            "after initial normalgood:normalgood goodConfig error"
-        );
-
-        assertEq(
-            normalgoodstate.owner,
-            users[1],
-            "after initial normalgood:normalgood owner error"
-        );
-
-        ///////////////////////////
-
-        uint256 normalproof = S_ProofKey(users[1], normalgoodkey, metagoodkey)
-            .toId();
-
-        S_ProofState memory _proof1 = market.getProofState(normalproof);
-         assertEq(
-            _proof1.shares.amount0(),
-            1 * 10 ** 8,
-            "after initial:proof normal shares error"
-        );
-        assertEq(
-            _proof1.shares.amount1(),
-            62993700000,
-            "after initial:proof value shares error"
-        );
-        assertEq(
-            _proof1.state.amount0(),
-            62993700000000000,
-            "after initial:proof virtual value error"
-        );
-        assertEq(
-            _proof1.state.amount1(),
-            62993700000000000,
-            "after initial:proof actual value error"
-        );
-        assertEq(
-            _proof1.invest.amount0(),
-            1 * 10 ** 8,
-            "after initial:normal good share error"
-        );
-
-        assertEq(
-            _proof1.invest.amount1(),
-            1 * 10 ** 8,
-            "after initial:normal good quantity error"
-        );
-
-        assertEq(
-            _proof1.valueinvest.amount0(),
-            62993700000,
-            "after initial:proof value good share error"
-        );
-
-        assertEq(
-            _proof1.valueinvest.amount1(),
-            62993700000,
-            "after initial:proof value good quantity error"
-        );
+        vm.stopPrank();
     }
 }

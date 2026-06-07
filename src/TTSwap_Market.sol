@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// version 1.16.0
+// version 2.0.0
 pragma solidity 0.8.29;
 
 import {
@@ -179,7 +179,7 @@ contract TTSwap_Market is I_TTSwap_Market {
             _initial.amount1(),
             _normaldata
         );
-        goods[_goodKey.toId()].init(_initial);
+        goods[_goodKey.toId()].init(_initial,_goodKey);
 
         uint256 proofId = S_ProofKey(msg.sender, _goodKey.toId()).toId();
 
@@ -194,6 +194,7 @@ contract TTSwap_Market is I_TTSwap_Market {
             proofId,
             _goodKey.toId(),
             _goodKey.composedata(),
+            _goodKey.id,
             L_Proof.stake(TTS_CONTRACT, msg.sender, _initial.amount0()),
             _initial,
             _trader
