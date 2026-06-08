@@ -12,7 +12,7 @@ pragma solidity 0.8.29;
 /// | 255       | isValueGood     | 1     | flag                      | 0       |
 /// | 254-247   | reserved1         | 8     |                      | 0       |
 /// | 246       | isFreeze        | 1     | flag                      | 0       |
-/// | 245       | isVerified      | 1     | flag                      | 0       |
+/// | 245       | reserved1      | 1     | flag                      | 0       |
 /// | 244       | isPromise       | 1     | flag                      | 0       |
 /// | 243-241   | liquidFee       | 3     | × 0.1  (stored / 10)      | 6       |
 /// | 240-237   | operatorFee     | 4     | × 0.02 (stored / 50)      | 1       |
@@ -35,7 +35,7 @@ pragma solidity 0.8.29;
 /// | 127-0     | marketValue (V) | 128   | live pool value           | 0       |
 ///
 /// @dev Default `initial_config` composition:
-///      6·2^241 + 1·2^237 + 5·2^234 + 8·2^229 + 8·2^224 + 2·2^219
+///      2^245 + 6·2^241 + 1·2^237 + 5·2^234 + 8·2^229 + 8·2^224 + 2·2^219
 ///      + 1·2^214 + 80·2^204 + 1·2^167 + 1·2^162 + 10·2^154
 ///      + 8·2^148 + 8·2^142 + 8·2^135 + 8·2^128
 library L_GoodConfigLibrary {
@@ -43,7 +43,7 @@ library L_GoodConfigLibrary {
 
     /// @dev Default packed config (fee split sums to 100%, trading fees = 8 bps each).
     uint256 constant initial_config =
-        0x000c350810450000000000842882040800000000000000000000000000000000;
+        0x002c350810450000000000842882040800000000000000000000000000000000;
 
     /// @dev Admin-writable region: bit 255 (good type) + bits 254-247 (ERC type).
     uint256 constant admin_config_mask =
@@ -162,22 +162,22 @@ library L_GoodConfigLibrary {
     }
 
 
-    /// @notice Returns whether the good is verified (bit 245).
-    function isVerified(uint256 config) internal pure returns (bool a) {
-        return (config & (1 << 245)) != 0;
-    }
+    // /// @notice Returns whether the good is verified (bit 245).
+    // function isVerified(uint256 config) internal pure returns (bool a) {
+    //     return (config & (1 << 245)) != 0;
+    // }
 
-    /// @notice Sets or clears bit 245 (`isVerified`).
-    function setVerified(
-        uint256 config,
-        bool verified
-    ) internal pure returns (uint256 a) {
-        if (verified) {
-            return (config | (1 << 245));
-        } else {
-            return (config & ~uint256(1 << 245));
-        }
-    }
+    // /// @notice Sets or clears bit 245 (`isVerified`).
+    // function setVerified(
+    //     uint256 config,
+    //     bool verified
+    // ) internal pure returns (uint256 a) {
+    //     if (verified) {
+    //         return (config | (1 << 245));
+    //     } else {
+    //         return (config & ~uint256(1 << 245));
+    //     }
+    // }
 
     /// @notice Returns whether the good is under a value promise (bit 244).
     function isPromised(uint256 config) internal pure returns (bool a) {

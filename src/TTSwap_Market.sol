@@ -147,7 +147,6 @@ contract TTSwap_Market is I_TTSwap_Market {
         // Storage pointer avoids recomputing the mapping key hash twice
         if (g.goodConfig.isFreeze()) revert TTSwapError(freezeErr);
         if (g.currentState == 0) revert TTSwapError(emptyErr);
-        if (!g.goodConfig.isVerified()) revert TTSwapError(37);
         if (g.goodConfig.getRunTimeConfig() == (block.timestamp % 4095) % 10)
             revert TTSwapError(46);
     }
