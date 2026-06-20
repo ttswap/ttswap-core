@@ -147,7 +147,7 @@ contract TTSwap_Market is I_TTSwap_Market {
         // Storage pointer avoids recomputing the mapping key hash twice
         if (g.goodConfig.isFreeze()) revert TTSwapError(freezeErr);
         if (g.currentState == 0) revert TTSwapError(emptyErr);
-        if (g.goodConfig.getRunTimeConfig() == (block.timestamp % 4095) % 10)
+        if (g.goodConfig.getRunTimeConfig() == (block.timestamp % 4095) / 10)
             revert TTSwapError(46);
     }
 
@@ -288,7 +288,7 @@ contract TTSwap_Market is I_TTSwap_Market {
                 (normalInvest_.investQuantity * 100) / enpower //real quantity
             )
         );
-        g.goodConfig.updateRunTimeConfig();
+        g.goodConfig=g.goodConfig.updateRunTimeConfig();
         emit e_investGood(
             proofNo,
             _goodKey.toId(),
@@ -418,7 +418,7 @@ contract TTSwap_Market is I_TTSwap_Market {
             );
         }
 
-        g2.goodConfig.updateRunTimeConfig();
+        g2.goodConfig=g2.goodConfig.updateRunTimeConfig();
         emit e_buyGood(
             _goodKey1.toId(),
             _goodKey2.toId(),

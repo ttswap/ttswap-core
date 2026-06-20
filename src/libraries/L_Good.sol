@@ -89,13 +89,19 @@ library L_Good {
      * @param self Storage pointer to the good state
      * @param _init Initial balance state
      */
-    function init(S_GoodState storage self, uint256 _init,T_GoodKey memory _goodKey) internal {
+    function init(
+        S_GoodState storage self,
+        uint256 _init,
+        T_GoodKey memory _goodKey
+    ) internal {
         self.currentState = toTTSwapUINT256(_init.amount1(), _init.amount1());
         self.investState = toTTSwapUINT256(_init.amount1(), _init.amount0());
         self.goodConfig = L_GoodConfigLibrary.setInitialConfig();
         self.erctype = _goodKey.ercType;
         self.contractAddress = _goodKey.contractAddress;
-        if(_goodKey.id!=0){self.id = _goodKey.id;}
+        if (_goodKey.id != 0) {
+            self.id = _goodKey.id;
+        }
         self.owner = msg.sender;
     }
 
@@ -145,21 +151,23 @@ library L_Good {
         uint256 config = _self.goodConfig;
 
         if (side) {
-            return _good1SwapInput(
+            return
+                _good1SwapInput(
+                    _self,
+                    _swapParam,
+                    current_quantity,
+                    current_value,
+                    config
+                );
+        }
+        return
+            _good1SwapOutput(
                 _self,
                 _swapParam,
                 current_quantity,
                 current_value,
                 config
             );
-        }
-        return _good1SwapOutput(
-            _self,
-            _swapParam,
-            current_quantity,
-            current_value,
-            config
-        );
     }
 
     function _good1SwapInput(
@@ -175,18 +183,19 @@ library L_Good {
             (2 * uint256(swap) * uint256(current_value)) /
                 (2 * uint256(current_quantity) + uint256(swap))
         );
+        if (
+            current_quantity + swap >
+            _self.goodConfig.getSafeLineUpper(
+                _self.currentState.amount0() + _self.goodConfig.amount1()
+            )
+        ) {
+            revert TTSwapError(55);
+        }
         _self.currentState = add(
             _self.currentState,
             toTTSwapUINT256(swap_fee, _swapParam)
         );
-        if (
-            current_quantity + swap >
-            _self.goodConfig.getSafeLine(
-                _self.currentState.amount0() + _self.goodConfig.amount1()
-            )
-        ) {
-            revert TTSwapError(45);
-        }
+
         return toTTSwapUINT256(swap_fee, swapTemp);
     }
 
@@ -204,10 +213,23 @@ library L_Good {
                 (2 * uint256(current_value) - uint256(_swapParam))
         );
         uint128 swap_fee = config.getSellFee(swapTemp);
+        if (
+            current_quantity - swapTemp >
+            _self.goodConfig.getSafeLineLower(
+                _self.currentState.amount0() + _self.goodConfig.amount1()
+            )
+        ) {
+            revert TTSwapError(56);
+        }
         _self.currentState = add(
             _self.currentState,
-            toTTSwapUINT256(swap_fee, swap_fee + swapTemp)
+            toTTSwapUINT256(swap_fee, swap_fee)
         );
+        _self.currentState = sub(
+            _self.currentState,
+            toTTSwapUINT256(0, swapTemp)
+        );
+
         return toTTSwapUINT256(swap_fee, swapTemp);
     }
 
@@ -240,17 +262,44 @@ library L_Good {
                 (2 * uint256(_swapParam) * uint256(current_quantity)) /
                     (2 * uint256(current_value) + uint256(_swapParam))
             );
+
+            if (
+                current_quantity - swapTemp >
+                _self.goodConfig.getSafeLineLower(
+                    _self.currentState.amount0() + _self.goodConfig.amount1()
+                )
+            ) {
+                revert TTSwapError(45);
+            }
             swap_fee = config.getBuyFee(swapTemp);
-            swapTemp = swapTemp - swap_fee;
-            _self.currentState = addsub(
+
+            _self.currentState = add(
                 _self.currentState,
-                toTTSwapUINT256(swap_fee, swapTemp)
+                toTTSwapUINT256(swap_fee, swap_fee)
             );
+
+            _self.currentState = sub(
+                _self.currentState,
+                toTTSwapUINT256(0, swapTemp)
+            );
+            if (
+                current_quantity + swapTemp >
+                _self.goodConfig.getSafeLineUpper(
+                    _self.currentState.amount0() + _self.goodConfig.amount1()
+                )
+            ) {
+                revert TTSwapError(45);
+            }
         } else {
             swap_fee = config.getBuyFee(_swapParam);
             uint128 swap = _swapParam + swap_fee;
 
-            if (current_quantity + swap > _self.goodConfig.getSafeLine(_self.currentState.amount0() + _self.goodConfig.amount1())) {
+            if (
+                current_quantity + swap >
+                _self.goodConfig.getSafeLineUpper(
+                    _self.currentState.amount0() + _self.goodConfig.amount1()
+                )
+            ) {
                 revert TTSwapError(45);
             }
             // ΔV = (2 * V_A * Δa) / (2 * Q_A - Δa), scaled by 100 for fee precision.

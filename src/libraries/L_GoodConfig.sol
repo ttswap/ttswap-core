@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.29;
 
+import {TTSwapError} from "./L_Error.sol";
+
 /// @title L_GoodConfigLibrary
 /// @notice Packed good configuration stored in a single `uint256` (high 128 bits) plus live market value `V` (low 128 bits).
 /// @dev Bit extraction pattern: `shr(255 - hi + lo, shl(255 - hi, config))` reads the field `[hi..lo]`.
@@ -10,9 +12,9 @@ pragma solidity 0.8.29;
 /// | Bits      | Field           | Width | Scale / unit              | Default |
 /// |-----------|-----------------|-------|---------------------------|---------|
 /// | 255       | isValueGood     | 1     | flag                      | 0       |
-/// | 254-247   | reserved1         | 8     |                      | 0       |
+/// | 254-247   | isreserved1     | 2     |                           | 0       |
 /// | 246       | isFreeze        | 1     | flag                      | 0       |
-/// | 245       | reserved1      | 1     | flag                      | 0       |
+/// | 245       | reserved1       | 1     | flag                      | 0       |
 /// | 244       | isPromise       | 1     | flag                      | 0       |
 /// | 243-241   | liquidFee       | 3     | × 0.1  (stored / 10)      | 6       |
 /// | 240-237   | operatorFee     | 4     | × 0.02 (stored / 50)      | 1       |
@@ -21,12 +23,13 @@ pragma solidity 0.8.29;
 /// | 228-224   | customerFee     | 5     | × 0.01 (stored / 100)     | 8       |
 /// | 223-219   | platformFee     | 5     | × 0.01 (stored / 100)     | 2       |
 /// | 218-214   | limitPower      | 5     | × 100 (0 → 100)           | 1       |
-/// | 213-204   | safeLine        | 10    | raw                       | 80      |
-/// | 203-192   | contractType    | 12    | raw                       | 0       |
-/// | 191       | reserved        | 1     | unused                    | 0       |
+/// | 213-206   | safeLineUpper   | 8     |                           | 100     |
+/// | 205-198   | safeLineLower   | 8     |                           | 60      |
+/// | 197-191   | contractType    | 8     | raw                       | 0       |
 /// | 190-179   | lastRunSlot     | 12    | anti-replay time slot     | 0       |
 /// | 178-167   | reserved        | 12    | unused                    | 0       |
 /// | 166-162   | power           | 5     | × 100 (0 → 100)           | 1       |
+/// | 161-154   | investthreshold | 6     |                           | 20       |
 /// | 161-154   | disinvestChips  | 8     | chunk divisor (×4 output) | 10      |
 /// | 153-148   | investFee       | 6     | × 0.0001 (stored / 10000) | 8       |
 /// | 147-142   | disinvestFee    | 6     | × 0.0001 (stored / 10000) | 8       |
@@ -35,15 +38,15 @@ pragma solidity 0.8.29;
 /// | 127-0     | marketValue (V) | 128   | live pool value           | 0       |
 ///
 /// @dev Default `initial_config` composition:
-///      2^245 + 6·2^241 + 1·2^237 + 5·2^234 + 8·2^229 + 8·2^224 + 2·2^219
-///      + 1·2^214 + 80·2^204 + 1·2^167 + 1·2^162 + 10·2^154
+///      2^246 + 6·2^241 + 1·2^237 + 5·2^234 + 8·2^229 + 8·2^224 + 2·2^219
+///      + 1·2^214 + 100·2^206 + 60·2^198 + 1·2^167 + 1·2^162 + 10·2^154
 ///      + 8·2^148 + 8·2^142 + 8·2^135 + 8·2^128
 library L_GoodConfigLibrary {
     using L_GoodConfigLibrary for uint256;
 
     /// @dev Default packed config (fee split sums to 100%, trading fees = 8 bps each).
     uint256 constant initial_config =
-        0x002c350810450000000000842882040800000000000000000000000000000000;
+        0x004c350810590f00000000842882040800000000000000000000000000000000;
 
     /// @dev Admin-writable region: bit 255 (good type) + bits 254-247 (ERC type).
     uint256 constant admin_config_mask =
@@ -107,12 +110,11 @@ library L_GoodConfigLibrary {
     ///      after success the slot is rewritten to the current value (bits 190-179).
     function updateRunTimeConfig(
         uint256 config
-    ) internal view returns (uint256 a) {
+    ) internal  returns (uint256 a) {
         uint256 run_time_config = (block.timestamp % 4095) / 10;
-        require(
-            config.getRunTimeConfig() == run_time_config,
-            "transaction busy error"
-        );
+        if(config.getRunTimeConfig() == run_time_config){
+            revert TTSwapError(46);
+        }
         return (config & ~run_time_config_mask) | (run_time_config << 179);
     }
 
@@ -160,24 +162,6 @@ library L_GoodConfigLibrary {
             return (config & ~uint256(1 << 246));
         }
     }
-
-
-    // /// @notice Returns whether the good is verified (bit 245).
-    // function isVerified(uint256 config) internal pure returns (bool a) {
-    //     return (config & (1 << 245)) != 0;
-    // }
-
-    // /// @notice Sets or clears bit 245 (`isVerified`).
-    // function setVerified(
-    //     uint256 config,
-    //     bool verified
-    // ) internal pure returns (uint256 a) {
-    //     if (verified) {
-    //         return (config | (1 << 245));
-    //     } else {
-    //         return (config & ~uint256(1 << 245));
-    //     }
-    // }
 
     /// @notice Returns whether the good is under a value promise (bit 244).
     function isPromised(uint256 config) internal pure returns (bool a) {
@@ -307,26 +291,31 @@ library L_GoodConfigLibrary {
         }
     }
 
-    /// @notice Safety-line threshold from bits 213-204 (raw 10-bit value).
-    function getSafeLine(uint256 config) internal pure returns (uint128 a) {
-        unchecked {
-            assembly {
-                a := shr(246, shl(42, config))
-            }
-        }
-    }
-
     /// @notice Safety-line amount from bits 213-204: stored 0 → `amount`, else `stored × amount / 1000`.
-    function getSafeLine(
+    function getSafeLineUpper(
         uint256 config,
         uint128 amount
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                a := shr(246, shl(42, config))
+                a := shr(248, shl(42, config))
             }
             if (a == 0) return amount;
-            return ((a * amount) / 1000);
+            return ((100 * amount) / a);
+        }
+    }
+
+    /// @notice Safety-line amount from bits 213-204: stored 0 → `amount`, else `stored × amount / 1000`.
+    function getSafeLineLower(
+        uint256 config,
+        uint128 amount
+    ) internal pure returns (uint128 a) {
+        unchecked {
+            assembly {
+                a := shr(248, shl(50, config))
+            }
+            if (a == 0) return amount;
+            return ((100 * amount) / a);
         }
     }
 
@@ -334,7 +323,7 @@ library L_GoodConfigLibrary {
     function getContractType(uint256 config) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                a := shr(244, shl(52, config))
+                a := shr(244, shl(55, config))
             }
         }
     }

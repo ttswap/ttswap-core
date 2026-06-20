@@ -33,6 +33,7 @@ contract TTSwap_Market_Proxy {
     /// @notice Fallback function that delegates calls to the implementation contract.
     fallback() external payable {
         address impl = implementation;
+        if (impl == address(0)) revert TTSwapError(63);
         assembly {
             calldatacopy(0, 0, calldatasize())
             let result := delegatecall(gas(), impl, 0, calldatasize(), 0, 0)

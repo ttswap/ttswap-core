@@ -39,6 +39,8 @@ TTSwapError(uint256) 0xd1b51911
 51: Execution failed: trade quantity is too large.
 52: Execution failed: amount is too large.
 54: Execution failed: trade quantity is too large.
+55: Execution failed: exceeds the threshold of this good in ttswap.
+56: Execution failed: below the threshold of this good in ttswap.
 61: Execution failed: not mainnet.
 62: Execution failed: not DAO administrator.
 63: Execution failed: not token super administrator.
