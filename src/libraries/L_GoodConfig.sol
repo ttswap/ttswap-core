@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.29;
 
+import {TTSwapError} from "./L_Error.sol";
+
 /// @title L_GoodConfigLibrary
 /// @notice Packed good configuration stored in a single `uint256` (high 128 bits) plus live market value `V` (low 128 bits).
 /// @dev Bit extraction pattern: `shr(255 - hi + lo, shl(255 - hi, config))` reads the field `[hi..lo]`.
@@ -10,24 +12,25 @@ pragma solidity 0.8.29;
 /// | Bits      | Field           | Width | Scale / unit              | Default |
 /// |-----------|-----------------|-------|---------------------------|---------|
 /// | 255       | isValueGood     | 1     | flag                      | 0       |
-/// | 254-247   | reserved1         | 8     |                      | 0       |
-/// | 246       | isFreeze        | 1     | flag                      | 0       |
-/// | 245       | isVerified      | 1     | flag                      | 0       |
-/// | 244       | isPromise       | 1     | flag                      | 0       |
-/// | 243-241   | liquidFee       | 3     | × 0.1  (stored / 10)      | 6       |
-/// | 240-237   | operatorFee     | 4     | × 0.02 (stored / 50)      | 1       |
-/// | 236-234   | gateFee         | 3     | × 0.04 (stored / 25)      | 5       |
-/// | 233-229   | referFee        | 5     | × 0.01 (stored / 100)     | 8       |
-/// | 228-224   | customerFee     | 5     | × 0.01 (stored / 100)     | 8       |
-/// | 223-219   | platformFee     | 5     | × 0.01 (stored / 100)     | 2       |
-/// | 218-214   | limitPower      | 5     | × 100 (0 → 100)           | 1       |
-/// | 213-204   | safeLine        | 10    | raw                       | 80      |
-/// | 203-192   | contractType    | 12    | raw                       | 0       |
-/// | 191       | reserved        | 1     | unused                    | 0       |
-/// | 190-179   | lastRunSlot     | 12    | anti-replay time slot     | 0       |
-/// | 178-167   | reserved        | 12    | unused                    | 0       |
-/// | 166-162   | power           | 5     | × 100 (0 → 100)           | 1       |
-/// | 161-154   | disinvestChips  | 8     | chunk divisor (×4 output) | 10      |
+/// | 254-253   | isreserved1     | 2     |                           | 0       |
+/// | 252       | isFreeze        | 1     | flag                      | 0       |
+/// | 251       | reserved1       | 1     | flag                      | 0       |
+/// | 250       | isPromise       | 1     | flag                      | 0       |
+/// | 249-247   | liquidFee       | 3     | × 0.1  (stored / 10)      | 6       |
+/// | 246-243   | operatorFee     | 4     | × 0.02 (stored / 50)      | 1       |
+/// | 242-240   | gateFee         | 3     | × 0.04 (stored / 25)      | 5       |
+/// | 239-235   | referFee        | 5     | × 0.01 (stored / 100)     | 8       |
+/// | 234-230   | customerFee     | 5     | × 0.01 (stored / 100)     | 8       |
+/// | 229-225   | platformFee     | 5     | × 0.01 (stored / 100)     | 2       |
+/// | 224-220   | limitPower      | 5     | × 100 (0 → 100)           | 1       |
+/// | 219-212   | safeLineUpper   | 8     |                           | 100     |
+/// | 211-204   | safeLineLower   | 8     |                           | 60      |
+/// | 203-197   | contractType    | 8     | raw                       | 0       |
+/// | 196-185   | lastRunSlot     | 12    | anti-replay time slot     | 0       |
+/// | 184-173   | reserved        | 12    | unused                    | 0       |
+/// | 172-168   | power           | 5     | × 100 (0 → 100)           | 1       |
+/// | 167-160   | disinvestChips  | 8     | chunk divisor (×4 output) | 10      |
+/// | 159-154   | investThreshold | 6     |                           | 30      |
 /// | 153-148   | investFee       | 6     | × 0.0001 (stored / 10000) | 8       |
 /// | 147-142   | disinvestFee    | 6     | × 0.0001 (stored / 10000) | 8       |
 /// | 141-135   | buyFee          | 7     | × 0.0001 (stored / 10000) | 8       |
@@ -35,39 +38,35 @@ pragma solidity 0.8.29;
 /// | 127-0     | marketValue (V) | 128   | live pool value           | 0       |
 ///
 /// @dev Default `initial_config` composition:
-///      6·2^241 + 1·2^237 + 5·2^234 + 8·2^229 + 8·2^224 + 2·2^219
-///      + 1·2^214 + 80·2^204 + 1·2^167 + 1·2^162 + 10·2^154
-///      + 8·2^148 + 8·2^142 + 8·2^135 + 8·2^128
+///      2*2**252 +6* 2**247 + 1 * 2**243 + 5 * 2**240 + 8 * 2**235 + 8 * 2**230 + 2 * 2**225 +2 * 2**220+100*2**212+60*2**204+25*2**154+ 8 * 2**148 + 8 * 2**142 + 8 * 2**135 + 8 * 2**128 + 1 * 2**168 + 20 * 2**160 
 library L_GoodConfigLibrary {
     using L_GoodConfigLibrary for uint256;
 
     /// @dev Default packed config (fee split sums to 100%, trading fees = 8 bps each).
     uint256 constant initial_config =
-        0x000c350810450000000000842882040800000000000000000000000000000000;
+        0x230d42042643c000000001146482040800000000000000000000000000000000;
 
-    /// @dev Admin-writable region: bit 255 (good type) + bits 254-247 (ERC type).
+    /// @dev Admin-writable region: bit 255 (good type) + bits 254-253 (ERC type).
     uint256 constant admin_config_mask =
-        0xff80000000000000000000000000000000000000000000000000000000000000;
+        0xe000000000000000000000000000000000000000000000000000000000000000;
 
-    /// @dev Market-manager-writable region: bits 246-191 (flags, fee split, limits, metadata).
-    uint256 constant marketmanager_config_mask =
-        0x0fffffffffffffff800000000000000000000000000000000000000000000000;
+    /// @dev Market-manager-writable region: bits 252-197 (flags, fee split, limits, metadata).
+    uint256 internal constant marketmanager_config_mask =
+        0x1fffffffffffffe0000000000000000000000000000000000000000000000000;
 
-    /// @dev Good-owner-writable region: bits 166-128 (power, chips, trading fees). Low 128 bits hold live `V`.
-    uint256 constant owner_config_mask =
-        0x00000000000000000000007fffffffff00000000000000000000000000000000;
+    /// @dev Good-owner-writable region: bits 172-128 (power, chips, trading fees). Low 128 bits hold live `V`.
+    uint256 internal constant owner_config_mask =
+        0x000000000000000000001fffffffffff00000000000000000000000000000000;
 
     /// @dev Isolated mask for `contractType` (bits 203-192).
-    uint256 constant contract_type_mask =
-        0x0000000000000fff000000000000000000000000000000000000000000000000;
+    uint256 internal constant contract_type_mask =
+        0x0000000000000fe0000000000000000000000000000000000000000000000000;
 
-    /// @dev ERC type field mask (bits 254-247); preserves bit 255 (`isValueGood`).
-    uint256 constant erc_type_mask =
-        0x7f80000000000000000000000000000000000000000000000000000000000000;
+    /// @dev `lastRunSlot` field mask (bits 196-185).
+    uint256 internal constant run_time_config_mask =
+        0x000000000000001ffe0000000000000000000000000000000000000000000000;
 
-    /// @dev `lastRunSlot` field mask (bits 190-179).
-    uint256 constant run_time_config_mask =
-        0x00000000000000007ff800000000000000000000000000000000000000000000;
+    uint256 internal constant min_invest_threshold = 30;
 
     /// @notice Returns the protocol default packed configuration.
     function setInitialConfig() internal pure returns (uint256) {
@@ -109,11 +108,10 @@ library L_GoodConfigLibrary {
         uint256 config
     ) internal view returns (uint256 a) {
         uint256 run_time_config = (block.timestamp % 4095) / 10;
-        require(
-            config.getRunTimeConfig() == run_time_config,
-            "transaction busy error"
-        );
-        return (config & ~run_time_config_mask) | (run_time_config << 179);
+        if (config.getRunTimeConfig() == run_time_config) {
+            revert TTSwapError(46);
+        }
+        return (config & ~run_time_config_mask) | (run_time_config << 185);
     }
 
     /// @notice Checks if the good is configured as a value good.
@@ -146,7 +144,7 @@ library L_GoodConfigLibrary {
     /// @param config The configuration value.
     /// @return a True if the good is frozen, false otherwise.
     function isFreeze(uint256 config) internal pure returns (bool a) {
-        return (config & (1 << 246)) != 0;
+        return (config & (1 << 252)) != 0;
     }
 
     /// @notice Sets or clears bit 246 (`isFreeze`).
@@ -155,33 +153,15 @@ library L_GoodConfigLibrary {
         bool freeze
     ) internal pure returns (uint256 a) {
         if (freeze) {
-            return (config | (1 << 246));
+            return (config | (1 << 252));
         } else {
-            return (config & ~uint256(1 << 246));
-        }
-    }
-
-
-    /// @notice Returns whether the good is verified (bit 245).
-    function isVerified(uint256 config) internal pure returns (bool a) {
-        return (config & (1 << 245)) != 0;
-    }
-
-    /// @notice Sets or clears bit 245 (`isVerified`).
-    function setVerified(
-        uint256 config,
-        bool verified
-    ) internal pure returns (uint256 a) {
-        if (verified) {
-            return (config | (1 << 245));
-        } else {
-            return (config & ~uint256(1 << 245));
+            return (config & ~uint256(1 << 252));
         }
     }
 
     /// @notice Returns whether the good is under a value promise (bit 244).
     function isPromised(uint256 config) internal pure returns (bool a) {
-        return (config & (1 << 244)) != 0;
+        return (config & (1 << 250)) != 0;
     }
     /// @notice Sets or clears bit 244 (`isPromise`).
     function setPromised(
@@ -189,9 +169,9 @@ library L_GoodConfigLibrary {
         bool promised
     ) internal pure returns (uint256 a) {
         if (promised) {
-            return (config | (1 << 244));
+            return (config | (1 << 250));
         } else {
-            return (config & ~uint256(1 << 244));
+            return (config & ~uint256(1 << 250));
         }
     }
 
@@ -202,7 +182,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(253, shl(12, config))
+                config := shr(253, shl(6, config))
                 config := mul(config, amount)
                 a := div(config, 10)
             }
@@ -216,7 +196,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(252, shl(15, config))
+                config := shr(252, shl(9, config))
                 config := mul(config, amount)
                 a := div(config, 50)
             }
@@ -230,7 +210,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(253, shl(19, config))
+                config := shr(253, shl(13, config))
                 config := mul(config, amount)
                 a := div(config, 25)
             }
@@ -244,7 +224,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(251, shl(22, config))
+                config := shr(251, shl(16, config))
                 config := mul(config, amount)
                 a := div(config, 100)
             }
@@ -258,7 +238,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(251, shl(27, config))
+                config := shr(251, shl(21, config))
                 config := mul(config, amount)
                 a := div(config, 100)
             }
@@ -272,7 +252,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                config := shr(251, shl(32, config))
+                config := shr(251, shl(26, config))
                 config := mul(config, amount)
                 a := div(config, 100)
             }
@@ -286,7 +266,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint256 a) {
         unchecked {
             assembly {
-                config := shr(251, shl(32, config))
+                config := shr(251, shl(26, config))
                 config := mul(config, amount)
                 a := div(config, 100)
             }
@@ -297,7 +277,7 @@ library L_GoodConfigLibrary {
     function getLimitPower(uint256 config) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                a := shr(251, shl(37, config))
+                a := shr(251, shl(31, config))
             }
             if (a == 0) {
                 a = 100;
@@ -307,34 +287,39 @@ library L_GoodConfigLibrary {
         }
     }
 
-    /// @notice Safety-line threshold from bits 213-204 (raw 10-bit value).
-    function getSafeLine(uint256 config) internal pure returns (uint128 a) {
-        unchecked {
-            assembly {
-                a := shr(246, shl(42, config))
-            }
-        }
-    }
-
-    /// @notice Safety-line amount from bits 213-204: stored 0 → `amount`, else `stored × amount / 1000`.
-    function getSafeLine(
+    /// @notice Safety-line amount from bits 219-212: stored 0 → `amount`, else `stored × amount / 1000`.
+    function getSafeLineUpper(
         uint256 config,
         uint128 amount
     ) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                a := shr(246, shl(42, config))
+                a := shr(248, shl(36, config))
             }
             if (a == 0) return amount;
-            return ((a * amount) / 1000);
+            return ((a * amount) / 100);
         }
     }
 
-    /// @notice Contract-type identifier from bits 203-192.
+    /// @notice Safety-line amount from bits 211-204: stored 0 → `amount`, else `stored × amount / 1000`.
+    function getSafeLineLower(
+        uint256 config,
+        uint128 amount
+    ) internal pure returns (uint128 a) {
+        unchecked {
+            assembly {
+                a := shr(248, shl(44, config))
+            }
+            if (a == 0) return amount;
+            return ((a * amount) / 100);
+        }
+    }
+
+    /// @notice Contract-type identifier from bits 203-197.
     function getContractType(uint256 config) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                a := shr(244, shl(52, config))
+                a := shr(244, shl(49, config))
             }
         }
     }
@@ -345,7 +330,7 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint256 a) {
         unchecked {
             assembly {
-                a := shr(244, shl(65, config))
+                a := shr(244, shl(59, config))
             }
         }
     }
@@ -354,7 +339,7 @@ library L_GoodConfigLibrary {
     function getPower(uint256 config) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                a := shr(251, shl(89, config))
+                a := shr(251, shl(83, config))
             }
         }
         return a == 0 ? 100 : 100 * a;
@@ -368,10 +353,29 @@ library L_GoodConfigLibrary {
     ) internal pure returns (uint128) {
         uint128 a;
         assembly {
-            a := shr(248, shl(94, config))
+            a := shr(248, shl(88, config))
         }
         if (a == 0) return amount;
         return ((amount / a) * 4);
+    }
+
+    /// @notice Invest threshold from bits 153-148.
+    function getInvestThreshold(
+        uint256 config,
+        uint128 amount
+    ) internal pure returns (uint128 a) {
+        uint256 b;
+        unchecked {
+            assembly {
+                b := shr(250, shl(96, config))
+            }
+            if (b > min_invest_threshold) {
+                b = min_invest_threshold;
+            }
+            if (b == 0) return amount;
+            b = 100 - b;
+            a = uint128((amount * b) / 100);
+        }
     }
 
     /// @notice Invest fee from bits 153-148: `stored × amount / 10000`.
@@ -469,12 +473,12 @@ library L_GoodConfigLibrary {
         uint256 platform;
 
         assembly {
-            liquid := mul(and(shr(241, config), 0x7), 10)
-            operator := mul(and(shr(237, config), 0xF), 2)
-            gate := mul(and(shr(234, config), 0x7), 4)
-            referal := and(shr(229, config), 0x1F)
-            cust := and(shr(224, config), 0x1F)
-            platform := and(shr(219, config), 0x1F)
+            liquid := mul(and(shr(247, config), 0x7), 10)
+            operator := mul(and(shr(243, config), 0xF), 2)
+            gate := mul(and(shr(240, config), 0x7), 4)
+            referal := and(shr(235, config), 0x1F)
+            cust := and(shr(230, config), 0x1F)
+            platform := and(shr(225, config), 0x1F)
         }
 
         // Check all components are non-zero and sum equals 100

@@ -1,75 +1,64 @@
 TTSwapError(uint256) 0xd1b51911
-1: Execution failed: caller is not the market super administrator.
-2: Execution failed: caller is not an administrator.
-3: Execution failed: operation is locked; please wait and retry.
-4: Execution failed: token must be configured as a value token.
-5: Execution failed: token (good) has already been created.
-6: Execution failed: value-token contract parameters are invalid.
-8: Execution failed: swap direction / side configuration is invalid.
-9: Execution failed: the two tokens must not be the same address.
-10: Execution failed: token 1 (good) is frozen.
-11: Execution failed: token 2 (good) is frozen.
-12: Execution failed: token 1 (good) is not initialized.
-13: Execution failed: token 2 (good) is not initialized.
-14: Execution failed: trade value is below the minimum (dust relative to 100_000 value units).
-    Condition: normal-good threshold = 1_000_000 * current_quantity / current_value.
-15: Execution failed: MEV / slippage protection — trade did not fill (output below limit).
-16: Execution failed: token 2 liquidity insufficient for this trade.
-    Condition: trade_qty + good2_current_quantity > good2config.amount1() * 11 / 10.
+1: Execution failed: user lacks market super administrator permission.
+2: Execution failed: user lacks administrator permission.
+3: Execution failed: operation is locked; please wait.
+5: Execution failed: token has already been created.
 7: Execution failed: token 2 liquidity insufficient for this trade.
     Condition: current_quantity - trade_qty > current_quantity / 10.
-17: Execution failed: exactly one of the two goods must be a value token.
-18: Execution failed: investment size exceeds the allowed threshold.
+10: Execution failed: token is frozen.
+12: Execution failed: token is not initialized.
+14: Execution failed: trade value is below the minimum (quantity corresponding to value 100000).
+    Condition: normal good threshold = 1_000_000 * current_quantity / current_value.
+15: Execution failed: MEV attack protection — trade did not fill.
+18: Execution failed: investment amount exceeds the threshold.
 19: Execution failed: you are not the creator of this proof.
-20: Execution failed: you are not the creator of this good.
-21: Execution failed: batch query length exceeds 100.
-22: Execution failed: caller is not the protocol security officer.
-23: Execution failed: investment leverage exceeds the maximum allowed.
-24: Execution failed: fee ratios in configuration do not sum to 100%.
-25: Execution failed: on initialization, investment power / leverage must equal 1 (100%).
-26: Execution failed: disinvest value exceeds the per-transaction cap; reduce the amount.
-27: Execution failed: disinvest quantity exceeds the per-transaction cap; reduce the amount.
-28: Execution failed: value-token disinvest value exceeds the per-transaction cap; reduce the amount.
-29: Execution failed: value-token disinvest quantity exceeds the per-transaction cap; reduce the amount.
-30: Execution failed: insufficient NativeETH balance in transient vault.
+20: Execution failed: you do not have permission to perform this operation.
+21: Execution failed: query count exceeds 100.
+23: Execution failed: exceeds maximum investment leverage multiplier.
+24: Execution failed: fee ratios do not sum to 100.
+26: Execution failed: disinvest value exceeds the token maximum single-transaction value; reduce disinvest amount.
+27: Execution failed: disinvest quantity exceeds the token maximum single-transaction quantity; reduce disinvest amount.
+30: Execution failed: insufficient NativeETH.
 31: Execution failed: refunding remaining NativeETH failed.
-32: Execution failed: recipient address must not be zero.
-33: Execution failed: protocol would receive more of the good than allowed vs. invested depth.
-    Condition: trade_qty + good1_current_quantity < good1_current_quantity * 2 - good1config.amount1().
-34: Execution failed: good is not frozen; freeze it first where required.
-35: Execution failed: initial token value is below the minimum threshold (init uses 500_000_000 value basis).
-    Condition: threshold = 500_000_000 * current_quantity / current_value.
+32: Execution failed: recipient cannot be empty.
+34: Execution failed: payment of transaction fee failed.
+35: Execution failed: initial token value is below the threshold (during initialization, quantity converted at value 500_000_000_000_000 must not fall below this at invest time).
+    Condition: threshold = 500_000_000_000_000 * current_quantity / current_value.
 36: Execution failed: initial token quantity is too small or too large.
-38: Execution failed: investment value is below the dust threshold (invest uses 1_000_000 value basis).
-39: Execution failed: trader and executor (msg.sender) do not match when required.
-40: Execution failed: this good owner’s proof is in a locked / restricted state.
-41: Execution failed: disinvest shares exceed the proof’s position.
-42: Execution failed: token transfer failed.
-43: Execution failed: good configuration update failed (K / consistency check).
-44: Execution failed: good configuration update failed (duplicate path / config branch).
-45: Execution failed: good is in buy-only mode; operation not allowed.
-47: Execution failed: single-sided invest price guard .
+37: Execution failed: good is under verification.
+38: Execution failed: investment value is too low (during investment, quantity converted at value 1_000_000_000_000 must not fall below this).
+39: Execution failed: trader and executor are not the same person.
+40: Execution failed: good administrator's investment proof is locked.
+41: Execution failed: disinvest amount exceeds investment amount.
+42: Execution failed: transfer failed.
+45: Execution failed: good is oversold; only buy operations are allowed temporarily.
+46: Execution failed: operation queued.
+47: Execution failed: invest price protection.
 49: Execution failed: signature expired.
-50: Execution failed: relayer executeFee exceeds the actual output token amount .
-51: Execution failed: good2Swap exact-out — requested value/quantity violates the pool invariant .
-52: Execution failed: amount cannot be represented as uint160.
-53: Execution failed: signature expired.
-54: Execution failed: exact-out (value side) — request exceeds pool depth.
-61: Execution failed: chain is not configured as mainnet for this operation.
-62: Execution failed: caller is not a DAO administrator.
-63: Execution failed: caller is not a token super administrator.
-64: Execution failed: caller is not a stake administrator.
-65: Execution failed: caller is not a token manager.
-66: Execution failed: ratio must not exceed 10_000 (basis points cap).
-67: Execution failed: allocated share exceeds remaining mintable amount.
-68: Execution failed: price has not doubled enough for this mint tranche.
-69: Execution failed: no remaining mint allowance for this tranche.
-70: Execution failed: public sale cumulative amount exceeds the cap.
-71: Execution failed: caller lacks secondary mint / stake permission.
-72: Execution failed: signature or permit deadline has expired.
+50: Execution failed: execution fee is below output amount.
+51: Execution failed: trade quantity is too large.
+52: Execution failed: amount is too large.
+54: Execution failed: trade quantity is too large.
+55: Execution failed: exceeds the threshold of this good in ttswap.
+56: Execution failed: below the threshold of this good in ttswap.
+61: Execution failed: not mainnet.
+62: Execution failed: not DAO administrator.
+63: Execution failed: not token super administrator.
+64: Execution failed: not stake administrator.
+65: Execution failed: not token administrator.
+66: Execution failed: ratio configuration must not exceed 10_000.
+67: Execution failed: allocated quantity exceeds remaining quantity.
+68: Execution failed: price has not doubled; mint failed.
+69: Execution failed: remaining mint quantity is 0.
+70: Execution failed: public sale quantity exceeds target.
+71: Execution failed: no secondary stake permission.
+72: Execution failed: signature has expired.
+73: Execution failed: unlock ratio is 0.
+74: Execution failed: unlocked quantity is 0.
+75: Execution failed: unlock burn amount is too large.
 NativeETHTransferFailed()          6c0f429e   Native ETH transfer failed
 ERC20TransferFailed()              f27f64e4   ERC-20 transfer failed
-ERC20PermitFailed()                40754b6a   ERC-20 permit / allowance path failed
+ERC20PermitFailed()                40754b6a   ERC-20 transfer failed
 InvalidSignature()                 8baa579f   Invalid signature
 InvalidSignatureLength()           4be6321b   Invalid signature length
 InvalidSigner()                    815e1d64   Invalid signer

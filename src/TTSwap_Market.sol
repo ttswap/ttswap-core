@@ -113,15 +113,6 @@ contract TTSwap_Market is I_TTSwap_Market {
         L_Transient.checkafter();
     }
 
-    /// @notice Top-level reentrancy guard (used by multicall only).
-    /// Sets lock to 1 (multicall context) so inner functions can enter via guardedEntry.
-    modifier noReentrant() {
-        if (L_Transient.get() != 0) revert TTSwapError(3);
-        L_Transient.set(1);
-        _;
-        L_Transient.set(0);
-    }
-
     /// @notice Guarded entry: works standalone (lock 0→2) and inside multicall (lock 1→2).
     /// Reverts on reentrancy (lock == 2). Restores previous lock level on exit.
     modifier guardedEntry() {
@@ -147,8 +138,7 @@ contract TTSwap_Market is I_TTSwap_Market {
         // Storage pointer avoids recomputing the mapping key hash twice
         if (g.goodConfig.isFreeze()) revert TTSwapError(freezeErr);
         if (g.currentState == 0) revert TTSwapError(emptyErr);
-        if (!g.goodConfig.isVerified()) revert TTSwapError(37);
-        if (g.goodConfig.getRunTimeConfig() == (block.timestamp % 4095) % 10)
+        if (g.goodConfig.getRunTimeConfig() == (block.timestamp % 4095) / 10)
             revert TTSwapError(46);
     }
 
@@ -225,16 +215,7 @@ contract TTSwap_Market is I_TTSwap_Market {
         _checkTrader(_trader);
         S_GoodState storage g = goods[_goodKey.toId()];
         _checkGoodActive(g, 10, 12);
-        if (_invest.amount0() > 0) {
-            if (g.isInvestBlocked(_invest, _trader)) revert TTSwapError(47);
-        } else {
-            uint128 poolValue = uint128(
-                (uint256(g.investState.amount1()) *
-                    uint256(_invest.amount1())) /
-                    uint256(g.currentState.amount1())
-            );
-            _invest = toTTSwapUINT256(poolValue, _invest.amount1());
-        }
+        
         L_Good.S_GoodInvestReturn memory normalInvest_;
 
         if (g.currentState.amount1() + _invest.amount1() > 2 ** 109)
@@ -266,7 +247,6 @@ contract TTSwap_Market is I_TTSwap_Market {
         // Calculates new shares and updates normal good's state.
         g.investGood(
             _invest.amount1(),
-            _invest.amount0(),
             normalInvest_,
             enpower
         );
@@ -289,7 +269,7 @@ contract TTSwap_Market is I_TTSwap_Market {
                 (normalInvest_.investQuantity * 100) / enpower //real quantity
             )
         );
-        g.goodConfig.updateRunTimeConfig();
+        g.goodConfig=g.goodConfig.updateRunTimeConfig();
         emit e_investGood(
             proofNo,
             _goodKey.toId(),
@@ -419,7 +399,7 @@ contract TTSwap_Market is I_TTSwap_Market {
             );
         }
 
-        g2.goodConfig.updateRunTimeConfig();
+        g2.goodConfig=g2.goodConfig.updateRunTimeConfig();
         emit e_buyGood(
             _goodKey1.toId(),
             _goodKey2.toId(),

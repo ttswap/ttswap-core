@@ -400,7 +400,7 @@ interface I_TTSwap_Market {
  * @dev Represents the state of a proof.
  * @notice Fields:
  * - `currentgood`: The current good associated with the proof
- * - `shares`: amount0 = normal good shares, amount1 = value good shares
+ * - `shares`: amount0 = normal good shares, amount1 :reserved
  * - `state`: amount0 = total value, amount1 = total actual value
  * - `invest`: amount0 = normal good virtual quantity, amount1 = normal good actual quantity
  */
