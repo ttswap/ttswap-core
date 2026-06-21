@@ -105,33 +105,6 @@ library L_Good {
         self.owner = msg.sender;
     }
 
-    /// @notice Checks whether the requested invest price is not higher than the current pool price.
-    /// @dev Compares cross-multiplied ratios to avoid precision loss from division:
-    ///      `_invest.amount0 / _invest.amount1 <= investState.amount1 / currentState.amount1`.
-    ///      Returns `true` when the incoming invest price is lower than or equal to current price.
-    /// @param self Storage pointer to the good state.
-    /// @param _invest Packed invest params where amount0 is invest value and amount1 is invest quantity.
-    /// @return bool True if invest price is lower than or equal to current pool price.
-    function isInvestBlocked(
-        S_GoodState storage self,
-        uint256 _invest,
-        address _trader
-    ) internal view returns (bool) {
-        uint256 config1 = uint256(self.currentState.amount1()) *
-            uint256(_invest.amount0());
-        uint256 config2 = uint256(self.investState.amount1()) *
-            uint256(_invest.amount1());
-        if (
-            config1 > config2 ||
-            !self.goodConfig.isPromised() ||
-            _trader != self.owner
-        ) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     /*
      * @notice Swap quantity
      * @dev Swaps quantity of the good
@@ -214,7 +187,7 @@ library L_Good {
         );
         uint128 swap_fee = config.getSellFee(swapTemp);
         if (
-            current_quantity - swapTemp >
+            current_quantity - swapTemp <
             _self.goodConfig.getSafeLineLower(
                 _self.currentState.amount0() + _self.goodConfig.amount1()
             )
@@ -264,12 +237,12 @@ library L_Good {
             );
 
             if (
-                current_quantity - swapTemp >
+                current_quantity - swapTemp <
                 _self.goodConfig.getSafeLineLower(
                     _self.currentState.amount0() + _self.goodConfig.amount1()
                 )
             ) {
-                revert TTSwapError(45);
+                revert TTSwapError(56);
             }
             swap_fee = config.getBuyFee(swapTemp);
 
@@ -282,14 +255,6 @@ library L_Good {
                 _self.currentState,
                 toTTSwapUINT256(0, swapTemp)
             );
-            if (
-                current_quantity + swapTemp >
-                _self.goodConfig.getSafeLineUpper(
-                    _self.currentState.amount0() + _self.goodConfig.amount1()
-                )
-            ) {
-                revert TTSwapError(45);
-            }
         } else {
             swap_fee = config.getBuyFee(_swapParam);
             uint128 swap = _swapParam + swap_fee;
@@ -300,7 +265,7 @@ library L_Good {
                     _self.currentState.amount0() + _self.goodConfig.amount1()
                 )
             ) {
-                revert TTSwapError(45);
+                revert TTSwapError(55);
             }
             // ΔV = (2 * V_A * Δa) / (2 * Q_A - Δa), scaled by 100 for fee precision.
             swapTemp = uint128(
@@ -316,13 +281,6 @@ library L_Good {
                 _self.currentState,
                 toTTSwapUINT256(0, swap)
             );
-            if (
-                _self.goodConfig.isnormalgood() &&
-                _self.currentState.amount0() + _self.goodConfig.amount1() <
-                _self.currentState.amount1()
-            ) {
-                revert TTSwapError(45);
-            }
         }
 
         return toTTSwapUINT256(swap_fee, swapTemp);
@@ -361,10 +319,10 @@ library L_Good {
     function investGood(
         S_GoodState storage _self,
         uint128 _invest,
-        uint128 _investValue,
         S_GoodInvestReturn memory investResult_,
         uint128 enpower
     ) internal {
+        uint128 _investValue;
         // Calculate the invest virtual quantity
         // The user receives virtual shares magnified by the power/leverage factor.
 
@@ -376,31 +334,17 @@ library L_Good {
         _invest = _invest - investResult_.investFeeQuantity;
         // Virtual quantity = actual input * leverage (enpower in basis points).
         investResult_.investQuantity = (_invest * enpower) / 100;
-
+        _investValue = toTTSwapUINT256(
+            investResult_.goodValues,
+            investResult_.goodCurrentQuantity
+        ).getamount0fromamount1(investResult_.investQuantity);
         // Calculate the actual investment value based from investQuantity on the current state
         // Determines the monetary value (virtual USD/ETH) of the new shares relative to the pool's total value.
-        if (_investValue == 0) {
-            if (_self.goodConfig.isvaluegood()) {
-                // 价值代币：线性公式
-                investResult_.investValue = toTTSwapUINT256(
-                    investResult_.goodValues,
-                    investResult_.goodCurrentQuantity
-                ).getamount0fromamount1(investResult_.investQuantity);
-            } else {
-                // 普通代币：衰减公式（与 swap 同构）
 
-                investResult_.investValue = uint128(
-                    (2 *
-                        uint256(investResult_.goodValues) *
-                        uint256(investResult_.investQuantity)) /
-                        (2 *
-                            uint256(investResult_.goodCurrentQuantity) +
-                            uint256(investResult_.investQuantity))
-                );
-            }
-        } else {
-            investResult_.investValue = (_investValue * enpower) / 100;
-        }
+        investResult_.investValue = _self.goodConfig.getInvestThreshold(
+            _investValue
+        );
+        _investValue = (_investValue * 100) / enpower;
 
         // Calculate the invest share based from investQuantity on the invest state
         // Mints shares proportional to the new virtual quantity vs the total existing virtual quantity.
