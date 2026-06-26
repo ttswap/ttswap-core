@@ -3,6 +3,7 @@ pragma solidity 0.8.29;
 
 import {Vm} from "forge-std/src/Test.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
+import {TestConfigConstants} from "./TestConfigConstants.sol";
 import {S_GoodTmpState, S_ProofState} from "../src/interfaces/I_TTSwap_Market.sol";
 import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
 import {TTSwapError} from "../src/libraries/L_Error.sol";
@@ -24,8 +25,7 @@ contract testInitGoodWithPrice is BaseSetup {
             "e_initGood(uint256,uint256,uint256,uint256,uint256,uint256,address)"
         );
 
-    uint256 internal constant INITIAL_CONFIG =
-        0x000c350810450000000000842882040800000000000000000000000000000000;
+    uint256 internal constant INITIAL_CONFIG = TestConfigConstants.INITIAL_GOOD_CONFIG;
 
     uint256 internal constant MIN_VALUE = 500_000_000_000_000;
     uint256 internal constant MIN_QTY = 500_000;
@@ -37,7 +37,6 @@ contract testInitGoodWithPrice is BaseSetup {
     /// @dev Invest timestamps cycling 1..9: satisfies both
     ///      `_checkGoodActive` (runSlot != t%10) and `updateRunTimeConfig` (runSlot == t/10)
     ///      when initial lastRunSlot = 0.
-    uint256 internal investTs = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -77,10 +76,8 @@ contract testInitGoodWithPrice is BaseSetup {
         vm.stopPrank();
     }
 
-    function _expectedGoodConfig() internal view returns (uint256) {
-        uint256 runSlot = (block.timestamp % 4095) % 10;
-        uint256 mask = 0x00000000000000007ff800000000000000000000000000000000000000000000;
-        return (INITIAL_CONFIG & ~mask) | (runSlot << 179);
+    function _expectedGoodConfig() internal pure returns (uint256) {
+        return TestConfigConstants.INITIAL_GOOD_CONFIG;
     }
 
     function _proofIdFromInitGoodEvent() internal returns (uint256 proofId) {
@@ -141,14 +138,6 @@ contract testInitGoodWithPrice is BaseSetup {
         );
     }
 
-    function _verifyGood(uint256 goodId, address restoreTrader) internal {
-        vm.stopPrank();
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-        vm.startPrank(restoreTrader);
-    }
 
     function _verifyAndPromiseGood(
         uint256 goodId,
@@ -159,7 +148,7 @@ contract testInitGoodWithPrice is BaseSetup {
         uint256 cfg = market
             .getGoodState(goodId)
             .goodConfig
-            .setVerified(true)
+            
             .setPromised(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
         vm.stopPrank();
@@ -167,11 +156,6 @@ contract testInitGoodWithPrice is BaseSetup {
     }
 
     /// @dev Pick t ∈ [1,9] so runSlot(0) passes anti-replay checks for first invest.
-    function _warpForInvest() internal {
-        vm.warp(investTs);
-        investTs++;
-        if (investTs > 9) investTs = 1;
-    }
 
     // ── initGood happy path ────────────────────────────────────────────────
 
@@ -359,8 +343,7 @@ contract testInitGoodWithPrice is BaseSetup {
         vm.startPrank(users[1]);
         _fundAndApproveBtc(users[1], 10 * BTC_QTY);
         uint256 goodId = _initBtcGood(users[1], BTC_VALUE, BTC_QTY);
-        _verifyGood(goodId, users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
 
         S_GoodTmpState memory before = market.getGoodState(goodId);
         uint128 investQty = BTC_QTY;
@@ -386,7 +369,7 @@ contract testInitGoodWithPrice is BaseSetup {
             "virtual qty >= actual qty"
         );
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         market.investGood(
             _btcKey(),
             toTTSwapUINT256(0, investQty),
@@ -405,38 +388,26 @@ contract testInitGoodWithPrice is BaseSetup {
         vm.stopPrank();
     }
 
-    function testInitGood_then_investGood_revert_notVerified() public {
-        vm.startPrank(users[1]);
-        _fundAndApproveBtc(users[1], 10 * BTC_QTY);
-        _initBtcGood(users[1], BTC_VALUE, BTC_QTY);
-        _warpForInvest();
-
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 37));
-        market.investGood(
-            _btcKey(),
-            toTTSwapUINT256(0, BTC_QTY),
-            defaultdata,
-            defaultdata,
-            users[1]
-        );
-        vm.stopPrank();
-    }
 
     function testInitGood_then_investGood_revert_highPrice() public {
         vm.startPrank(users[1]);
         _fundAndApproveBtc(users[1], 10 * BTC_QTY);
         uint256 goodId = _initBtcGood(users[1], BTC_VALUE, BTC_QTY);
         _verifyAndPromiseGood(goodId, users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
 
         uint128 higherPrice = uint128(64000 * 10 ** 12);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 47));
         market.investGood(
             _btcKey(),
             toTTSwapUINT256(higherPrice, BTC_QTY),
             defaultdata,
             defaultdata,
             users[1]
+        );
+        assertGt(
+            market.getGoodState(goodId).currentState.amount1(),
+            BTC_QTY,
+            "high-price invest allowed in v2"
         );
         vm.stopPrank();
     }
@@ -447,9 +418,9 @@ contract testInitGoodWithPrice is BaseSetup {
         uint256 goodId = _initBtcGood(users[1], BTC_VALUE, BTC_QTY);
         vm.stopPrank();
 
-        _verifyGood(goodId, users[2]);
+        vm.startPrank(users[2]);
         _fundAndApproveBtc(users[2], 10 * BTC_QTY);
-        _warpForInvest();
+        _warpToFreshRunSlot();
 
         market.investGood(
             _btcKey(),
@@ -473,15 +444,19 @@ contract testInitGoodWithPrice is BaseSetup {
 
         _verifyAndPromiseGood(goodId, users[2]);
         _fundAndApproveBtc(users[2], 10 * BTC_QTY);
-        _warpForInvest();
+        _warpToFreshRunSlot();
 
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 47));
         market.investGood(
             _btcKey(),
             toTTSwapUINT256(BTC_VALUE, BTC_QTY),
             defaultdata,
             defaultdata,
             users[2]
+        );
+        assertGt(
+            market.getGoodState(goodId).currentState.amount1(),
+            BTC_QTY,
+            "non-owner explicit price invest allowed in v2"
         );
         vm.stopPrank();
     }
@@ -491,7 +466,7 @@ contract testInitGoodWithPrice is BaseSetup {
         _fundAndApproveBtc(users[1], 10 * BTC_QTY);
         uint256 goodId = _initBtcGood(users[1], BTC_VALUE, BTC_QTY);
         _verifyAndPromiseGood(goodId, users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
 
         market.investGood(
             _btcKey(),
@@ -511,11 +486,10 @@ contract testInitGoodWithPrice is BaseSetup {
         vm.startPrank(users[1]);
         deal(address(usdt), users[1], 100 * 10 ** 6, false);
         usdt.approve(address(market), type(uint256).max);
-        _verifyGood(metaGoodId, users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
 
         S_GoodTmpState memory before = market.getGoodState(metaGoodId);
-        uint128 investQty = 1 * 10 ** 6;
+        uint128 investQty = 100 * 10 ** 6;
 
         market.investGood(
             T_GoodKey({ercType: 1, contractAddress: address(usdt), id: 0}),

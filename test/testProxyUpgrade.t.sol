@@ -9,6 +9,7 @@ import {TTSwap_Token} from "../src/TTSwap_Token.sol";
 import {TTSwapError} from "../src/libraries/L_Error.sol";
 import {L_ProofIdLibrary} from "../src/libraries/L_Proof.sol";
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
+import {TestConfigConstants} from "./TestConfigConstants.sol";
 import {
     L_TTSwapUINT256Library,
     toTTSwapUINT256
@@ -20,9 +21,6 @@ contract testProxyUpgrade is BaseSetup {
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
     using L_ProofIdLibrary for S_ProofKey;
-
-    uint256 internal constant SAFE_LINE_SHIFT = 204;
-    uint256 internal constant SAFE_LINE_MASK = uint256(0x3FF) << SAFE_LINE_SHIFT;
 
     uint256 internal usdtGoodId;
     uint256 internal btcGoodId;
@@ -39,13 +37,6 @@ contract testProxyUpgrade is BaseSetup {
         _relaxSafeLine(btcGoodId);
     }
 
-    function _relaxSafeLine(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig;
-        cfg = (cfg & ~SAFE_LINE_MASK) | (uint256(1023) << SAFE_LINE_SHIFT);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _usdtKey() internal view returns (T_GoodKey memory) {
         return T_GoodKey({ercType: 1, contractAddress: address(usdt), id: 0});
@@ -87,12 +78,6 @@ contract testProxyUpgrade is BaseSetup {
         vm.stopPrank();
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _markAsValueGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
@@ -104,11 +89,11 @@ contract testProxyUpgrade is BaseSetup {
         vm.startPrank(users[1]);
         deal(address(usdt), users[1], 10_000_000 * 10 ** 6, false);
         usdt.approve(address(market), type(uint256).max);
-        vm.warp(1);
+        _warpToFreshRunSlot();
         market.buyGood(
             _usdtKey(),
             _btcKey(),
-            toTTSwapUINT256(100 * 10 ** 6, 0),
+            toTTSwapUINT256(50 * 10 ** 6, 0),
             address(0),
             defaultdata,
             users[1],
@@ -146,7 +131,7 @@ contract testProxyUpgrade is BaseSetup {
         vm.startPrank(users[2]);
         deal(address(usdt), users[2], 10_000_000 * 10 ** 6, false);
         usdt.approve(address(market), type(uint256).max);
-        vm.warp(2);
+        _warpToFreshRunSlot();
         market.buyGood(
             _usdtKey(),
             _btcKey(),

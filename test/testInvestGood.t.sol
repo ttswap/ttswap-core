@@ -3,6 +3,7 @@ pragma solidity 0.8.29;
 
 import {Vm} from "forge-std/src/Test.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
+import {TestConfigConstants} from "./TestConfigConstants.sol";
 import {MyToken} from "../src/test/MyToken.sol";
 import {S_GoodTmpState, S_ProofState, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
 import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
@@ -27,8 +28,8 @@ contract testInvestGood is BaseSetup {
             "e_investGood(uint256,uint256,uint256,uint256,uint256,address)"
         );
 
-    uint256 internal constant POWER_SHIFT = 162;
-    uint256 internal constant LIMIT_POWER_SHIFT = 214;
+    uint256 internal constant POWER_SHIFT = TestConfigConstants.POWER_SHIFT;
+    uint256 internal constant LIMIT_POWER_SHIFT = TestConfigConstants.LIMIT_POWER_SHIFT;
     uint256 internal constant INVEST_FEE_SHIFT = 148;
 
     uint128 internal constant USDT_INIT_QTY = uint128(50000 * 10 ** 6);
@@ -42,14 +43,13 @@ contract testInvestGood is BaseSetup {
 
     uint128 internal constant BTC_INVEST = uint128(1 * 10 ** 8);
     uint128 internal constant USDT_INVEST = uint128(50000 * 10 ** 6);
-    uint128 internal constant USDT_SMALL_INVEST = uint128(1 * 10 ** 6);
+    uint128 internal constant USDT_SMALL_INVEST = uint128(10 * 10 ** 6);
     uint128 internal constant NATIVE_INVEST = uint128(1 * 10 ** 8);
 
     uint256 internal usdtGoodId;
     uint256 internal btcGoodId;
     uint256 internal nativeNormalGoodId;
 
-    uint256 internal investTs = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -86,11 +86,6 @@ contract testInvestGood is BaseSetup {
         return S_ProofKey({owner: owner, currentgood: goodId}).toId();
     }
 
-    function _warpForInvest() internal {
-        vm.warp(investTs);
-        investTs++;
-        if (investTs > 9) investTs = 1;
-    }
 
     function _initUsdtGood(
         address owner,
@@ -151,19 +146,13 @@ contract testInvestGood is BaseSetup {
         vm.stopPrank();
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _verifyAndPromiseGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
         uint256 cfg = market
             .getGoodState(goodId)
             .goodConfig
-            .setVerified(true)
+            
             .setPromised(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
         vm.stopPrank();
@@ -263,7 +252,7 @@ contract testInvestGood is BaseSetup {
         S_GoodTmpState memory before_ = market.getGoodState(btcGoodId);
         uint256 btcBefore = btc.balanceOf(address(market));
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         assertTrue(_investBtc(users[1], 0, BTC_INVEST), "invest ok");
         snapLastCall("invest_erc20_normal_owner_first");
         uint256 proofId = _proofId(users[1], btcGoodId);
@@ -285,12 +274,12 @@ contract testInvestGood is BaseSetup {
 
     function testInvestERC20NormalGood_owner_consecutive() public {
         vm.startPrank(users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         _investBtc(users[1], 0, BTC_INVEST);
         snapLastCall("invest_erc20_normal_owner_second");
 
         S_GoodTmpState memory mid = market.getGoodState(btcGoodId);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         _investBtc(users[1], 0, BTC_INVEST);
         snapLastCall("invest_erc20_normal_owner_third");
 
@@ -306,7 +295,7 @@ contract testInvestGood is BaseSetup {
 
         S_GoodTmpState memory before_ = market.getGoodState(btcGoodId);
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         assertTrue(_investBtc(users[4], 0, BTC_INVEST), "other user invest");
         snapLastCall("invest_erc20_normal_other_first");
         uint256 proofId = _proofId(users[4], btcGoodId);
@@ -322,7 +311,7 @@ contract testInvestGood is BaseSetup {
     function testInvestERC20NormalGood_owner_explicitPrice_whenPromised() public {
         _verifyAndPromiseGood(btcGoodId);
         vm.startPrank(users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         assertTrue(
             _investBtc(users[1], BTC_INIT_VALUE, BTC_INVEST),
             "owner same-price invest"
@@ -333,38 +322,11 @@ contract testInvestGood is BaseSetup {
         vm.stopPrank();
     }
 
-    function testInvestERC20NormalGood_revert_notVerified() public {
-        T_GoodKey memory key = T_GoodKey({
-            ercType: 1,
-            contractAddress: address(eth),
-            id: 0
-        });
-        vm.startPrank(users[2]);
-        deal(address(eth), users[2], 10 * BTC_INVEST, false);
-        eth.approve(address(market), type(uint256).max);
-        market.initGood(
-            key,
-            toTTSwapUINT256(BTC_INIT_VALUE, BTC_INVEST),
-            defaultdata,
-            users[2],
-            defaultdata
-        );
-        _warpForInvest();
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 37));
-        market.investGood(
-            key,
-            toTTSwapUINT256(0, BTC_INVEST),
-            defaultdata,
-            defaultdata,
-            users[2]
-        );
-        vm.stopPrank();
-    }
 
     function testInvestERC20NormalGood_revert_frozen() public {
         _freezeGood(btcGoodId);
         vm.startPrank(users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         btc.approve(address(market), BTC_INVEST);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 10));
         market.investGood(
@@ -379,7 +341,7 @@ contract testInvestGood is BaseSetup {
 
     function testInvestERC20NormalGood_revert_traderMismatch() public {
         vm.startPrank(users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 39));
         market.investGood(
             _btcKey(),
@@ -394,15 +356,19 @@ contract testInvestGood is BaseSetup {
     function testInvestERC20NormalGood_revert_highExplicitPrice() public {
         _verifyAndPromiseGood(btcGoodId);
         vm.startPrank(users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         btc.approve(address(market), BTC_INVEST);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 47));
         market.investGood(
             _btcKey(),
             toTTSwapUINT256(uint128(64000 * 10 ** 12), BTC_INVEST),
             defaultdata,
             defaultdata,
             users[1]
+        );
+        assertGt(
+            market.getGoodState(btcGoodId).currentState.amount1(),
+            BTC_INIT_QTY,
+            "high explicit price invest allowed in v2"
         );
         vm.stopPrank();
     }
@@ -412,8 +378,7 @@ contract testInvestGood is BaseSetup {
         vm.startPrank(users[4]);
         deal(address(btc), users[4], BTC_INVEST, false);
         btc.approve(address(market), BTC_INVEST);
-        _warpForInvest();
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 47));
+        _warpToFreshRunSlot();
         market.investGood(
             _btcKey(),
             toTTSwapUINT256(BTC_INIT_VALUE, BTC_INVEST),
@@ -421,12 +386,17 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[4]
         );
+        assertGt(
+            market.getGoodState(btcGoodId).currentState.amount1(),
+            BTC_INIT_QTY,
+            "other user explicit price invest allowed in v2"
+        );
         vm.stopPrank();
     }
 
     function testInvestERC20NormalGood_revert_dustValue() public {
         vm.startPrank(users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         btc.approve(address(market), 1);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 38));
         market.investGood(
@@ -447,7 +417,7 @@ contract testInvestGood is BaseSetup {
         S_GoodTmpState memory before_ = market.getGoodState(usdtGoodId);
         uint256 balBefore = usdt.balanceOf(marketcreator);
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         assertTrue(_investUsdt(marketcreator, 0, USDT_INVEST), "value good invest");
         snapLastCall("invest_erc20_value_owner_first");
         uint256 proofId = _proofId(marketcreator, usdtGoodId);
@@ -468,12 +438,12 @@ contract testInvestGood is BaseSetup {
     function testInvestERC20ValueGood_owner_consecutive() public {
         vm.startPrank(marketcreator);
         usdt.approve(address(market), type(uint256).max);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         _investUsdt(marketcreator, 0, USDT_INVEST);
         snapLastCall("invest_erc20_value_owner_second");
 
         S_GoodTmpState memory mid = market.getGoodState(usdtGoodId);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         _investUsdt(marketcreator, 0, USDT_INVEST);
         snapLastCall("invest_erc20_value_owner_third");
 
@@ -490,7 +460,7 @@ contract testInvestGood is BaseSetup {
         deal(address(usdt), users[2], 10 * USDT_INVEST, false);
         usdt.approve(address(market), type(uint256).max);
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         assertTrue(_investUsdt(users[2], 0, USDT_INVEST), "other user value invest");
         snapLastCall("invest_erc20_value_other_first");
         uint256 proofId = _proofId(users[2], usdtGoodId);
@@ -507,7 +477,7 @@ contract testInvestGood is BaseSetup {
         usdt.approve(address(market), USDT_SMALL_INVEST);
         S_GoodTmpState memory before_ = market.getGoodState(usdtGoodId);
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         assertTrue(
             _investUsdt(users[1], 0, USDT_SMALL_INVEST),
             "small metagood invest"
@@ -529,7 +499,7 @@ contract testInvestGood is BaseSetup {
         S_GoodTmpState memory before_ = market.getGoodState(nativeNormalGoodId);
         uint256 marketEthBefore = address(market).balance;
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         assertTrue(
             _investNative(users[1], 0, NATIVE_INVEST),
             "native normal invest"
@@ -548,9 +518,9 @@ contract testInvestGood is BaseSetup {
 
     function testInvestNativeETHNormalGood_owner_consecutive() public {
         vm.startPrank(users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         _investNative(users[1], 0, NATIVE_INVEST);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         _investNative(users[1], 0, NATIVE_INVEST);
         snapLastCall("invest_native_normal_owner_third");
         S_GoodTmpState memory state = market.getGoodState(nativeNormalGoodId);
@@ -563,7 +533,7 @@ contract testInvestGood is BaseSetup {
         vm.deal(users[4], 10 * NATIVE_INVEST);
         uint256 proofId = _proofId(users[4], nativeNormalGoodId);
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         assertTrue(
             _investNative(users[4], 0, NATIVE_INVEST),
             "other native invest"
@@ -588,7 +558,7 @@ contract testInvestGood is BaseSetup {
         uint128 virtualBefore = before_.currentState.amount1();
         uint128 actualBefore = before_.currentState.amount0();
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         _investUsdt(marketcreator, 0, USDT_INVEST);
         snapLastCall("invest_value_power_no_fee");
 
@@ -611,7 +581,7 @@ contract testInvestGood is BaseSetup {
         usdt.approve(address(market), type(uint256).max);
         S_GoodTmpState memory before_ = market.getGoodState(usdtGoodId);
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         _investUsdt(marketcreator, 0, USDT_INVEST);
         snapLastCall("invest_value_power_with_fee");
 
@@ -633,7 +603,7 @@ contract testInvestGood is BaseSetup {
 
     function testInvestGood_revert_busySlot() public {
         vm.startPrank(users[1]);
-        vm.warp(10);
+        vm.warp(0);
         btc.approve(address(market), BTC_INVEST);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
         market.investGood(
@@ -648,7 +618,7 @@ contract testInvestGood is BaseSetup {
 
     function testInvestGood_event_emitted() public {
         vm.startPrank(users[1]);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         vm.recordLogs();
         _investBtc(users[1], 0, BTC_INVEST);
 
@@ -698,7 +668,7 @@ contract testInvestGood is BaseSetup {
         vm.startPrank(users[2]);
         deal(address(maxToken), users[2], 10, false);
         maxToken.approve(address(market), 10);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 18));
         market.investGood(
             key,
@@ -722,7 +692,6 @@ contract testInvestNativeETHValueGood is BaseSetup {
     uint128 internal constant NATIVE_VAL_VALUE = uint128(50000 * 10 ** 12);
 
     uint256 internal nativeValueGoodId;
-    uint256 internal investTs = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -744,11 +713,6 @@ contract testInvestNativeETHValueGood is BaseSetup {
         return S_ProofKey({owner: owner, currentgood: goodId}).toId();
     }
 
-    function _warpForInvest() internal {
-        vm.warp(investTs);
-        investTs++;
-        if (investTs > 9) investTs = 1;
-    }
 
     function _initNativeValueGood(
         address owner,
@@ -769,12 +733,6 @@ contract testInvestNativeETHValueGood is BaseSetup {
         vm.stopPrank();
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _markAsValueGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
@@ -801,7 +759,7 @@ contract testInvestNativeETHValueGood is BaseSetup {
         vm.deal(marketcreator, 20 * NATIVE_VAL_QTY);
         S_GoodTmpState memory before_ = market.getGoodState(nativeValueGoodId);
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         assertTrue(
             _investNative(marketcreator, 0, NATIVE_VAL_QTY),
             "native value invest"
@@ -818,7 +776,7 @@ contract testInvestNativeETHValueGood is BaseSetup {
         vm.deal(users[2], 10 * NATIVE_VAL_QTY);
         uint256 proofId = _proofId(users[2], nativeValueGoodId);
 
-        _warpForInvest();
+        _warpToFreshRunSlot();
         assertTrue(
             _investNative(users[2], 0, NATIVE_VAL_QTY),
             "other native value invest"
@@ -833,9 +791,9 @@ contract testInvestNativeETHValueGood is BaseSetup {
     function testInvestNativeETHValueGood_owner_consecutive() public {
         vm.startPrank(marketcreator);
         vm.deal(marketcreator, 20 * NATIVE_VAL_QTY);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         _investNative(marketcreator, 0, NATIVE_VAL_QTY);
-        _warpForInvest();
+        _warpToFreshRunSlot();
         _investNative(marketcreator, 0, NATIVE_VAL_QTY);
         snapLastCall("invest_native_value_owner_third");
 

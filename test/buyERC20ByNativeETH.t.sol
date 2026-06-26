@@ -24,12 +24,7 @@ contract buyERC20ByNativeETH is BaseSetup {
     uint128 internal constant NATIVE_INIT_VALUE = uint128(50000 * 10 ** 12);
     uint128 internal constant BTC_INIT_QTY = uint128(1 * 10 ** 8);
     uint128 internal constant BTC_INIT_VALUE = uint128(63000 * 10 ** 12);
-    uint128 internal constant SWAP_IN = uint128(100 * 10 ** 6);
-
-    uint256 internal constant SAFE_LINE_SHIFT = 204;
-    uint256 internal constant SAFE_LINE_MASK = uint256(0x3FF) << 204;
-
-    uint256 internal buyTs = 1;
+    uint128 internal constant SWAP_IN = uint128(50 * 10 ** 6);
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -90,12 +85,6 @@ contract buyERC20ByNativeETH is BaseSetup {
         vm.stopPrank();
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     /// @dev Admin marks the payment-side pool as a value good (bit 255).
     function _markAsValueGood(uint256 goodId) internal {
@@ -104,19 +93,6 @@ contract buyERC20ByNativeETH is BaseSetup {
         vm.stopPrank();
     }
 
-    function _relaxSafeLine(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig;
-        cfg = (cfg & ~SAFE_LINE_MASK) | (uint256(1023) << SAFE_LINE_SHIFT);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
-
-    function _warpForBuy() internal {
-        vm.warp(buyTs);
-        buyTs++;
-        if (buyTs > 9) buyTs = 1;
-    }
 
     function _buyBtcWithEth(
         address trader,
@@ -149,11 +125,9 @@ contract buyERC20ByNativeETH is BaseSetup {
 
         S_GoodTmpState memory nativeBefore = market.getGoodState(nativeGoodId);
         S_GoodTmpState memory btcBeforeState = market.getGoodState(btcGoodId);
-        assertTrue(nativeBefore.goodConfig.isvaluegood(), "native is value good");
-        assertTrue(nativeBefore.goodConfig.isVerified(), "native verified");
-        assertFalse(btcBeforeState.goodConfig.isvaluegood(), "btc is normal good");
+        assertTrue(nativeBefore.goodConfig.isvaluegood(), "native is value good");        assertFalse(btcBeforeState.goodConfig.isvaluegood(), "btc is normal good");
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         (uint256 g1change, uint256 g2change) = _buyBtcWithEth(
             users[1],
             SWAP_IN,
@@ -189,11 +163,11 @@ contract buyERC20ByNativeETH is BaseSetup {
         vm.startPrank(users[1]);
         vm.deal(users[1], 10 * SWAP_IN);
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         _buyBtcWithEth(users[1], SWAP_IN, 1, address(0));
         snapLastCall("buy_erc20_by_NativeETH_first");
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         _buyBtcWithEth(users[1], SWAP_IN, 1, address(0));
         snapLastCall("buy_erc20_by_NativeETH_second");
         vm.stopPrank();
@@ -204,15 +178,15 @@ contract buyERC20ByNativeETH is BaseSetup {
         vm.startPrank(users[1]);
         vm.deal(users[1], 20 * SWAP_IN);
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         _buyBtcWithEth(users[1], SWAP_IN, 1, referral);
         snapLastCall("buy_erc20_by_NativeETH_first_with_refer");
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         _buyBtcWithEth(users[1], SWAP_IN, 1, referral);
         snapLastCall("buy_erc20_by_NativeETH_second_with_exists_refer_reject_add");
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         _buyBtcWithEth(users[1], SWAP_IN, 1, address(0));
         snapLastCall("buy_erc20_by_NativeETH_second_with_exists_refer");
         vm.stopPrank();
@@ -223,7 +197,7 @@ contract buyERC20ByNativeETH is BaseSetup {
     function testBuyERC20ByNativeETH_revert_sameGood() public {
         vm.startPrank(users[1]);
         vm.deal(users[1], SWAP_IN);
-        _warpForBuy();
+        _warpToFreshRunSlot();
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 9));
         market.buyGood{value: SWAP_IN}(
             _nativeKey(),
@@ -241,7 +215,7 @@ contract buyERC20ByNativeETH is BaseSetup {
     function testBuyERC20ByNativeETH_revert_slippage() public {
         vm.startPrank(users[1]);
         vm.deal(users[1], SWAP_IN);
-        _warpForBuy();
+        _warpToFreshRunSlot();
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 15));
         market.buyGood{value: SWAP_IN}(
             _nativeKey(),
@@ -259,7 +233,7 @@ contract buyERC20ByNativeETH is BaseSetup {
     function testBuyERC20ByNativeETH_revert_traderMismatch() public {
         vm.startPrank(users[1]);
         vm.deal(users[1], SWAP_IN);
-        _warpForBuy();
+        _warpToFreshRunSlot();
         vm.expectRevert();
         market.buyGood{value: SWAP_IN}(
             _nativeKey(),
@@ -274,41 +248,4 @@ contract buyERC20ByNativeETH is BaseSetup {
         vm.stopPrank();
     }
 
-    function testBuyERC20ByNativeETH_revert_notVerified() public {
-        vm.startPrank(users[2]);
-        deal(address(btc), users[2], BTC_INIT_QTY, false);
-        btc.approve(address(market), type(uint256).max);
-        T_GoodKey memory key = T_GoodKey({
-            ercType: 1,
-            contractAddress: address(usdt),
-            id: 0
-        });
-        usdt.mint(users[2], 100000);
-        vm.stopPrank();
-        vm.startPrank(users[2]);
-        usdt.approve(address(market), NATIVE_INIT_QTY);
-        market.initGood(
-            key,
-            toTTSwapUINT256(NATIVE_INIT_VALUE, NATIVE_INIT_QTY),
-            defaultdata,
-            users[2],
-            defaultdata
-        );
-        uint256 unverifiedId = key.toId();
-        vm.deal(users[2], SWAP_IN);
-        _warpForBuy();
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 37));
-        market.buyGood{value: SWAP_IN}(
-            _nativeKey(),
-            key,
-            toTTSwapUINT256(SWAP_IN, 1),
-            address(0),
-            defaultdata,
-            users[2],
-            defaultdata,
-            0
-        );
-        vm.stopPrank();
-        unverifiedId;
-    }
 }

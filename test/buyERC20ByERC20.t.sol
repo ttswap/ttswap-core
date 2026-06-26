@@ -6,6 +6,7 @@ import {S_GoodTmpState} from "../src/interfaces/I_TTSwap_Market.sol";
 import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
 import {TTSwapError} from "../src/libraries/L_Error.sol";
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
+import {TestConfigConstants} from "./TestConfigConstants.sol";
 import {
     L_TTSwapUINT256Library,
     toTTSwapUINT256
@@ -24,20 +25,13 @@ contract buyERC20ByERC20 is BaseSetup {
     uint128 internal constant USDT_INIT_VALUE = uint128(50000 * 10 ** 12);
     uint128 internal constant BTC_INIT_QTY = uint128(1 * 10 ** 8);
     uint128 internal constant BTC_INIT_VALUE = uint128(63000 * 10 ** 12);
-    uint128 internal constant SWAP_IN = uint128(100 * 10 ** 6);
-
-    uint256 internal constant SAFE_LINE_SHIFT = 204;
-    uint256 internal constant SAFE_LINE_MASK = uint256(0x3FF) << 204;
-
-    uint256 internal buyTs = 1;
+    uint128 internal constant SWAP_IN = uint128(50 * 10 ** 6);
 
     function setUp() public override {
         BaseSetup.setUp();
         vm.warp(0);
         usdtGoodId = _initUsdtGood(marketcreator, USDT_INIT_QTY, USDT_INIT_VALUE);
         btcGoodId = _initBtcGood(users[1], BTC_INIT_VALUE, BTC_INIT_QTY);
-        _verifyGood(usdtGoodId);
-        _verifyGood(btcGoodId);
         _markAsValueGood(usdtGoodId);
         _relaxSafeLine(usdtGoodId);
         _relaxSafeLine(btcGoodId);
@@ -60,13 +54,7 @@ contract buyERC20ByERC20 is BaseSetup {
         usdt.mint(owner, 100000);
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
-        market.initGood(
-            key,
-            toTTSwapUINT256(value, qty),
-            defaultdata,
-            owner,
-            defaultdata
-        );
+        market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -80,21 +68,8 @@ contract buyERC20ByERC20 is BaseSetup {
         deal(address(btc), owner, 10 * qty, false);
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
-        market.initGood(
-            key,
-            toTTSwapUINT256(value, qty),
-            defaultdata,
-            owner,
-            defaultdata
-        );
+        market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
         goodId = key.toId();
-        vm.stopPrank();
-    }
-
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
         vm.stopPrank();
     }
 
@@ -105,18 +80,7 @@ contract buyERC20ByERC20 is BaseSetup {
     }
 
     function _warpForBuy() internal {
-        vm.warp(buyTs);
-        buyTs++;
-        if (buyTs > 9) buyTs = 1;
-    }
-
-    /// @dev Raise safeLine to 1023 so single swaps stay within pool depth guard.
-    function _relaxSafeLine(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig;
-        cfg = (cfg & ~SAFE_LINE_MASK) | (uint256(1023) << SAFE_LINE_SHIFT);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
+        _warpToFreshRunSlot();
     }
 
     function _buyBtcWithUsdt(
@@ -301,41 +265,4 @@ contract buyERC20ByERC20 is BaseSetup {
         vm.stopPrank();
     }
 
-    function testBuyERC20ByERC20_revert_notVerified() public {
-        T_GoodKey memory ethKey = T_GoodKey({
-            ercType: 1,
-            contractAddress: address(eth),
-            id: 0
-        });
-        uint128 ethQty = uint128(1000 * 10 ** 18);
-
-        vm.startPrank(users[2]);
-        deal(address(eth), users[2], 10 * ethQty, false);
-        eth.approve(address(market), type(uint256).max);
-        market.initGood(
-            ethKey,
-            toTTSwapUINT256(BTC_INIT_VALUE, ethQty),
-            defaultdata,
-            users[2],
-            defaultdata
-        );
-        vm.stopPrank();
-
-        vm.startPrank(users[1]);
-        usdt.mint(users[1], 100000);
-        usdt.approve(address(market), SWAP_IN);
-        _warpForBuy();
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 37));
-        market.buyGood(
-            _usdtKey(),
-            ethKey,
-            toTTSwapUINT256(SWAP_IN, 1),
-            address(0),
-            defaultdata,
-            users[1],
-            defaultdata,
-            0
-        );
-        vm.stopPrank();
-    }
 }

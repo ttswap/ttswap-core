@@ -366,9 +366,9 @@ contract TTSwap_Market is I_TTSwap_Market {
             TTS_CONTRACT.setReferral(_trader, _recipient);
         }
         // Step 1: map input quantity to transferred value (ΔV) on good1 side.
-        good1change = g1.good1Swap(_swapQuantity.amount0(), true);
+        good1change = g1.goodSwapInput(_swapQuantity.amount0());
         // Step 2: map transferred value (ΔV) to output quantity on good2 side.
-        good2change = g2.good2Swap(good1change.amount1(), true);
+        good2change = g2.goodSwapOutput(good1change.amount1());
 
         if (good1change.amount1() < 1_00_000_000) revert TTSwapError(14);
         if (

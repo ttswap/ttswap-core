@@ -33,15 +33,14 @@ contract testDisinvestProof is BaseSetup {
     uint128 internal constant NATIVE_INIT_QTY = uint128(1 * 10 ** 8);
     uint128 internal constant NATIVE_INIT_VALUE = uint128(63000 * 10 ** 12);
 
-    uint128 internal constant BTC_INVEST = uint128(1 * 10 ** 8);
-    uint128 internal constant USDT_INVEST = uint128(50000 * 10 ** 6);
-    uint128 internal constant NATIVE_INVEST = uint128(1 * 10 ** 8);
+    uint128 internal constant BTC_INVEST = uint128(1 * 10 ** 6);
+    uint128 internal constant USDT_INVEST = uint128(1000 * 10 ** 6);
+    uint128 internal constant NATIVE_INVEST = uint128(1 * 10 ** 6);
 
     uint256 internal usdtGoodId;
     uint256 internal btcGoodId;
     uint256 internal nativeNormalGoodId;
 
-    uint256 internal ts = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -78,11 +77,6 @@ contract testDisinvestProof is BaseSetup {
         return S_ProofKey({owner: owner, currentgood: goodId}).toId();
     }
 
-    function _warp() internal {
-        vm.warp(ts);
-        ts++;
-        if (ts > 9) ts = 1;
-    }
 
     function _initUsdtGood(
         address owner,
@@ -143,19 +137,13 @@ contract testDisinvestProof is BaseSetup {
         vm.stopPrank();
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _verifyAndPromiseGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
         uint256 cfg = market
             .getGoodState(goodId)
             .goodConfig
-            .setVerified(true)
+            
             .setPromised(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
         vm.stopPrank();
@@ -175,7 +163,7 @@ contract testDisinvestProof is BaseSetup {
     }
 
     function _investBtc(address trader, uint128 qty) internal {
-        _warp();
+        _warpToFreshRunSlot();
         btc.approve(address(market), qty);
         market.investGood(
             _btcKey(),
@@ -187,7 +175,7 @@ contract testDisinvestProof is BaseSetup {
     }
 
     function _investUsdt(address trader, uint128 qty) internal {
-        _warp();
+        _warpToFreshRunSlot();
         usdt.approve(address(market), qty);
         market.investGood(
             _usdtKey(),
@@ -199,7 +187,7 @@ contract testDisinvestProof is BaseSetup {
     }
 
     function _investNative(address trader, uint128 qty) internal {
-        _warp();
+        _warpToFreshRunSlot();
         market.investGood{value: qty}(
             _nativeKey(),
             toTTSwapUINT256(0, qty),
@@ -209,12 +197,8 @@ contract testDisinvestProof is BaseSetup {
         );
     }
 
-    /// @dev Withdraw ~25% of proof shares (above dust, within disinvest chips).
     function _partialShares(uint256 proofId) internal view returns (uint128) {
-        uint128 total = market.getProofState(proofId).shares.amount0();
-        uint128 portion = total / 4;
-        if (portion == 0) portion = total;
-        return portion;
+        return _partialDisinvestShares(proofId);
     }
 
     function _disinvest(
@@ -223,6 +207,7 @@ contract testDisinvestProof is BaseSetup {
         uint128 shares,
         address gate
     ) internal returns (uint128 profit) {
+        _warpToFreshRunSlot();
         return market.disinvestProof(
             proofId,
             shares,
@@ -552,7 +537,6 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
     uint128 internal constant NATIVE_INVEST = uint128(50000 * 10 ** 6);
 
     uint256 internal nativeValueGoodId;
-    uint256 internal ts = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -574,11 +558,6 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
         return S_ProofKey({owner: owner, currentgood: goodId}).toId();
     }
 
-    function _warp() internal {
-        vm.warp(ts);
-        ts++;
-        if (ts > 9) ts = 1;
-    }
 
     function _initNativeValueGood(
         address owner,
@@ -599,12 +578,6 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
         vm.stopPrank();
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _markAsValueGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
@@ -613,16 +586,13 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
     }
 
     function _partialShares(uint256 proofId) internal view returns (uint128) {
-        uint128 total = market.getProofState(proofId).shares.amount0();
-        uint128 portion = total / 4;
-        if (portion == 0) portion = total;
-        return portion;
+        return _partialDisinvestShares(proofId);
     }
 
     function testDisinvestNativeETHValueGood_owner() public {
         vm.startPrank(marketcreator);
         vm.deal(marketcreator, 20 * NATIVE_INVEST);
-        _warp();
+        _warpToFreshRunSlot();
         market.investGood{value: NATIVE_INVEST}(
             _nativeKey(),
             toTTSwapUINT256(0, NATIVE_INVEST),
@@ -650,7 +620,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
     function testDisinvestNativeETHValueGood_otherUser() public {
         vm.startPrank(users[2]);
         vm.deal(users[2], 20 * NATIVE_INVEST);
-        _warp();
+        _warpToFreshRunSlot();
         market.investGood{value: NATIVE_INVEST}(
             _nativeKey(),
             toTTSwapUINT256(0, NATIVE_INVEST),

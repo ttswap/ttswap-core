@@ -7,11 +7,15 @@ import {MyToken} from "../src/test/MyToken.sol";
 import {L_CurrencyLibrary} from "../src/libraries/L_Currency.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
 import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
-    import {TTSwap_Market} from "../src/TTSwap_Market.sol";
+import {TTSwap_Market} from "../src/TTSwap_Market.sol";
     import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
-
+import {TestConfigConstants} from "./TestConfigConstants.sol";
+import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
+import {L_TTSwapUINT256Library} from "../src/libraries/L_TTSwapUINT256.sol";
 
 contract BaseSetup is Test, GasSnapshot {
+    using L_GoodConfigLibrary for uint256;
+    using L_TTSwapUINT256Library for uint256;
     address payable[8] internal users;
     MyToken btc;
     MyToken usdt;
@@ -23,6 +27,44 @@ contract BaseSetup is Test, GasSnapshot {
     TTSwap_Token_Proxy tts_token_proxy;
     bytes internal constant defaultdata = bytes("");
 
+    uint256 internal opTimestamp = 10;
+
+    uint256 internal constant SAFE_LINE_MASK =
+        (uint256(0xFF) << TestConfigConstants.SAFE_LINE_UPPER_SHIFT) |
+        (uint256(0xFF) << TestConfigConstants.SAFE_LINE_LOWER_SHIFT);
+
+    /// @dev v2.0 removed on-chain good verification; no-op for legacy test setup hooks.
+    function _verifyGood(uint256 /* goodId */) internal {}
+
+    function _expectedInitGoodConfig() internal pure returns (uint256) {
+        return TestConfigConstants.INITIAL_GOOD_CONFIG;
+    }
+
+    /// @dev Advance block time so `_checkGoodActive` and `updateRunTimeConfig` anti-replay slots stay fresh.
+    function _warpToFreshRunSlot() internal {
+        vm.warp(opTimestamp);
+        opTimestamp += 10;
+    }
+
+    /// @dev Relax pool-depth guards for routine swaps: upper=255 (~2.55x reserve input), lower=1 (1% floor).
+    function _relaxSafeLine(uint256 goodId) internal {
+        vm.startPrank(marketcreator);
+        uint256 cfg = market.getGoodState(goodId).goodConfig;
+        cfg =
+            (cfg & ~SAFE_LINE_MASK) |
+            (uint256(255) << TestConfigConstants.SAFE_LINE_UPPER_SHIFT) |
+            (uint256(1) << TestConfigConstants.SAFE_LINE_LOWER_SHIFT);
+        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        vm.stopPrank();
+    }
+
+    /// @dev Withdraw at most 20% of proof shares (matches default getDisinvestChips divisor=20, factor=4).
+    function _partialDisinvestShares(uint256 proofId) internal view returns (uint128) {
+        uint128 total = market.getProofState(proofId).shares.amount0();
+        uint128 portion = total / 5;
+        if (portion == 0) portion = 1;
+        return portion;
+    }
 
     function setUp() public virtual {
         users[0] = payable(address(1));

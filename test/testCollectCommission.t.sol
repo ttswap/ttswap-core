@@ -30,16 +30,12 @@ contract testCollectCommission is BaseSetup {
 
     uint128 internal constant BTC_INVEST = uint128(1 * 10 ** 8);
     uint128 internal constant USDT_USER_INVEST = uint128(10_000 * 10 ** 6);
-    uint128 internal constant USDT_SWAP_IN = uint128(100 * 10 ** 6);
-
-    uint256 internal constant SAFE_LINE_SHIFT = 204;
-    uint256 internal constant SAFE_LINE_MASK = uint256(0x3FF) << SAFE_LINE_SHIFT;
+    uint128 internal constant USDT_SWAP_IN = uint128(50 * 10 ** 6);
 
     uint256 internal usdtGoodId;
     uint256 internal btcGoodId;
 
     address internal gate;
-    uint256 internal ts = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -73,11 +69,6 @@ contract testCollectCommission is BaseSetup {
         return S_ProofKey({owner: owner, currentgood: goodId}).toId();
     }
 
-    function _warp() internal {
-        vm.warp(ts);
-        ts++;
-        if (ts > 9) ts = 1;
-    }
 
     function _goodIds(uint256 a, uint256 b) internal pure returns (uint256[] memory ids) {
         ids = new uint256[](2);
@@ -130,12 +121,6 @@ contract testCollectCommission is BaseSetup {
         vm.stopPrank();
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _markAsValueGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
@@ -143,16 +128,9 @@ contract testCollectCommission is BaseSetup {
         vm.stopPrank();
     }
 
-    function _relaxSafeLine(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig;
-        cfg = (cfg & ~SAFE_LINE_MASK) | (uint256(1023) << SAFE_LINE_SHIFT);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _investBtc(address trader, uint128 qty) internal {
-        _warp();
+        _warpToFreshRunSlot();
         btc.approve(address(market), qty);
         market.investGood(
             _btcKey(),
@@ -164,7 +142,7 @@ contract testCollectCommission is BaseSetup {
     }
 
     function _investUsdt(address trader, uint128 qty) internal {
-        _warp();
+        _warpToFreshRunSlot();
         usdt.approve(address(market), qty);
         market.investGood(
             _usdtKey(),
@@ -176,10 +154,7 @@ contract testCollectCommission is BaseSetup {
     }
 
     function _partialShares(uint256 proofId) internal view returns (uint128) {
-        uint128 total = market.getProofState(proofId).shares.amount0();
-        uint128 portion = total / 4;
-        if (portion == 0) portion = total;
-        return portion;
+        return _partialDisinvestShares(proofId);
     }
 
     /// @dev Disinvest with gate accrues gate + platform commission on the good.
@@ -189,6 +164,7 @@ contract testCollectCommission is BaseSetup {
         address gate_
     ) internal {
         uint256 proofId = _proofId(trader, goodId);
+        _warpToFreshRunSlot();
         market.disinvestProof(
             proofId,
             _partialShares(proofId),
@@ -309,7 +285,7 @@ contract testCollectCommission is BaseSetup {
 
         usdt.mint(users[2], 1000000);
         usdt.approve(address(market), type(uint256).max);
-        _warp();
+        _warpToFreshRunSlot();
         market.buyGood(
             _usdtKey(),
             _btcKey(),
@@ -422,7 +398,7 @@ contract testCollectCommission is BaseSetup {
 
         usdt.mint(trader, 1000000);
         usdt.approve(address(market), type(uint256).max);
-        _warp();
+        _warpToFreshRunSlot();
         market.buyGood(
             _usdtKey(),
             _btcKey(),

@@ -2,6 +2,7 @@
 pragma solidity 0.8.29;
 
 import {BaseSetup} from "./BaseSetup.t.sol";
+import {TestConfigConstants} from "./TestConfigConstants.sol";
 import {S_GoodTmpState, S_ProofState, S_ProofKey} from "../src/interfaces/I_TTSwap_Market.sol";
 import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
@@ -19,8 +20,8 @@ contract testPowerWithFee is BaseSetup {
     using L_GoodConfigLibrary for uint256;
     using L_ProofIdLibrary for S_ProofKey;
 
-    uint256 internal constant POWER_SHIFT = 162;
-    uint256 internal constant LIMIT_POWER_SHIFT = 214;
+    uint256 internal constant POWER_SHIFT = TestConfigConstants.POWER_SHIFT;
+    uint256 internal constant LIMIT_POWER_SHIFT = TestConfigConstants.LIMIT_POWER_SHIFT;
 
     uint128 internal constant INIT_QTY = uint128(50_000 * 10 ** 6);
     uint128 internal constant INIT_VALUE = uint128(50_000 * 10 ** 12);
@@ -30,7 +31,6 @@ contract testPowerWithFee is BaseSetup {
     uint256 internal constant POWER_FIELD = 5;
 
     uint256 internal nativeValueGoodId;
-    uint256 internal ts = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -54,11 +54,6 @@ contract testPowerWithFee is BaseSetup {
         return S_ProofKey({owner: owner, currentgood: nativeValueGoodId}).toId();
     }
 
-    function _warp() internal {
-        vm.warp(ts);
-        ts++;
-        if (ts > 9) ts = 1;
-    }
 
     function _initNativeValueGood(
         address owner,
@@ -79,12 +74,6 @@ contract testPowerWithFee is BaseSetup {
         vm.stopPrank();
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _markAsValueGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
@@ -111,7 +100,7 @@ contract testPowerWithFee is BaseSetup {
 
     function _investNative(address trader, uint128 qty) internal {
         vm.deal(trader, 20 * qty);
-        _warp();
+        _warpToFreshRunSlot();
         market.investGood{value: qty}(
             _nativeKey(),
             toTTSwapUINT256(0, qty),

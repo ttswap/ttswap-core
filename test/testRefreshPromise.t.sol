@@ -64,7 +64,7 @@ contract testRefreshPromise is BaseSetup {
         uint256 cfg = market
             .getGoodState(goodId)
             .goodConfig
-            .setVerified(true)
+            
             .setPromised(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
         vm.stopPrank();
