@@ -236,6 +236,10 @@ contract testGoodConfig is Test {
         assertFalse(uint256(0).checkGoodConfig());
     }
 
+    function test_getRunTimeConfig_maxSlot() public pure {
+        assertEq(_pack(409, RUN_TIME_SHIFT).getRunTimeConfig(), 409);
+    }
+
     function test_initialConfig_allDefaults() public pure {
         assertTrue(INITIAL_CONFIG.checkGoodConfig());
         assertFalse(INITIAL_CONFIG.isvaluegood());

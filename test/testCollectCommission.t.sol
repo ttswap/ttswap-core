@@ -426,4 +426,37 @@ contract testCollectCommission is BaseSetup {
         assertEq(_query(_singleId(btcGoodId), referral)[0], 1, "referral sentinel");
         vm.stopPrank();
     }
+
+    function testCollectCommission_duplicateGoodIds() public {
+        _accrueBtcGateCommission();
+
+        vm.startPrank(gate);
+        uint256 btcBefore = btc.balanceOf(gate);
+        uint256[] memory dup = new uint256[](2);
+        dup[0] = btcGoodId;
+        dup[1] = btcGoodId;
+        _collect(gate, dup);
+        assertGt(btc.balanceOf(gate), btcBefore, "first entry pays out");
+        assertEq(_query(_singleId(btcGoodId), gate)[0], 1, "sentinel after duplicate pass");
+        vm.stopPrank();
+    }
+
+    function testCollectCommission_oneUnitSentinelNotWithdrawn() public {
+        _accrueBtcGateCommission();
+
+        vm.startPrank(gate);
+        uint256 btcBefore = btc.balanceOf(gate);
+        uint256[] memory fees = _query(_singleId(btcGoodId), gate);
+        assertGt(fees[0], 1, "accrued above sentinel");
+        _collect(gate, _singleId(btcGoodId));
+        assertEq(_query(_singleId(btcGoodId), gate)[0], 1, "sentinel remains");
+        assertEq(btc.balanceOf(gate), btcBefore + fees[0] - 1, "only above sentinel moved");
+        vm.stopPrank();
+    }
+
+    function testQueryCommission_zeroRecipientPlatform() public {
+        _accrueBtcGateCommission();
+        uint256[] memory fees = _query(_singleId(btcGoodId), address(0));
+        assertGt(fees[0], 1, "platform pool tracked at zero address key");
+    }
 }
