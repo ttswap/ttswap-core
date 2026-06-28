@@ -23,7 +23,7 @@ contract testDisinvestProof is BaseSetup {
 
     bytes32 internal constant DISINVEST_TOPIC =
         keccak256(
-            "e_disinvestProof(uint256,uint256,address,uint256,uint256,uint256,address)"
+            "e_disinvestProof(uint256,uint256,address,uint256,uint256,uint256,uint256,address)"
         );
 
     uint128 internal constant USDT_INIT_QTY = uint128(50000 * 10 ** 6);

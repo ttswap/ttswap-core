@@ -34,7 +34,7 @@ contract testGoodConfig is Test {
     }
 
     function _updateRunTime(uint256 cfg) external returns (uint256) {
-        return cfg.updateRunTimeConfig();
+        return cfg.updateRunBlockConfig();
     }
 
     function _validFeeSplitConfig() internal pure returns (uint256) {
@@ -138,15 +138,15 @@ contract testGoodConfig is Test {
     }
 
     function test_getRunTimeConfig() public pure {
-        assertEq(_pack(0, RUN_TIME_SHIFT).getRunTimeConfig(), 0);
-        assertEq(_pack(7, RUN_TIME_SHIFT).getRunTimeConfig(), 7);
+        assertEq(_pack(0, RUN_TIME_SHIFT).getRunBlockConfig(), 0);
+        assertEq(_pack(7, RUN_TIME_SHIFT).getRunBlockConfig(), 7);
     }
 
     function test_updateRunTimeConfig() public {
-        uint256 slot = (block.timestamp % 4095) / 10;
+        uint256 slot = block.number % 4095;
         uint256 cfg = _validFeeSplitConfig() | _pack(slot + 1, RUN_TIME_SHIFT);
-        uint256 updated = cfg.updateRunTimeConfig();
-        assertEq(updated.getRunTimeConfig(), slot);
+        uint256 updated = cfg.updateRunBlockConfig();
+        assertEq(updated.getRunBlockConfig(), slot);
 
         uint256 wrongSlot = _validFeeSplitConfig() | _pack(slot, RUN_TIME_SHIFT);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
@@ -237,7 +237,7 @@ contract testGoodConfig is Test {
     }
 
     function test_getRunTimeConfig_maxSlot() public pure {
-        assertEq(_pack(409, RUN_TIME_SHIFT).getRunTimeConfig(), 409);
+        assertEq(_pack(409, RUN_TIME_SHIFT).getRunBlockConfig(), 409);
     }
 
     function test_initialConfig_allDefaults() public pure {

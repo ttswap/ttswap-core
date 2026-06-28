@@ -604,7 +604,15 @@ contract testInvestGood is BaseSetup {
     function testInvestGood_revert_busySlot() public {
         vm.startPrank(users[1]);
         vm.warp(0);
-        btc.approve(address(market), BTC_INVEST);
+        btc.approve(address(market), BTC_INVEST * 2);
+        _warpToFreshRunSlot();
+        market.investGood(
+            _btcKey(),
+            toTTSwapUINT256(0, BTC_INVEST),
+            defaultdata,
+            defaultdata,
+            users[1]
+        );
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
         market.investGood(
             _btcKey(),

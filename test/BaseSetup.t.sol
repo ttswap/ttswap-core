@@ -28,6 +28,8 @@ contract BaseSetup is Test, GasSnapshot {
     bytes internal constant defaultdata = bytes("");
 
     uint256 internal opTimestamp = 10;
+    /// @dev Monotonic block cursor so consecutive `_warpToFreshRunSlot` calls always advance.
+    uint256 internal runSlotBlock;
 
     uint256 internal constant SAFE_LINE_MASK =
         (uint256(0xFF) << TestConfigConstants.SAFE_LINE_UPPER_SHIFT) |
@@ -40,8 +42,13 @@ contract BaseSetup is Test, GasSnapshot {
         return TestConfigConstants.INITIAL_GOOD_CONFIG;
     }
 
-    /// @dev Advance block time so `_checkGoodActive` and `updateRunTimeConfig` anti-replay slots stay fresh.
+    /// @dev Advance block number so `_checkGoodActive` / `updateRunBlockConfig` anti-replay slots stay fresh.
     function _warpToFreshRunSlot() internal {
+        if (runSlotBlock < block.number) {
+            runSlotBlock = block.number;
+        }
+        runSlotBlock += 1;
+        vm.roll(runSlotBlock);
         vm.warp(opTimestamp);
         opTimestamp += 10;
     }

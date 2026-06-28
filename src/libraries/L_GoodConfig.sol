@@ -104,11 +104,11 @@ library L_GoodConfigLibrary {
     /// @notice Refreshes the anti-replay time slot and enforces single-writer per slot.
     /// @dev Slot = `(block.timestamp % 4095) % 10` (0-9). Caller must match the stored slot;
     ///      after success the slot is rewritten to the current value (bits 190-179).
-    function updateRunTimeConfig(
+    function updateRunBlockConfig(
         uint256 config
     ) internal view returns (uint256 a) {
-        uint256 run_time_config = (block.timestamp % 4095) / 10;
-        if (config.getRunTimeConfig() == run_time_config) {
+        uint256 run_time_config = block.number % 4095;
+        if (config.getRunBlockConfig() == run_time_config) {
             revert TTSwapError(46);
         }
         return (config & ~run_time_config_mask) | (run_time_config << 185);
@@ -325,7 +325,7 @@ library L_GoodConfigLibrary {
     }
 
     /// @notice Anti-replay time slot from bits 190-179.
-    function getRunTimeConfig(
+    function getRunBlockConfig(
         uint256 config
     ) internal pure returns (uint256 a) {
         unchecked {

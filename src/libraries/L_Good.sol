@@ -404,6 +404,7 @@ library L_Good {
         uint128 shares;
         uint128 virtualDisinvestQuantity; // The vitual quantity of goods disinvested
         uint128 actualDisinvestQuantity;
+        uint128 disinvestTTSValue;
     }
 
     /**
@@ -439,6 +440,7 @@ library L_Good {
     {
         // Cache proof fields to avoid repeated SLOADs on the same storage slots
         uint128 proofShares0 = _investProof.shares.amount0();
+        uint128 proofMintTTSValue = _investProof.shares.amount1();
         //amount0 :normal good virtual quantity of proof, amount1 :normal good actual quantity of proof
         uint128 proofInvest0 = _investProof.invest.amount0();
         uint128 proofInvest1 = _investProof.invest.amount1();
@@ -460,7 +462,10 @@ library L_Good {
             ), // Virtual quantity to divest (normal good)
             toTTSwapUINT256(proofInvest1, proofShares0).getamount0fromamount1(
                 _params._goodshares
-            ) // Actual quantity to divest (normal good)
+            ), // Actual quantity to divest (normal good)
+            toTTSwapUINT256(proofMintTTSValue, proofShares0).getamount0fromamount1(
+                _params._goodshares
+            ) // Mint TTS value to divest (normal good)
         );
         // calculate the value from the proof (in terms of the value good) corresponding to the divested portion.
         // Uses proof-time value ratios to preserve value accounting across virtual/actual quantities.
@@ -553,7 +558,7 @@ library L_Good {
         );
         // Burn the investment proof
         _investProof.burnProof(
-            toTTSwapUINT256(normalGoodResult1_.shares, 0),
+            toTTSwapUINT256(normalGoodResult1_.shares, normalGoodResult1_.disinvestTTSValue),
             disinvestvalue,
             toTTSwapUINT256(
                 normalGoodResult1_.virtualDisinvestQuantity,

@@ -65,7 +65,6 @@ interface I_TTSwap_Market {
     /// @notice Emitted when a good is created and initialized
     /// @param _proofNo The ID of the investment proof
     /// @param _goodid The ID of the good
-    /// @param _construct The stake construct of mint tts token
     /// @param _normalinitial Normal good initialization parameters: amount0 is the quantity, amount1 is the value
     /// for verison <1.15.0
     event e_initGood(
@@ -73,7 +72,6 @@ interface I_TTSwap_Market {
         uint256 indexed _goodid,
         uint256 _goodinfo,
         uint256 _good_id,
-        uint256 _construct,
         uint256 _normalinitial,
         address _trader
     );
@@ -129,6 +127,7 @@ interface I_TTSwap_Market {
         uint256 _value,
         uint256 _normalprofit,
         uint256 _normaldisvest,
+        uint256 _TTSValue,
         address _trader
     );
 
@@ -400,7 +399,7 @@ interface I_TTSwap_Market {
  * @dev Represents the state of a proof.
  * @notice Fields:
  * - `currentgood`: The current good associated with the proof
- * - `shares`: amount0 = normal good shares, amount1 :reserved
+ * - `shares`: amount0 = normal good shares, amount1 :mint tts value
  * - `state`: amount0 = total value, amount1 = total actual value
  * - `invest`: amount0 = normal good virtual quantity, amount1 = normal good actual quantity
  */

@@ -19,7 +19,7 @@ contract testInitMetaGood is BaseSetup {
 
     bytes32 internal constant INIT_GOOD_TOPIC =
         keccak256(
-            "e_initGood(uint256,uint256,uint256,uint256,uint256,uint256,address)"
+            "e_initGood(uint256,uint256,uint256,uint256,uint256,address)"
         );
 
     uint256 internal constant INITIAL_CONFIG = TestConfigConstants.INITIAL_GOOD_CONFIG;
