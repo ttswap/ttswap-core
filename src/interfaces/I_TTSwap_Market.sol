@@ -426,6 +426,7 @@ struct S_GoodState {
     uint96 reserved2; //  contract type,asset type,contract saddress
     address owner;
     uint256 id;
+    address hookAddress;
     uint256 currentState; //amount0:Present actual invest quantity, amount1:Present current virtual quantity
     uint256 investState; //amount0:shares, amount1:value
     uint256 extendsState1;
