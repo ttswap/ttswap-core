@@ -28,14 +28,11 @@ contract testBuyGoodMetaTx is BaseSetup {
         "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
     );
 
-    uint256 internal constant SAFE_LINE_SHIFT = 204;
-    uint256 internal constant SAFE_LINE_MASK = uint256(0x3FF) << SAFE_LINE_SHIFT;
-
     uint128 internal constant USDT_INIT_QTY = uint128(50_000 * 10 ** 6);
     uint128 internal constant USDT_INIT_VALUE = uint128(50_000 * 10 ** 12);
     uint128 internal constant BTC_INIT_QTY = uint128(1 * 10 ** 8);
     uint128 internal constant BTC_INIT_VALUE = uint128(63_000 * 10 ** 12);
-    uint128 internal constant SWAP_IN = uint128(100 * 10 ** 6);
+    uint128 internal constant SWAP_IN = uint128(50 * 10 ** 6);
 
     uint256 internal constant TRADER_KEY = 0xA11CE;
     uint256 internal constant WRONG_KEY = 0xDEAD;
@@ -45,7 +42,6 @@ contract testBuyGoodMetaTx is BaseSetup {
 
     uint256 internal usdtGoodId;
     uint256 internal btcGoodId;
-    uint256 internal buyTs = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -74,11 +70,6 @@ contract testBuyGoodMetaTx is BaseSetup {
         return T_GoodKey({ercType: 1, contractAddress: address(btc), id: 0});
     }
 
-    function _warp() internal {
-        vm.warp(buyTs);
-        buyTs++;
-        if (buyTs > 9) buyTs = 1;
-    }
 
     function _encodeTransfer(
         uint8 transferType,
@@ -114,12 +105,6 @@ contract testBuyGoodMetaTx is BaseSetup {
         return _encodeTransfer(2, abi.encode(permit));
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _markAsValueGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
@@ -127,13 +112,6 @@ contract testBuyGoodMetaTx is BaseSetup {
         vm.stopPrank();
     }
 
-    function _relaxSafeLine(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig;
-        cfg = (cfg & ~SAFE_LINE_MASK) | (uint256(1023) << SAFE_LINE_SHIFT);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _initUsdtGood(
         address owner,
@@ -242,7 +220,7 @@ contract testBuyGoodMetaTx is BaseSetup {
         ids[0] = btcGoodId;
         uint256[] memory commBefore = market.queryCommission(ids, relayer);
 
-        _warp();
+        _warpToFreshRunSlot();
         (uint256 g1change, uint256 g2change) = _relayerBuyWithPermit(
             SWAP_IN,
             1,
@@ -317,7 +295,7 @@ contract testBuyGoodMetaTx is BaseSetup {
     // ── TASK-P0-004 invalid signature ──────────────────────────────────────
 
     function testBuyGoodMetaTx_revert_invalidSignatureLength() public {
-        _warp();
+        _warpToFreshRunSlot();
         vm.prank(relayer);
         vm.expectRevert(L_SignatureVerification.InvalidSignatureLength.selector);
         market.buyGood(
@@ -333,7 +311,7 @@ contract testBuyGoodMetaTx is BaseSetup {
     }
 
     function testBuyGoodMetaTx_revert_invalidSigner() public {
-        _warp();
+        _warpToFreshRunSlot();
         bytes memory permitData = _signEip2612(SWAP_IN, TRADER_KEY);
         uint256 swapQty = toTTSwapUINT256(SWAP_IN, 1);
         bytes memory badSig = _signBuyGood(
@@ -364,7 +342,7 @@ contract testBuyGoodMetaTx is BaseSetup {
         vm.prank(trader);
         market.cancelNonce();
 
-        _warp();
+        _warpToFreshRunSlot();
         bytes memory permitData = _signEip2612(SWAP_IN, TRADER_KEY);
         uint256 swapQty = toTTSwapUINT256(SWAP_IN, 1);
         bytes memory sig = _signBuyGood(

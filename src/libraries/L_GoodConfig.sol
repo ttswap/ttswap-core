@@ -25,7 +25,7 @@ import {TTSwapError} from "./L_Error.sol";
 /// | 224-220   | limitPower      | 5     | × 100 (0 → 100)           | 1       |
 /// | 219-212   | safeLineUpper   | 8     |                           | 100     |
 /// | 211-204   | safeLineLower   | 8     |                           | 60      |
-/// | 203-197   | contractType    | 8     | raw                       | 0       |
+/// | 203-197   | contractType    | 7     | raw                       | 0       |
 /// | 196-185   | lastRunSlot     | 12    | anti-replay time slot     | 0       |
 /// | 184-173   | reserved        | 12    | unused                    | 0       |
 /// | 172-168   | power           | 5     | × 100 (0 → 100)           | 1       |
@@ -58,7 +58,7 @@ library L_GoodConfigLibrary {
     uint256 internal constant owner_config_mask =
         0x000000000000000000001fffffffffff00000000000000000000000000000000;
 
-    /// @dev Isolated mask for `contractType` (bits 203-192).
+    /// @dev Isolated mask for `contractType` (bits 203-197).
     uint256 internal constant contract_type_mask =
         0x0000000000000fe0000000000000000000000000000000000000000000000000;
 
@@ -104,11 +104,11 @@ library L_GoodConfigLibrary {
     /// @notice Refreshes the anti-replay time slot and enforces single-writer per slot.
     /// @dev Slot = `(block.timestamp % 4095) % 10` (0-9). Caller must match the stored slot;
     ///      after success the slot is rewritten to the current value (bits 190-179).
-    function updateRunTimeConfig(
+    function updateRunBlockConfig(
         uint256 config
     ) internal view returns (uint256 a) {
-        uint256 run_time_config = (block.timestamp % 4095) / 10;
-        if (config.getRunTimeConfig() == run_time_config) {
+        uint256 run_time_config = block.number % 4095;
+        if (config.getRunBlockConfig() == run_time_config) {
             revert TTSwapError(46);
         }
         return (config & ~run_time_config_mask) | (run_time_config << 185);
@@ -315,17 +315,17 @@ library L_GoodConfigLibrary {
         }
     }
 
-    /// @notice Contract-type identifier from bits 203-197.
+    /// @notice Contract-type identifier from bits 203-197 (7 bits).
     function getContractType(uint256 config) internal pure returns (uint128 a) {
         unchecked {
             assembly {
-                a := shr(244, shl(49, config))
+                a := shr(249, shl(52, config))
             }
         }
     }
 
     /// @notice Anti-replay time slot from bits 190-179.
-    function getRunTimeConfig(
+    function getRunBlockConfig(
         uint256 config
     ) internal pure returns (uint256 a) {
         unchecked {

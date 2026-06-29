@@ -63,14 +63,10 @@ contract testMarketReentrancy is BaseSetup {
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 
-    uint256 internal constant SAFE_LINE_SHIFT = 204;
-    uint256 internal constant SAFE_LINE_MASK = uint256(0x3FF) << SAFE_LINE_SHIFT;
-
     ReentrantERC20 internal reToken;
     uint256 internal reGoodId;
     uint256 internal btcGoodId;
-    uint256 internal ts = 1;
-    uint128 internal constant SWAP_IN = uint128(100 * 10 ** 6);
+    uint128 internal constant SWAP_IN = uint128(50 * 10 ** 6);
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -96,11 +92,6 @@ contract testMarketReentrancy is BaseSetup {
         return T_GoodKey({ercType: 1, contractAddress: address(btc), id: 0});
     }
 
-    function _warp() internal {
-        vm.warp(ts);
-        ts++;
-        if (ts > 9) ts = 1;
-    }
 
     function _initBtcGood(address owner) internal returns (uint256 goodId) {
         vm.startPrank(owner);
@@ -138,27 +129,13 @@ contract testMarketReentrancy is BaseSetup {
         vm.stopPrank();
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
-
-    function _relaxSafeLine(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig;
-        cfg = (cfg & ~SAFE_LINE_MASK) | (uint256(1023) << SAFE_LINE_SHIFT);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function testGuardedEntry_revert_reentrancy() public {
         reToken.enableHook();
         vm.startPrank(users[2]);
         deal(address(reToken), users[2], 10_000 * 10 ** 6, false);
         reToken.approve(address(market), type(uint256).max);
-        _warp();
+        _warpToFreshRunSlot();
         vm.expectRevert(L_CurrencyLibrary.ERC20TransferFailed.selector);
         market.buyGood(
             T_GoodKey({ercType: 1, contractAddress: address(reToken), id: 0}),

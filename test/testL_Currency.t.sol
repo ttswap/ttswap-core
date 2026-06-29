@@ -6,6 +6,7 @@ import {CurrencyHarness} from "../src/test/CurrencyHarness.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {L_CurrencyLibrary} from "../src/libraries/L_Currency.sol";
 import {TTSwapError} from "../src/libraries/L_Error.sol";
+import {TTSwapUINT256ToUint128Overflow} from "../src/libraries/L_TTSwapUINT256.sol";
 
 /// @notice L_Currency direct tests (TASK-P3-006).
 contract testL_Currency is BaseSetup {
@@ -123,5 +124,53 @@ contract testL_Currency is BaseSetup {
         );
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 42));
         harness.pullErc20(address(usdt), users[1], 50, detail);
+    }
+
+    function testL_Currency_pullErc20_revert_permit2ExecutorMismatch() public {
+        deal(address(usdt), users[1], 1000, false);
+        bytes memory detail = abi.encode(
+            L_CurrencyLibrary.S_transferData(3, bytes(""))
+        );
+        vm.prank(users[2]);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 39));
+        harness.pullErc20Executor(address(usdt), users[1], users[2], 100, detail);
+    }
+
+    function testL_Currency_pullErc20_revert_amountExceedsUint128() public {
+        deal(address(usdt), users[1], 1, false);
+        bytes memory detail = abi.encode(
+            L_CurrencyLibrary.S_transferData(3, bytes(""))
+        );
+        uint256 huge = uint256(type(uint128).max) + 1;
+        vm.expectRevert(TTSwapUINT256ToUint128Overflow.selector);
+        harness.pullErc20(address(usdt), users[1], huge, detail);
+    }
+
+    function testL_Currency_pullErc20_revert_expiredPermit() public {
+        address owner = vm.addr(SIGNER_KEY);
+        deal(address(usdt), owner, 2000, false);
+        uint256 deadline = block.timestamp - 1;
+        bytes32 structHash = keccak256(
+            abi.encode(
+                PERMIT_TYPEHASH,
+                owner,
+                address(harness),
+                800,
+                usdt.nonces(owner),
+                deadline
+            )
+        );
+        bytes32 digest = ECDSA.toTypedDataHash(usdt.DOMAIN_SEPARATOR(), structHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(SIGNER_KEY, digest);
+        bytes memory detail = abi.encode(
+            L_CurrencyLibrary.S_transferData(
+                2,
+                abi.encode(
+                    L_CurrencyLibrary.S_Permit(800, deadline, v, r, s)
+                )
+            )
+        );
+        vm.expectRevert(L_CurrencyLibrary.ERC20PermitFailed.selector);
+        harness.pullErc20(address(usdt), owner, 800, detail);
     }
 }

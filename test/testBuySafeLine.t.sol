@@ -3,6 +3,7 @@ pragma solidity 0.8.29;
 
 import {BaseSetup} from "./BaseSetup.t.sol";
 import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
+import {TestConfigConstants} from "./TestConfigConstants.sol";
 import {TTSwapError} from "../src/libraries/L_Error.sol";
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
 import {
@@ -16,9 +17,6 @@ contract testBuySafeLine is BaseSetup {
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 
-    uint256 internal constant SAFE_LINE_SHIFT = 204;
-    uint256 internal constant SAFE_LINE_MASK = uint256(0x3FF) << SAFE_LINE_SHIFT;
-
     uint128 internal constant USDT_INIT_QTY = uint128(50_000 * 10 ** 6);
     uint128 internal constant USDT_INIT_VALUE = uint128(50_000 * 10 ** 12);
     uint128 internal constant BTC_INIT_QTY = uint128(1 * 10 ** 8);
@@ -27,7 +25,6 @@ contract testBuySafeLine is BaseSetup {
 
     uint256 internal usdtGoodId;
     uint256 internal btcGoodId;
-    uint256 internal buyTs = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -38,7 +35,6 @@ contract testBuySafeLine is BaseSetup {
         _verifyGood(btcGoodId);
         _markAsValueGood(usdtGoodId);
         _tightSafeLine(usdtGoodId);
-        _tightSafeLine(btcGoodId);
     }
 
     function _usdtKey() internal view returns (T_GoodKey memory) {
@@ -49,18 +45,7 @@ contract testBuySafeLine is BaseSetup {
         return T_GoodKey({ercType: 1, contractAddress: address(btc), id: 0});
     }
 
-    function _warp() internal {
-        vm.warp(buyTs);
-        buyTs++;
-        if (buyTs > 9) buyTs = 1;
-    }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _markAsValueGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
@@ -68,11 +53,14 @@ contract testBuySafeLine is BaseSetup {
         vm.stopPrank();
     }
 
-    /// @dev safeLine=1 → threshold ≈ 0.1% of pool depth; routine swaps exceed it.
+    /// @dev Tight upper safeline on input good: post-swap qty must not exceed ~80% of reserve.
     function _tightSafeLine(uint256 goodId) internal {
         vm.startPrank(marketcreator);
         uint256 cfg = market.getGoodState(goodId).goodConfig;
-        cfg = (cfg & ~SAFE_LINE_MASK) | (uint256(1) << SAFE_LINE_SHIFT);
+        cfg =
+            (cfg & ~BaseSetup.SAFE_LINE_MASK) |
+            (uint256(80) << TestConfigConstants.SAFE_LINE_UPPER_SHIFT) |
+            (uint256(1) << TestConfigConstants.SAFE_LINE_LOWER_SHIFT);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
         vm.stopPrank();
     }
@@ -109,8 +97,8 @@ contract testBuySafeLine is BaseSetup {
         vm.startPrank(users[1]);
         deal(address(usdt), users[1], 10_000_000 * 10 ** 6, false);
         usdt.approve(address(market), SWAP_IN);
-        _warp();
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 45));
+        _warpToFreshRunSlot();
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 55));
         market.buyGood(
             _usdtKey(),
             _btcKey(),

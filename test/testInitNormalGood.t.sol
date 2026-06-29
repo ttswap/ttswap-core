@@ -3,6 +3,7 @@ pragma solidity 0.8.29;
 
 import {Vm} from "forge-std/src/Test.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
+import {TestConfigConstants} from "./TestConfigConstants.sol";
 import {S_GoodTmpState, S_ProofState} from "../src/interfaces/I_TTSwap_Market.sol";
 import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
 import {
@@ -15,11 +16,10 @@ contract testInitNormalGood is BaseSetup {
 
     bytes32 internal constant INIT_GOOD_TOPIC =
         keccak256(
-            "e_initGood(uint256,uint256,uint256,uint256,uint256,uint256,address)"
+            "e_initGood(uint256,uint256,uint256,uint256,uint256,address)"
         );
 
-    uint256 internal constant INITIAL_CONFIG =
-        0x000c350810450000000000842882040800000000000000000000000000000000;
+    uint256 internal constant INITIAL_CONFIG = TestConfigConstants.INITIAL_GOOD_CONFIG;
 
     uint256 internal metaGoodId;
     uint128 internal constant BTC_QTY = uint128(1 * 10 ** 8);
@@ -51,10 +51,8 @@ contract testInitNormalGood is BaseSetup {
         vm.stopPrank();
     }
 
-    function _expectedGoodConfig() internal view returns (uint256) {
-        uint256 runSlot = (block.timestamp % 4095) % 10;
-        uint256 mask = 0x00000000000000007ff800000000000000000000000000000000000000000000;
-        return (INITIAL_CONFIG & ~mask) | (runSlot << 179);
+    function _expectedGoodConfig() internal pure returns (uint256) {
+        return TestConfigConstants.INITIAL_GOOD_CONFIG;
     }
 
     function _proofIdFromInitGoodEvent() internal returns (uint256 proofId) {

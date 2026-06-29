@@ -18,16 +18,13 @@ contract testSwapWithFee is BaseSetup {
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 
-    uint256 internal constant SAFE_LINE_SHIFT = 204;
-    uint256 internal constant SAFE_LINE_MASK = uint256(0x3FF) << SAFE_LINE_SHIFT;
-
     uint128 internal constant POOL_QTY = uint128(50_000 * 10 ** 6);
     uint128 internal constant POOL_VALUE = uint128(50_000 * 10 ** 12);
     uint128 internal constant BTC_QTY = uint128(1 * 10 ** 8);
     uint128 internal constant BTC_VALUE = uint128(118_000 * 10 ** 12);
 
-    uint128 internal constant SWAP_IN = uint128(500 * 10 ** 6);
-    uint128 internal constant LARGE_SWAP = uint128(1_000 * 10 ** 6);
+    uint128 internal constant SWAP_IN = uint128(50 * 10 ** 6);
+    uint128 internal constant LARGE_SWAP = uint128(100 * 10 ** 6);
     uint128 internal constant MIN_OUT = uint128(1 * 10 ** 6);
 
     MyToken internal usdc;
@@ -84,18 +81,14 @@ contract testSwapWithFee is BaseSetup {
     }
 
     function _prepareGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        cfg = (cfg & ~SAFE_LINE_MASK) | (uint256(1023) << SAFE_LINE_SHIFT);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
+        _markAsValueGood(goodId);
+        _relaxSafeLine(goodId);
     }
 
-    function _warp() internal {
-        vm.warp(swapTs);
-        swapTs++;
-        if (swapTs > 9) swapTs = 1;
+    function _markAsValueGood(uint256 goodId) internal {
+        vm.startPrank(marketcreator);
+        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
+        vm.stopPrank();
     }
 
     function _approveIn(T_GoodKey memory keyIn, uint128 amountIn) internal {
@@ -116,7 +109,7 @@ contract testSwapWithFee is BaseSetup {
         uint128 minOut
     ) internal returns (uint256 g1change, uint256 g2change) {
         _approveIn(keyIn, amountIn);
-        _warp();
+        _warpToFreshRunSlot();
         return market.buyGood(
             keyIn,
             keyOut,

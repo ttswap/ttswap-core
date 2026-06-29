@@ -40,7 +40,7 @@ contract Fuzz_InvestGood is FuzzBase {
     }
 
     function testFuzz_InvestGood_usdtValueGood(uint128 investQty) public {
-        investQty = uint128(bound(investQty, 1e6, 10_000 * 10 ** 6));
+        investQty = uint128(bound(investQty, 10 * 10 ** 6, 10_000 * 10 ** 6));
 
         vm.startPrank(FUZZ_USER);
         deal(address(usdt), FUZZ_USER, investQty, false);

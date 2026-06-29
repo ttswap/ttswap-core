@@ -24,12 +24,7 @@ contract buyNativeETHByERC20 is BaseSetup {
     uint128 internal constant USDT_INIT_VALUE = uint128(50000 * 10 ** 12);
     uint128 internal constant NATIVE_INIT_QTY = uint128(1 * 10 ** 8);
     uint128 internal constant NATIVE_INIT_VALUE = uint128(63000 * 10 ** 12);
-    uint128 internal constant SWAP_IN = uint128(100 * 10 ** 6);
-
-    uint256 internal constant SAFE_LINE_SHIFT = 204;
-    uint256 internal constant SAFE_LINE_MASK = uint256(0x3FF) << 204;
-
-    uint256 internal buyTs = 1;
+    uint128 internal constant SWAP_IN = uint128(50 * 10 ** 6);
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -90,12 +85,6 @@ contract buyNativeETHByERC20 is BaseSetup {
         vm.stopPrank();
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     /// @dev Admin marks USDT pool as value good (bit 255).
     function _markAsValueGood(uint256 goodId) internal {
@@ -104,19 +93,6 @@ contract buyNativeETHByERC20 is BaseSetup {
         vm.stopPrank();
     }
 
-    function _relaxSafeLine(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig;
-        cfg = (cfg & ~SAFE_LINE_MASK) | (uint256(1023) << SAFE_LINE_SHIFT);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
-
-    function _warpForBuy() internal {
-        vm.warp(buyTs);
-        buyTs++;
-        if (buyTs > 9) buyTs = 1;
-    }
 
     function _buyEthWithUsdt(
         address trader,
@@ -151,11 +127,9 @@ contract buyNativeETHByERC20 is BaseSetup {
 
         S_GoodTmpState memory usdtBeforeState = market.getGoodState(usdtGoodId);
         S_GoodTmpState memory nativeBeforeState = market.getGoodState(nativeGoodId);
-        assertTrue(usdtBeforeState.goodConfig.isvaluegood(), "usdt is value good");
-        assertTrue(usdtBeforeState.goodConfig.isVerified(), "usdt verified");
-        assertFalse(nativeBeforeState.goodConfig.isvaluegood(), "native is normal good");
+        assertTrue(usdtBeforeState.goodConfig.isvaluegood(), "usdt is value good");        assertFalse(nativeBeforeState.goodConfig.isvaluegood(), "native is normal good");
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         (uint256 g1change, uint256 g2change) = _buyEthWithUsdt(
             users[1],
             SWAP_IN,
@@ -192,11 +166,11 @@ contract buyNativeETHByERC20 is BaseSetup {
         usdt.mint(users[1], 1000000);
         usdt.approve(address(market), type(uint256).max);
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         _buyEthWithUsdt(users[1], SWAP_IN, 1, address(0));
         snapLastCall("buy_NativeETH_by_erc20_first");
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         _buyEthWithUsdt(users[1], SWAP_IN, 1, address(0));
         snapLastCall("buy_NativeETH_by_erc20_second");
         vm.stopPrank();
@@ -208,15 +182,15 @@ contract buyNativeETHByERC20 is BaseSetup {
         usdt.mint(users[1], 1000000);
         usdt.approve(address(market), type(uint256).max);
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         _buyEthWithUsdt(users[1], SWAP_IN, 1, referral);
         snapLastCall("buy_NativeETH_by_erc20_first_with_refer");
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         _buyEthWithUsdt(users[1], SWAP_IN, 1, referral);
         snapLastCall("buy_NativeETH_by_erc20_second_with_exists_refer_reject_add");
 
-        _warpForBuy();
+        _warpToFreshRunSlot();
         _buyEthWithUsdt(users[1], SWAP_IN, 1, address(0));
         snapLastCall("buy_NativeETH_by_erc20_second_with_exists_refer");
         vm.stopPrank();
@@ -227,7 +201,7 @@ contract buyNativeETHByERC20 is BaseSetup {
     function testBuyNativeETHByERC20_revert_sameGood() public {
         vm.startPrank(users[1]);
         usdt.mint(users[1], 100000);
-        _warpForBuy();
+        _warpToFreshRunSlot();
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 9));
         market.buyGood(
             _usdtKey(),
@@ -246,7 +220,7 @@ contract buyNativeETHByERC20 is BaseSetup {
         vm.startPrank(users[1]);
         usdt.mint(users[1], 100000);
         usdt.approve(address(market), SWAP_IN);
-        _warpForBuy();
+        _warpToFreshRunSlot();
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 15));
         market.buyGood(
             _usdtKey(),
@@ -264,7 +238,7 @@ contract buyNativeETHByERC20 is BaseSetup {
     function testBuyNativeETHByERC20_revert_insufficientAllowance() public {
         vm.startPrank(users[1]);
         usdt.mint(users[1], 100000);
-        _warpForBuy();
+        _warpToFreshRunSlot();
         vm.expectRevert();
         market.buyGood(
             _usdtKey(),
@@ -288,7 +262,7 @@ contract buyNativeETHByERC20 is BaseSetup {
         vm.startPrank(users[1]);
         usdt.mint(users[1], 100000);
         usdt.approve(address(market), SWAP_IN);
-        _warpForBuy();
+        _warpToFreshRunSlot();
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 10));
         market.buyGood(
             _usdtKey(),

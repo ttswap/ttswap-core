@@ -3,6 +3,7 @@ pragma solidity 0.8.29;
 
 import {Vm} from "forge-std/src/Test.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
+import {TestConfigConstants} from "./TestConfigConstants.sol";
 import {S_GoodTmpState} from "../src/interfaces/I_TTSwap_Market.sol";
 import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
 import {TTSwapError} from "../src/libraries/L_Error.sol";
@@ -19,25 +20,21 @@ contract testModifyGood is BaseSetup {
     using L_TTSwapUINT256Library for uint256;
     using L_GoodConfigLibrary for uint256;
 
-    uint256 internal constant INITIAL_CONFIG =
-        0x000c350810450000000000842882040800000000000000000000000000000000;
+    uint256 internal constant INITIAL_CONFIG = TestConfigConstants.INITIAL_GOOD_CONFIG;
 
-    uint256 internal constant ADMIN_MASK =
-        0xff80000000000000000000000000000000000000000000000000000000000000;
-    uint256 internal constant MANAGER_MASK =
-        0x0fffffffffffffff800000000000000000000000000000000000000000000000;
-    uint256 internal constant OWNER_MASK =
-        0x00000000000000000000007fffffffff00000000000000000000000000000000;
+    uint256 internal constant ADMIN_MASK = TestConfigConstants.ADMIN_MASK;
+    uint256 internal constant MANAGER_MASK = TestConfigConstants.MANAGER_MASK;
+    uint256 internal constant OWNER_MASK = TestConfigConstants.OWNER_MASK;
 
-    uint256 internal constant LIQUID_SHIFT = 241;
-    uint256 internal constant OPERATOR_SHIFT = 237;
-    uint256 internal constant GATE_SHIFT = 234;
-    uint256 internal constant REFER_SHIFT = 229;
-    uint256 internal constant CUSTOMER_SHIFT = 224;
-    uint256 internal constant PLATFORM_SHIFT = 219;
-    uint256 internal constant POWER_SHIFT = 162;
-    uint256 internal constant BUY_FEE_SHIFT = 135;
-    uint256 internal constant SELL_FEE_SHIFT = 128;
+    uint256 internal constant LIQUID_SHIFT = TestConfigConstants.LIQUID_SHIFT;
+    uint256 internal constant OPERATOR_SHIFT = TestConfigConstants.OPERATOR_SHIFT;
+    uint256 internal constant GATE_SHIFT = TestConfigConstants.GATE_SHIFT;
+    uint256 internal constant REFER_SHIFT = TestConfigConstants.REFER_SHIFT;
+    uint256 internal constant CUSTOMER_SHIFT = TestConfigConstants.CUSTOMER_SHIFT;
+    uint256 internal constant PLATFORM_SHIFT = TestConfigConstants.PLATFORM_SHIFT;
+    uint256 internal constant POWER_SHIFT = TestConfigConstants.POWER_SHIFT;
+    uint256 internal constant BUY_FEE_SHIFT = TestConfigConstants.BUY_FEE_SHIFT;
+    uint256 internal constant SELL_FEE_SHIFT = TestConfigConstants.SELL_FEE_SHIFT;
 
     uint256 internal btcGoodId;
     uint128 internal constant BTC_QTY = uint128(1 * 10 ** 8);
@@ -47,15 +44,8 @@ contract testModifyGood is BaseSetup {
         BaseSetup.setUp();
         vm.warp(0);
         btcGoodId = _initBtcGood(users[1]);
-        _verifyBtcGood();
     }
 
-    function _verifyBtcGood() internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(btcGoodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(btcGoodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     // ── helpers ────────────────────────────────────────────────────────────
 
@@ -198,46 +188,24 @@ contract testModifyGood is BaseSetup {
 
     // ── modifyGoodByManager ────────────────────────────────────────────────
 
-    function test_modifyGoodByManager_setVerified() public {
-        vm.startPrank(marketcreator);
-        uint256 before_ = _currentConfig();
-        uint256 patch = before_.setVerified(true);
-
-        bool ok = market.modifyGoodByManager(
-            btcGoodId,
-            patch,
-            marketcreator,
-            defaultdata
-        );
-        snapLastCall("modifyGoodByManager_verified");
-
-        assertTrue(ok, "returns true");
-        uint256 after_ = _currentConfig();
-        assertTrue(after_.isVerified(), "verified flag set");
-        _assertRegionUnchanged(before_, after_, MANAGER_MASK);
-        assertEq(after_.getBuyFee(10_000), before_.getBuyFee(10_000), "owner fee unchanged");
-        vm.stopPrank();
-    }
 
     function test_modifyGoodByManager_updateFeeSplit() public {
         vm.startPrank(marketcreator);
         uint256 before_ = _currentConfig();
         uint256 patch = _validFeeSplit() |
-            before_.setVerified(true).setPromised(true);
+            before_.setPromised(true);
 
         market.modifyGoodByManager(btcGoodId, patch, marketcreator, defaultdata);
 
         uint256 after_ = _currentConfig();
-        assertTrue(after_.checkGoodConfig(), "valid fee split");
-        assertTrue(after_.isVerified(), "verified");
-        assertTrue(after_.isPromised(), "promised");
+        assertTrue(after_.checkGoodConfig(), "valid fee split");        assertTrue(after_.isPromised(), "promised");
         assertEq(after_.getLiquidFee(10_000), 6000, "liquid fee from new split");
         _assertRegionUnchanged(before_, after_, MANAGER_MASK);
         vm.stopPrank();
     }
 
     function test_modifyGoodByManager_revert_notManager() public {
-        uint256 patch = _currentConfig().setVerified(true);
+        uint256 patch = _currentConfig();
         vm.startPrank(users[1]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 2));
         market.modifyGoodByManager(btcGoodId, patch, users[1], defaultdata);
@@ -253,7 +221,7 @@ contract testModifyGood is BaseSetup {
     }
 
     function test_modifyGoodByManager_revert_traderMismatch() public {
-        uint256 patch = _currentConfig().setVerified(true);
+        uint256 patch = _currentConfig();
         vm.startPrank(marketcreator);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 39));
         market.modifyGoodByManager(btcGoodId, patch, users[1], defaultdata);
@@ -347,7 +315,7 @@ contract testModifyGood is BaseSetup {
         vm.recordLogs();
         market.modifyGoodByManager(
             btcGoodId,
-            _currentConfig().setVerified(true),
+            _currentConfig(),
             marketcreator,
             defaultdata
         );
@@ -374,7 +342,7 @@ contract testModifyGood is BaseSetup {
         vm.startPrank(marketcreator);
         market.modifyGoodByManager(
             btcGoodId,
-            afterAdmin.setVerified(true),
+            afterAdmin,
             marketcreator,
             defaultdata
         );
@@ -390,9 +358,7 @@ contract testModifyGood is BaseSetup {
         uint256 afterOwner = _currentConfig();
         vm.stopPrank();
 
-        assertTrue(afterOwner.isvaluegood(), "admin bit kept");
-        assertTrue(afterOwner.isVerified(), "manager bit kept");
-        assertEq(afterOwner.getBuyFee(10_000), 32, "owner bit applied");
+        assertTrue(afterOwner.isvaluegood(), "admin bit kept");        assertEq(afterOwner.getBuyFee(10_000), 32, "owner bit applied");
         assertEq(afterOwner.getLiquidFee(10_000), base.getLiquidFee(10_000), "default liquid fee kept");
     }
 

@@ -27,7 +27,6 @@ contract testMarketViews is BaseSetup {
 
     uint256 internal usdtGoodId;
     uint256 internal btcGoodId;
-    uint256 internal ts = 1;
 
     function setUp() public override {
         BaseSetup.setUp();
@@ -47,11 +46,6 @@ contract testMarketViews is BaseSetup {
         return T_GoodKey({ercType: 1, contractAddress: address(btc), id: 0});
     }
 
-    function _warp() internal {
-        vm.warp(ts);
-        ts++;
-        if (ts > 9) ts = 1;
-    }
 
     function _initUsdtGood(
         address owner,
@@ -81,12 +75,6 @@ contract testMarketViews is BaseSetup {
         vm.stopPrank();
     }
 
-    function _verifyGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        uint256 cfg = market.getGoodState(goodId).goodConfig.setVerified(true);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _markAsValueGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
@@ -154,7 +142,7 @@ contract testMarketViews is BaseSetup {
         assertEq(market.queryCommission(ids, users[3])[0], 0, "no commission initially");
 
         vm.startPrank(users[1]);
-        _warp();
+        _warpToFreshRunSlot();
         btc.approve(address(market), BTC_INVEST);
         market.investGood(
             _btcKey(),

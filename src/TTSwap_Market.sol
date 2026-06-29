@@ -138,7 +138,7 @@ contract TTSwap_Market is I_TTSwap_Market {
         // Storage pointer avoids recomputing the mapping key hash twice
         if (g.goodConfig.isFreeze()) revert TTSwapError(freezeErr);
         if (g.currentState == 0) revert TTSwapError(emptyErr);
-        if (g.goodConfig.getRunTimeConfig() == (block.timestamp % 4095) / 10)
+        if (g.goodConfig.getRunBlockConfig() == block.number % 4095)
             revert TTSwapError(46);
     }
 
@@ -169,7 +169,7 @@ contract TTSwap_Market is I_TTSwap_Market {
             _initial.amount1(),
             _normaldata
         );
-        goods[_goodKey.toId()].init(_initial,_goodKey);
+        goods[_goodKey.toId()].init(_initial, _goodKey);
 
         uint256 proofId = S_ProofKey(msg.sender, _goodKey.toId()).toId();
 
@@ -185,7 +185,6 @@ contract TTSwap_Market is I_TTSwap_Market {
             _goodKey.toId(),
             _goodKey.composedata(),
             _goodKey.id,
-            L_Proof.stake(TTS_CONTRACT, msg.sender, _initial.amount0()),
             _initial,
             _trader
         );
@@ -215,7 +214,7 @@ contract TTSwap_Market is I_TTSwap_Market {
         _checkTrader(_trader);
         S_GoodState storage g = goods[_goodKey.toId()];
         _checkGoodActive(g, 10, 12);
-        
+
         L_Good.S_GoodInvestReturn memory normalInvest_;
 
         if (g.currentState.amount1() + _invest.amount1() > 2 ** 109)
@@ -245,11 +244,7 @@ contract TTSwap_Market is I_TTSwap_Market {
 
         // Process investment for normal good.
         // Calculates new shares and updates normal good's state.
-        g.investGood(
-            _invest.amount1(),
-            normalInvest_,
-            enpower
-        );
+        g.investGood(_invest.amount1(), normalInvest_, enpower);
 
         if (normalInvest_.investValue < 1000000000000) revert TTSwapError(38);
 
@@ -259,21 +254,24 @@ contract TTSwap_Market is I_TTSwap_Market {
         // Convert virtual value to actual value basis (scale down by leverage).
         uint128 investvalue = ((normalInvest_.investValue * 100) / enpower);
 
+        // reset _invest to 0 & store the mint tts value
+        _invest = 0;
+        if (g.goodConfig.isPromised()) _invest = investvalue;
         // Update the investment proof with the new shares and amounts.
         proofs[proofNo].updateInvest(
             _goodKey.toId(),
-            toTTSwapUINT256(normalInvest_.investShare, 0),
+            toTTSwapUINT256(normalInvest_.investShare, _invest.amount1()),
             toTTSwapUINT256(normalInvest_.investValue, investvalue),
             toTTSwapUINT256(
                 normalInvest_.investQuantity,
                 (normalInvest_.investQuantity * 100) / enpower //real quantity
             )
         );
-        g.goodConfig=g.goodConfig.updateRunTimeConfig();
+        g.goodConfig = g.goodConfig.updateRunBlockConfig();
         emit e_investGood(
             proofNo,
             _goodKey.toId(),
-            L_Proof.stake(TTS_CONTRACT, msg.sender, investvalue),
+            L_Proof.stake(TTS_CONTRACT, msg.sender, _invest.amount1()),
             toTTSwapUINT256(normalInvest_.investValue, investvalue),
             toTTSwapUINT256(
                 normalInvest_.investFeeQuantity,
@@ -366,14 +364,14 @@ contract TTSwap_Market is I_TTSwap_Market {
             TTS_CONTRACT.setReferral(_trader, _recipient);
         }
         // Step 1: map input quantity to transferred value (ΔV) on good1 side.
-        good1change = g1.good1Swap(_swapQuantity.amount0(), true);
+        good1change = g1.goodSwapInput(_swapQuantity.amount0());
         // Step 2: map transferred value (ΔV) to output quantity on good2 side.
-        good2change = g2.good2Swap(good1change.amount1(), true);
+        good2change = g2.goodSwapOutput(good1change.amount1());
 
         if (good1change.amount1() < 1_00_000_000) revert TTSwapError(14);
         if (
             good2change.amount1() < _swapQuantity.amount1() &&
-            _swapQuantity.amount1() > 0
+            _swapQuantity.amount1() >= 0
         ) revert TTSwapError(15);
         _goodKey1.transferFrom(
             _trader,
@@ -399,7 +397,7 @@ contract TTSwap_Market is I_TTSwap_Market {
             );
         }
 
-        g2.goodConfig=g2.goodConfig.updateRunTimeConfig();
+        g2.goodConfig = g2.goodConfig.updateRunBlockConfig();
         emit e_buyGood(
             _goodKey1.toId(),
             _goodKey2.toId(),
@@ -679,7 +677,13 @@ contract TTSwap_Market is I_TTSwap_Market {
         }
         // Commission balances are kept with a 1-unit sentinel to avoid cold SSTORE.
 
-        L_Proof.unstake(TTS_CONTRACT, msg.sender, divestvalue.amount1());
+        if (disinvestNormalResult1_.disinvestTTSValue > 0) {
+            L_Proof.unstake(
+                TTS_CONTRACT,
+                msg.sender,
+                disinvestNormalResult1_.disinvestTTSValue
+            );
+        }
 
         emit e_disinvestProof(
             _proofid,
@@ -694,6 +698,7 @@ contract TTSwap_Market is I_TTSwap_Market {
                 disinvestNormalResult1_.actual_fee,
                 disinvestNormalResult1_.actualDisinvestQuantity
             ),
+            disinvestNormalResult1_.disinvestTTSValue,
             _trader
         );
         return (disinvestNormalResult1_.profit);

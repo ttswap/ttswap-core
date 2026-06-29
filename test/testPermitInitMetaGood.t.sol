@@ -4,6 +4,7 @@ pragma solidity 0.8.29;
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Permit2} from "permit2/src/Permit2.sol";
 import {BaseSetup} from "./BaseSetup.t.sol";
+import {TestConfigConstants} from "./TestConfigConstants.sol";
 import {MyToken} from "../src/test/MyToken.sol";
 import {TTSwap_Token} from "../src/TTSwap_Token.sol";
 import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
@@ -48,8 +49,7 @@ contract testPermitInitGood is BaseSetup {
             "PermitTransferFrom(TokenPermissions permitted,address spender,uint256 nonce,uint256 deadline)TokenPermissions(address token,uint256 amount)"
         );
 
-    uint256 internal constant INITIAL_CONFIG =
-        0x000c350810450000000000842882040800000000000000000000000000000000;
+    uint256 internal constant INITIAL_CONFIG = TestConfigConstants.INITIAL_GOOD_CONFIG;
 
     uint256 internal constant CREATOR_KEY = 0xA121;
     uint256 internal constant OWNER_KEY = 0xA11CE;
@@ -117,10 +117,8 @@ contract testPermitInitGood is BaseSetup {
 
     // ── helpers ────────────────────────────────────────────────────────────
 
-    function _expectedGoodConfig() internal view returns (uint256) {
-        uint256 runSlot = (block.timestamp % 4095) % 10;
-        uint256 mask = 0x00000000000000007ff800000000000000000000000000000000000000000000;
-        return (INITIAL_CONFIG & ~mask) | (runSlot << 179);
+    function _expectedGoodConfig() internal pure returns (uint256) {
+        return TestConfigConstants.INITIAL_GOOD_CONFIG;
     }
 
     function _tokenKey(address token) internal pure returns (T_GoodKey memory) {
