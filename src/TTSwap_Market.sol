@@ -32,18 +32,32 @@ import {L_SignatureVerification} from "./libraries/L_SignatureVerification.sol";
 /**
  * @title TTSwap_Market
  * @author ttswap.exchange@gmail.com
- * @dev Core market contract for TTSwap protocol that manages goods trading, investing, and staking operations
- * @notice This contract implements a decentralized market system with the following key features:
- * - Meta good, value goods, and normal goods management
- * - Automated market making (AMM) with configurable fees
- * - Investment and disinvestment mechanisms
- * - Commission distribution system
- * website http://www.ttswap.io
- * twitter https://x.com/ttswapfinance
+ * @notice Core on-chain market: create goods, provide liquidity, swap, pay, and withdraw.
+ * @dev **Mental model for integrators**
+ *      - A **good** = one token pool with its own virtual AMM state and fee config.
+ *      - A **proof** = one user's LP position in a good (id = hash of owner + good).
+ *      - **buyGood** = exact-input swap (you specify how much you sell; min output is slippage guard).
+ *      - **payGood** = exact-output swap or same-token transfer (you specify how much recipient gets).
+ *      - **Value good** flag (config bit 255) marks pricing/reference tokens (e.g. stablecoin side).
+ *
+ * @dev **Good quantity fields** (see `L_GoodConfig` glossary):
+ *      `currentState.amount0` = investQty; `currentState.amount1` = Q;
+ *      `goodConfig.amount1()` = leverage virtualQty only; `investState.amount1` = V.
+ *
+ * @dev **Meta-transactions**
+ *      Only `buyGood` and `payGood` verify EIP-712 when `msg.sender != _trader`.
+ *      All other functions with a `signature` argument keep it for ABI compatibility only;
+ *      they require `_trader == msg.sender` via `_checkTrader`.
+ *
+ * @dev **Security modifiers**
+ *      - `guardedEntry`: reentrancy lock (standalone 0→2, or 1→2 inside multicall).
+ *      - `msgValue`: transient native-ETH budget for the whole call tree.
+ *      - `multicallEntry`: arms lock level 1 so batched delegatecalls share one ETH budget.
+ *
+ * website  http://www.ttswap.io
+ * twitter  https://x.com/ttswapfinance
  * telegram https://t.me/ttswapfinance
- * discord https://discord.gg/XygqnmQgX3
- * `buyGood` and `payGood` verify EIP-712 when `msg.sender != _trader`. Every other
- * `signature` argument is reserved for ABI compatibility and is **not** verified; those entrypoints require `msg.sender == _trader` (enforced by `_checkTrader`).
+ * discord  https://discord.gg/XygqnmQgX3
  */
 contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     using L_GoodConfigLibrary for uint256;
@@ -58,57 +72,50 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @dev Reserved storage slot for **proxy implementation pointer** (UUPS / transparent proxy layout).
     ///      Intentionally unused in logic-only builds; keeps layout aligned with deployed proxy. See audit M-06.
     address internal implementation;
+    /// @notice TTS token contract — permissions, referral, stake/unstake hooks.
     I_TTSwap_Token internal immutable TTS_CONTRACT;
 
+    /// @notice Per-trader nonce consumed by EIP-712 signed `buyGood` / `payGood` (also manually bumpable via `cancelNonce`).
     mapping(address _trader => uint256 nonce) public nonces;
+
     /// @dev Reserved flag for upgrade / admin flows in proxy deployments; placeholder in logic contract. See audit M-06.
     bool internal upgradeable;
 
-    /**
-     * @dev Mapping of good addresses to their state information
-     * @notice Stores the complete state of each good including:
-     * - Current trading state(invest quantity & current quantity)
-     * - Investment state (invest shares & invest value)
-     * - Owner information
-     * - Configuration parameters
-     */
+    /// @dev All goods indexed by `T_GoodKey.toId()`.
+    ///      Each stores pool depth, LP totals, owner, fees, and per-recipient commission balances.
     mapping(uint256 goodid => S_GoodState) private goods;
 
-    /**
-     * @dev Mapping of proof IDs to their state information
-     * @notice Records all investment proofs in the system:
-     * shares amount0:normal good shares amount1:value good shares
-     * state amount0:total value : amount1:total actual value
-     * invest amount0:normal good virtual quantity amount1:normal good actual quantity
-     * valueinvest amount0:value good virtual quantity amount1:value good actual quantity
-     */
+    /// @dev LP proofs indexed by `S_ProofKey.toId()` (hash of owner + good id).
     mapping(uint256 proofid => S_ProofState) private proofs;
-    uint128 internal constant executeFee = 50_000_000_000; //5*10**10
+
+    /// @dev Relayer execution fee denominator: fee in output-token units = poolPrice(executeFee).
+    ///      `50_000_000_000` is the fixed amount0 side; amount1 is derived per output good price.
+    uint128 internal constant executeFee = 50_000_000_000; // 5×10^10
+
+    /// @notice EIP-712 domain version string.
     string internal constant Version = "2.0.0";
 
-    /**
-     * @dev Constructor for TTSwap_Market
-     * @param _TTS_Contract The address of the official token contract
-     */
+    /// @param _TTS_Contract Official TTSwap token (roles, referral, staking).
     constructor(I_TTSwap_Token _TTS_Contract) {
         TTS_CONTRACT = _TTS_Contract;
     }
 
-    /// only market admin can execute
+    /// @dev Requires `TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin()`.
     modifier onlyMarketadmin() {
         if (!TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin())
             revert TTSwapError(1);
         _;
     }
 
-    /// only market manager can execute
+    /// @dev Requires `TTS_CONTRACT.userConfig(msg.sender).isMarketManager()`.
     modifier onlyMarketor() {
         if (!TTS_CONTRACT.userConfig(msg.sender).isMarketManager())
             revert TTSwapError(2);
         _;
     }
 
-    /// run when eth token transfer to market contract
+    /// @dev Wraps native-ETH accounting (`L_Transient`) around the function body.
+    ///      Use on any entrypoint that may move native goods or receive `msg.value`.
     modifier msgValue() {
         L_Transient.checkbefore();
         _;
@@ -134,13 +141,16 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         L_Transient.set(lock);
     }
 
-    /// @dev Internal function to validate trader matches msg.sender
+    /// @dev Direct-call only: `_trader` must be `msg.sender` (no relayer on this path).
     function _checkTrader(address _trader) private view {
         if (_trader != msg.sender || _trader == address(0))
             revert TTSwapError(39);
     }
 
-    /// @dev Internal function to check if a good is active (not frozen and has state)
+    /// @dev Shared guard for swap / invest paths.
+    /// @param freezeErr Error code when good is frozen (10 buy-side, 11 pay output, etc.).
+    /// @param emptyErr Error code when good not initialized (12 / 13).
+    /// @dev Also enforces **run-block** anti-replay: one state-changing touch per good per `block.number % 4095`.
     function _checkGoodActive(
         S_GoodState storage g,
         uint256 freezeErr,
@@ -152,7 +162,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         if (g.goodConfig.getRunBlockConfig() == block.number % 4095)
             revert TTSwapError(46);
     }
-    /// @notice Enables calling multiple methods in a single call to the contract
+    /// @notice Batch multiple market calls in one transaction (delegatecall into self).
+    /// @dev Must be `payable` with `msgValue` + `multicallEntry` so native ETH budget is set once
+    ///      at the outer boundary and not re-seeded on each subcall (see `L_Transient`).
     /// @inheritdoc IMulticall_v4
     function multicall(
         bytes[] calldata data
@@ -174,12 +186,14 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         }
     }
 
-    /// @notice Initialize a new good with single-token deposit at a user-specified price
-    /// @param _goodKey The address of the ERC20 token representing the new good
-    /// @param _initial amount0: user-specified total value, amount1: token quantity to deposit
-    /// @param _normaldata The data for transferring the normal good (Permit/Transfer)
-    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
-    /// @param _signature Reserved for ABI compatibility; **not verified** here.
+    /// @notice Create a new good (token pool) with a user-chosen initial price.
+    /// @dev Deposits `_initial.amount1` tokens and declares `_initial.amount0` as total pool value.
+    ///      Mints the first proof for `msg.sender` with 100% of initial shares.
+    /// @param _goodKey Token identifier (ERC-20 or native sentinel `address(1)`).
+    /// @param _initial amount0 = declared value, amount1 = token quantity deposited.
+    /// @param _normaldata Encoded transfer path (approve / permit / Permit2) for ERC-20; empty for native with `msg.value`.
+    /// @param _trader Must equal `msg.sender`.
+    /// @param _signature Unused (ABI placeholder).
     function initGood(
         T_GoodKey memory _goodKey,
         uint256 _initial,
@@ -188,6 +202,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         bytes calldata _signature
     ) external payable override guardedEntry msgValue returns (bool) {
         _checkTrader(_trader);
+        // Minimum init size prevents dust pools and absurd self-pricing.
         if (_initial.amount1() < 500000 || _initial.amount1() > 2 ** 109)
             revert TTSwapError(36);
         if (
@@ -195,6 +210,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             _initial.amount0() < 500_000_000_000_000
         ) revert TTSwapError(35);
         if (goods[_goodKey.toId()].owner != address(0)) revert TTSwapError(5);
+        // Pull tokens (or debit native budget) into the market.
         _goodKey.transferFrom(
             msg.sender,
             msg.sender,
@@ -203,8 +219,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         );
         goods[_goodKey.toId()].init(_initial, _goodKey);
 
+        // Creator receives proof id = hash(msg.sender, goodId).
         uint256 proofId = S_ProofKey(msg.sender, _goodKey.toId()).toId();
 
+        // Seed proof with full initial shares and 1:1 virtual/actual quantities.
         proofs[proofId].updateInvest(
             _goodKey.toId(),
             toTTSwapUINT256(_initial.amount1(), 0),
@@ -381,6 +399,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 ),
                 _trader
             );
+        // Optional deadline in low 64 bits of external_info (unix timestamp).
         if (
             external_info.get64bit() != 0 &&
             block.timestamp > external_info.get64bit()
@@ -390,19 +409,21 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         S_GoodState storage g2 = goods[_goodKey2.toId()];
         _checkGoodActive(g1, 10, 12);
         _checkGoodActive(g2, 10, 12);
+        // `_recipient != trader` registers referral on first use (via TTS token).
         if (_recipient != address(0) && _recipient != _trader) {
             TTS_CONTRACT.setReferral(_trader, _recipient);
         }
-        // Step 1: map input quantity to transferred value (ΔV) on good1 side.
+        // --- AMM core: input good exports value, output good converts value to tokens ---
         good1change = g1.buyGoodInput(_swapQuantity.amount0());
-        // Step 2: map transferred value (ΔV) to output quantity on good2 side.
         good2change = g2.buyGoodOutput(good1change.amount1());
 
+        // Dust and slippage checks (amount1 on swapQuantity = min gross output).
         if (good1change.amount1() < 1_00_000_000) revert TTSwapError(14);
         if (
             good2change.amount1() < _swapQuantity.amount1() &&
             _swapQuantity.amount1() > 0
         ) revert TTSwapError(15);
+        // Pull input tokens from trader (permit data in `data` when relayer executes).
         _goodKey1.transferFrom(
             _trader,
             msg.sender,
@@ -410,11 +431,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             data
         );
 
-        // Transfer output tokens from market to recipient.
+        // Deliver output: trader gets full gross; relayer deducts executeFee to commission ledger.
         if (msg.sender == _trader) {
             _goodKey2.safeTransfer(_trader, good2change.amount1());
         } else {
-            // Fee is denominated in output good units and deducted from the delivered payout.
             uint128 feeQuantity = g2.getGoodState().getamount1fromamount0(
                 executeFee
             );
@@ -427,6 +447,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             );
         }
 
+        // Mark output good as used this block slot (anti-replay).
         g2.goodConfig = g2.goodConfig.updateRunBlockConfig();
         emit e_buyGood(
             _goodKey1.toId(),
@@ -520,11 +541,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             external_info.get64bit() != 0 &&
             block.timestamp > external_info.get64bit()
         ) revert TTSwapError(53);
+        // Output good slot is consumed first in pay flow (recipient always receives from good2).
         goods[_goodKey2.toId()].goodConfig = goods[_goodKey2.toId()]
             .goodConfig
             .updateRunBlockConfig();
         if (_goodKey1.toId() != _goodKey2.toId()) {
-            // Gross-output flow: desired gross output quantity -> required input value -> required input quantity
+            // Cross-good payment: fix output qty → derive input qty (inverse of buyGood order).
             good2change = goods[_goodKey2.toId()].payGoodOutput(
                 _swapQuantity.amount1()
             );
@@ -532,6 +554,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             good1change = goods[_goodKey1.toId()].payGoodInput(
                 good2change.amount1()
             );
+            // amount0 on swapQuantity = max input (slippage cap).
             if (
                 good1change.amount1() + good1change.amount0() >
                 _swapQuantity.amount0()
@@ -572,8 +595,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 external_info
             );
         } else {
-            // Direct payment path (good1 == good2).
-            // No AMM swap; the function debits amount0 and, in relayer mode, deducts execution fee from delivery.
+            // Same-token path: no AMM — direct transfer of `_swapQuantity.amount1` to `_recipient`.
             good1change = toTTSwapUINT256(
                 goods[_goodKey1.toId()].currentState.amount1(),
                 goods[_goodKey1.toId()].investState.amount1()
@@ -618,28 +640,13 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         }
     }
 
-    /**
-     * @dev Disinvests from a proof by withdrawing invested tokens and collecting profits
-     * @param _proofid The ID of the proof to disinvest from
-     * @param _goodQuantity The amount of normal good tokens to disinvest
-     * @param _gate The address to receive gate rewards (falls back to DAO admin if banned)
-     * @return uint128 The profit amount from normal good disinvestment
-     * @return uint128 The profit amount from value good disinvestment (if applicable)
-     * @notice This function:
-     * - Validates proof ownership and state
-     * - Processes disinvestment for both normal and value goods
-     * - Handles commission distribution and fee collection
-     * - Updates proof state and burns tokens
-     * - Distributes rewards to gate and referrer
-     * - Unstakes TTS tokens
-     * @custom:security Protected by noReentrant modifier
-     * @custom:security Reverts if:
-     * - Proof ID does not match sender's proof
-     * - Invalid proof state
-     * - Insufficient balance for disinvestment
-     * @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
-     * @param signature Reserved for ABI compatibility; **not verified** here. Relayer / meta-tx is not supported for this entrypoint.
-     */
+    /// @notice Withdraw LP shares: return principal + profit, split fees to gate/referral/platform.
+    /// @param _proofid Proof id for `(msg.sender, good)`.
+    /// @param _goodshares Share amount to burn (partial withdraw allowed per `getDisinvestChips`).
+    /// @param _gate Gate address for operator/customer fee routing (zeroed if banned).
+    /// @param _trader Must equal `msg.sender`.
+    /// @param signature Unused (ABI placeholder).
+    /// @return Profit credited to the user after fees (normal-good leg).
     /// @inheritdoc I_TTSwap_Market
     function disinvestProof(
         uint256 _proofid,
@@ -813,15 +820,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         return (goods[good1].getGoodState(), goods[good2].getGoodState());
     }
 
-    /// @notice Retrieves the current state of a proof
-    /// @param proofid The ID of the proof to query
-    /// @return proofstate The current state of the proof,
-    ///  currentgood The current good associated with the proof
-    ///  valuegood The value good associated with the proof
-    ///  shares normal good shares, value good shares
-    ///  state Total value, Total actual value
-    ///  invest normal good virtual quantity, normal good actual quantity
-    ///  valueinvest value good virtual quantity, value good actual quantity
+    /// @notice Retrieves the current state of a proof.
+    /// @param proofid Proof id (`keccak256(owner, goodId)`).
+    /// @return proofstate Snapshot — see `S_ProofState` / `L_Proof` (position-level, not pool `virtualQty`).
     /// @inheritdoc I_TTSwap_Market
     function getProofState(
         uint256 proofid
@@ -829,13 +830,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         return proofs[proofid];
     }
 
-    /// @notice Retrieves the current state of a good
-    /// @param good The address of the good to query
-    /// @return goodstate The current state of the good,
-    ///  goodConfig Configuration of the good, check goodconfig.sol or whitepaper for details
-    ///  owner Creator of the good
-    ///  currentState Present investQuantity, CurrentQuantity
-    ///  investState Shares, value
+    /// @notice Retrieves the current state of a good.
+    /// @param good Good id.
+    /// @return goodstate Snapshot:
+    ///  - goodConfig: fee flags + `virtualQty` in low 128 bits (`config.amount1()`).
+    ///  - currentState.amount0 = `investQty`; amount1 = `Q` (total virtual depth).
+    ///  - investState.amount0 = shares; amount1 = `V` (pool value).
     /// @inheritdoc I_TTSwap_Market
     function getGoodState(
         uint256 good
@@ -1040,7 +1040,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             revert TTSwapError(18);
         }
         // Welfare is a direct pool top-up:
-        // - increases both investQuantity and currentQuantity equally (fee-like injection)
+        // - increases both investQty (`amount0`) and Q (`amount1`) equally (fee-like injection)
         // - raises LP net value without minting new shares
         goods[goodid].toGoodKey().transferFrom(
             msg.sender,
@@ -1077,7 +1077,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             );
     }
 
-    /// @inheritdoc I_TTSwap_Market
+    /// @notice Invalidate pending EIP-712 signatures by bumping the caller's nonce.
     function cancelNonce() external {
         nonces[msg.sender] = nonces[msg.sender] + 1;
     }

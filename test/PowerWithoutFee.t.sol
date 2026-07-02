@@ -178,7 +178,7 @@ contract testPowerWithoutFee is BaseSetup {
         assertGt(proofAfter.shares.amount0(), proofBefore.shares.amount0(), "shares grew");
         assertGt(proofAfter.state.amount0(), proofBefore.state.amount0(), "virtual value grew");
         assertGt(proofAfter.state.amount1(), proofBefore.state.amount1(), "actual value grew");
-        assertGt(after_.goodConfig.amount1(), before_.goodConfig.amount1(), "V tracked");
+        assertGt(after_.goodConfig.amount1(), before_.goodConfig.amount1(), "VQ tracked");
         vm.stopPrank();
     }
 
