@@ -232,7 +232,7 @@ contract testCollectCommission is BaseSetup {
         uint256[] memory before_ = _query(_singleId(btcGoodId), gate);
 
         _collect(gate, _singleId(btcGoodId));
-        snapLastCall("collect_commission_gate_btc");
+        _snapMarket("collect_commission_gate_btc");
 
         assertGt(btc.balanceOf(gate), btcBefore, "gate received btc");
         uint256[] memory after_ = _query(_singleId(btcGoodId), gate);
@@ -255,7 +255,7 @@ contract testCollectCommission is BaseSetup {
         uint256 btcBefore = btc.balanceOf(gate);
 
         _collect(gate, _goodIds(usdtGoodId, btcGoodId));
-        snapLastCall("collect_commission_gate_multi");
+        _snapMarket("collect_commission_gate_multi");
 
         assertGt(usdt.balanceOf(gate), usdtBefore, "gate received usdt");
         assertGt(btc.balanceOf(gate), btcBefore, "gate received btc");
@@ -270,7 +270,7 @@ contract testCollectCommission is BaseSetup {
         assertGt(before_[0], 1, "platform pool has balance");
 
         _collect(marketcreator, _singleId(btcGoodId));
-        snapLastCall("collect_commission_admin_platform");
+        _snapMarket("collect_commission_admin_platform");
 
         uint256[] memory after_ = _query(_singleId(btcGoodId), address(0));
         assertEq(after_[0], 1, "platform sentinel");
@@ -420,7 +420,7 @@ contract testCollectCommission is BaseSetup {
         vm.startPrank(referral);
         uint256 btcBefore = btc.balanceOf(referral);
         _collect(referral, _singleId(btcGoodId));
-        snapLastCall("collect_commission_referral");
+        _snapMarket("collect_commission_referral");
 
         assertGt(btc.balanceOf(referral), btcBefore, "referral received btc");
         assertEq(_query(_singleId(btcGoodId), referral)[0], 1, "referral sentinel");

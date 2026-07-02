@@ -92,24 +92,25 @@ interface I_TTSwap_Market {
         address _trader,
         uint256 external_info
     );
-    // /// @notice Emitted when a user makes a payment using goods
-    // /// @param sellgood The ID of the good being sold/used for payment
-    // /// @param forgood The ID of the good being received
-    // /// @param swapvalue The trade value
-    // /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
-    // /// @param good2change The status of the received good (amount0: fee, amount1: quantity)
-    // /// @param _trader The address of the trader initiating the payment
-    // /// @param external_info The hash of the transaction data for verification
-    // event e_payGood(
-    //     uint256 indexed sellgood,
-    //     uint256 indexed forgood,
-    //     uint256 swapvalue,
-    //     uint256 good1change,
-    //     uint256 good2change,
-    //     address _trader,
-    //     address _recipient,
-    //     uint256 external_info
-    // );
+    
+    /// @notice Emitted when a user makes a payment using goods
+    /// @param sellgood The ID of the good being sold/used for payment
+    /// @param forgood The ID of the good being received
+    /// @param swapvalue The trade value
+    /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
+    /// @param good2change The status of the received good (amount0: fee, amount1: quantity)
+    /// @param _trader The address of the trader initiating the payment
+    /// @param external_info The hash of the transaction data for verification
+    event e_payGood(
+        uint256 indexed sellgood,
+        uint256 indexed forgood,
+        uint256 swapvalue,
+        uint256 good1change,
+        uint256 good2change,
+        address _trader,
+        address _recipient,
+        uint256 external_info
+    );
 
 
 
@@ -195,31 +196,31 @@ interface I_TTSwap_Market {
         uint256 external_info
     ) external payable returns (uint256 good1change, uint256 good2change);
 
-    // /**
-    //  * @notice Pays a fixed gross output amount using inverse pricing.
-    //  * @param _goodKey1 Input good id (payer side).
-    //  * @param _goodKey2 Output good id (recipient side).
-    //  * @param _swapQuantity Packed swap params:
-    //  *        - amount0: max input limit.
-    //  *        - amount1: target gross output amount before any relayer execution fee.
-    //  * @param _recipient Address receiving output good. In relayer mode, net delivery may be lower because execution fee is deducted from gross output.
-    //  * @param data Additional transfer data for input token (Permit/Transfer).
-    //  * @param _trader The trader; `msg.sender` may be a relayer distinct from `_trader` when `signature` is valid.
-    //  * @param signature EIP-712 signature over the pay payload; **verified** when `msg.sender != _trader`.
-    //  * @param external_info External business metadata (e.g., payment order id or other extra info).
-    //  * @return good1change Packed input-side change.
-    //  * @return good2change Packed output-side change.
-    //  */
-    // function payGood(
-    //     T_GoodKey memory _goodKey1,
-    //     T_GoodKey memory _goodKey2,
-    //     uint256 _swapQuantity,
-    //     address _recipient,
-    //     bytes calldata data,
-    //     address _trader,
-    //     bytes calldata signature,
-    //     uint256 external_info
-    // ) external payable returns (uint256 good1change, uint256 good2change);
+    /**
+     * @notice Pays a fixed gross output amount using inverse pricing.
+     * @param _goodKey1 Input good id (payer side).
+     * @param _goodKey2 Output good id (recipient side).
+     * @param _swapQuantity Packed swap params:
+     *        - amount0: max input limit.
+     *        - amount1: target gross output amount before any relayer execution fee.
+     * @param _recipient Address receiving output good. In relayer mode, net delivery may be lower because execution fee is deducted from gross output.
+     * @param data Additional transfer data for input token (Permit/Transfer).
+     * @param _trader The trader; `msg.sender` may be a relayer distinct from `_trader` when `signature` is valid.
+     * @param signature EIP-712 signature over the pay payload; **verified** when `msg.sender != _trader`.
+     * @param external_info External business metadata (e.g., payment order id or other extra info).
+     * @return good1change Packed input-side change.
+     * @return good2change Packed output-side change.
+     */
+    function payGood(
+        T_GoodKey memory _goodKey1,
+        T_GoodKey memory _goodKey2,
+        uint256 _swapQuantity,
+        address _recipient,
+        bytes calldata data,
+        address _trader,
+        bytes calldata signature,
+        uint256 external_info
+    ) external payable returns (uint256 good1change, uint256 good2change);
 
     /// @notice Disinvest from a normal good
     /// @param _proofid ID of the investment proof

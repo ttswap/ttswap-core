@@ -231,7 +231,7 @@ contract testDisinvestProof is BaseSetup {
         S_ProofState memory proofBefore = market.getProofState(proofId);
 
         uint128 profit = _disinvest(users[1], proofId, shares, address(0));
-        snapLastCall("disinvest_erc20_normal_owner_first");
+        _snapMarket("disinvest_erc20_normal_owner_first");
 
         assertGt(profit, 0, "profit returned");
         assertGt(btc.balanceOf(users[1]), btcBefore, "user received btc");
@@ -256,11 +256,11 @@ contract testDisinvestProof is BaseSetup {
         uint256 proofId = _proofId(users[1], btcGoodId);
         uint128 s1 = _partialShares(proofId);
         _disinvest(users[1], proofId, s1, address(0));
-        snapLastCall("disinvest_erc20_normal_owner_second");
+        _snapMarket("disinvest_erc20_normal_owner_second");
 
         uint128 s2 = _partialShares(proofId);
         _disinvest(users[1], proofId, s2, address(0));
-        snapLastCall("disinvest_erc20_normal_owner_third");
+        _snapMarket("disinvest_erc20_normal_owner_third");
 
         assertGt(market.getProofState(proofId).shares.amount0(), 0, "shares remain");
         vm.stopPrank();
@@ -277,7 +277,7 @@ contract testDisinvestProof is BaseSetup {
         uint256 btcBefore = btc.balanceOf(users[2]);
 
         _disinvest(users[2], proofId, shares, address(0));
-        snapLastCall("disinvest_erc20_normal_other_first");
+        _snapMarket("disinvest_erc20_normal_other_first");
 
         assertGt(btc.balanceOf(users[2]), btcBefore, "other user received btc");
         vm.stopPrank();
@@ -292,7 +292,7 @@ contract testDisinvestProof is BaseSetup {
 
         vm.recordLogs();
         _disinvest(users[1], proofId, shares, users[3]);
-        snapLastCall("disinvest_erc20_normal_with_gate");
+        _snapMarket("disinvest_erc20_normal_with_gate");
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bool found;
@@ -319,7 +319,7 @@ contract testDisinvestProof is BaseSetup {
         uint256 balBefore = usdt.balanceOf(marketcreator);
 
         _disinvest(marketcreator, proofId, shares, address(0));
-        snapLastCall("disinvest_erc20_value_owner_first");
+        _snapMarket("disinvest_erc20_value_owner_first");
 
         assertGt(usdt.balanceOf(marketcreator), balBefore, "owner received usdt");
         vm.stopPrank();
@@ -333,7 +333,7 @@ contract testDisinvestProof is BaseSetup {
         uint256 proofId = _proofId(marketcreator, usdtGoodId);
         _disinvest(marketcreator, proofId, _partialShares(proofId), address(0));
         _disinvest(marketcreator, proofId, _partialShares(proofId), address(0));
-        snapLastCall("disinvest_erc20_value_owner_third");
+        _snapMarket("disinvest_erc20_value_owner_third");
         vm.stopPrank();
     }
 
@@ -347,7 +347,7 @@ contract testDisinvestProof is BaseSetup {
         uint256 balBefore = usdt.balanceOf(users[2]);
 
         _disinvest(users[2], proofId, _partialShares(proofId), address(0));
-        snapLastCall("disinvest_erc20_value_other_first");
+        _snapMarket("disinvest_erc20_value_other_first");
 
         assertGt(usdt.balanceOf(users[2]), balBefore, "other user received usdt");
         vm.stopPrank();
@@ -360,7 +360,7 @@ contract testDisinvestProof is BaseSetup {
         uint256 balBefore = usdt.balanceOf(marketcreator);
 
         _disinvest(marketcreator, proofId, shares, address(0));
-        snapLastCall("disinvest_erc20_value_init_only");
+        _snapMarket("disinvest_erc20_value_init_only");
 
         assertGt(usdt.balanceOf(marketcreator), balBefore, "init proof disinvest ok");
         vm.stopPrank();
@@ -377,7 +377,7 @@ contract testDisinvestProof is BaseSetup {
         uint256 ethBefore = users[1].balance;
 
         _disinvest(users[1], proofId, shares, address(0));
-        snapLastCall("disinvest_native_normal_owner_first");
+        _snapMarket("disinvest_native_normal_owner_first");
 
         assertGt(users[1].balance, ethBefore, "owner received eth");
         vm.stopPrank();
@@ -390,7 +390,7 @@ contract testDisinvestProof is BaseSetup {
         uint256 proofId = _proofId(users[1], nativeNormalGoodId);
         _disinvest(users[1], proofId, _partialShares(proofId), address(0));
         _disinvest(users[1], proofId, _partialShares(proofId), address(0));
-        snapLastCall("disinvest_native_normal_owner_third");
+        _snapMarket("disinvest_native_normal_owner_third");
         vm.stopPrank();
     }
 
@@ -403,7 +403,7 @@ contract testDisinvestProof is BaseSetup {
         uint256 ethBefore = users[4].balance;
 
         _disinvest(users[4], proofId, _partialShares(proofId), address(0));
-        snapLastCall("disinvest_native_normal_other_first");
+        _snapMarket("disinvest_native_normal_other_first");
 
         assertGt(users[4].balance, ethBefore, "other user received eth");
         vm.stopPrank();
@@ -499,7 +499,7 @@ contract testDisinvestProof is BaseSetup {
         uint256 proofId = _proofId(users[1], btcGoodId);
         uint128 shares = _partialShares(proofId);
         _disinvest(users[1], proofId, shares, gate);
-        snapLastCall("disinvest_banned_gate");
+        _snapMarket("disinvest_banned_gate");
         vm.stopPrank();
 
         uint256[] memory ids = new uint256[](1);
@@ -611,7 +611,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
             marketcreator,
             defaultdata
         );
-        snapLastCall("disinvest_native_value_owner_first");
+        _snapMarket("disinvest_native_value_owner_first");
 
         assertGt(marketcreator.balance, ethBefore, "owner received eth");
         vm.stopPrank();
@@ -639,7 +639,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
             users[2],
             defaultdata
         );
-        snapLastCall("disinvest_native_value_other_first");
+        _snapMarket("disinvest_native_value_other_first");
 
         assertGt(users[2].balance, ethBefore, "other user received eth");
         vm.stopPrank();
@@ -657,7 +657,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
             marketcreator,
             defaultdata
         );
-        snapLastCall("disinvest_native_value_init_only");
+        _snapMarket("disinvest_native_value_init_only");
 
         assertGt(marketcreator.balance, ethBefore, "init proof disinvest ok");
         vm.stopPrank();

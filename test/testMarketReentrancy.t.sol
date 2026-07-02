@@ -147,6 +147,7 @@ contract testMarketReentrancy is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("buyGood_revert_reentrancy");
         vm.stopPrank();
     }
 }

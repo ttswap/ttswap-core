@@ -57,4 +57,22 @@ contract Fuzz_DisinvestProof is FuzzBase {
         S_ProofState memory afterProof = market.getProofState(proofId);
         assertLe(afterProof.shares.amount0(), total, "shares reduced");
     }
+
+    function testGas_DisinvestProof_partial() public {
+        S_ProofState memory proof = market.getProofState(proofId);
+        uint128 withdrawShares = proof.shares.amount0() / 10;
+        if (withdrawShares < 1) withdrawShares = 1;
+
+        vm.startPrank(FUZZ_USER);
+        _warp();
+        market.disinvestProof(
+            proofId,
+            withdrawShares,
+            address(0),
+            FUZZ_USER,
+            defaultdata
+        );
+        _snapMarket("gas_baseline_disinvest_btc_partial");
+        vm.stopPrank();
+    }
 }

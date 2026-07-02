@@ -113,7 +113,7 @@ library L_Good {
         uint128 current_value;
         uint256 config;
     }
-    function goodSwapInput(
+    function buyGoodInput(
         S_GoodState storage _self,
         uint128 _swapParam
     ) internal returns (uint256) {
@@ -127,8 +127,9 @@ library L_Good {
         });
         swapTemp.remain = swapTemp.remain - swapTemp.swap_fee;
         uint128 value;
-
+        if (swapTemp.current_quantity < 10000) revert TTSwapError(56);
         while (swapTemp.remain > 0) {
+
             if (swapTemp.remain >= swapTemp.current_quantity / 100) {
                 _swapParam = swapTemp.current_quantity / 100;
                 swapTemp.remain -= _swapParam;
@@ -165,11 +166,11 @@ library L_Good {
         return toTTSwapUINT256(swapTemp.swap_fee, swapTemp.get);
     }
 
-    function goodSwapOutput(
+    function buyGoodOutput(
         S_GoodState storage _self,
         uint128 _swapParam
     ) internal returns (uint256) {
-         S_SwapTemp memory swapTemp = S_SwapTemp({
+        S_SwapTemp memory swapTemp = S_SwapTemp({
             swap_fee: 0,
             remain: _swapParam,
             get: 0,
@@ -180,6 +181,7 @@ library L_Good {
         uint128 quantity;
 
         while (swapTemp.remain > 0) {
+            if (swapTemp.current_quantity < 10000) revert TTSwapError(56);
             if (swapTemp.remain >= swapTemp.current_value / 100) {
                 _swapParam = swapTemp.current_value / 100;
                 swapTemp.remain -= _swapParam;
@@ -189,9 +191,7 @@ library L_Good {
             }
             quantity = uint128(
                 (2 * uint256(_swapParam) * uint256(swapTemp.current_quantity)) /
-                    (2 *
-                        uint256(swapTemp.current_value) +
-                        uint256(_swapParam))
+                    (2 * uint256(swapTemp.current_value) + uint256(_swapParam))
             );
             swapTemp.get += quantity;
             swapTemp.current_quantity -= quantity;
@@ -204,9 +204,113 @@ library L_Good {
         ) {
             revert TTSwapError(56);
         }
-        quantity=_self.currentState.amount1()-swapTemp.current_quantity;
-        swapTemp.swap_fee=_self.goodConfig.getBuyFee(quantity);
-        quantity=quantity-swapTemp.swap_fee;
+        quantity = _self.currentState.amount1() - swapTemp.current_quantity;
+        swapTemp.swap_fee = _self.goodConfig.getBuyFee(quantity);
+        quantity = quantity - swapTemp.swap_fee;
+        _self.currentState = toTTSwapUINT256(
+            _self.currentState.amount0(),
+            swapTemp.current_quantity
+        );
+        _self.currentState = add(
+            _self.currentState,
+            toTTSwapUINT256(swapTemp.swap_fee, swapTemp.swap_fee)
+        );
+
+        return toTTSwapUINT256(swapTemp.swap_fee, quantity);
+    }
+
+    function payGoodOutput(
+        S_GoodState storage _self,
+        uint128 _swapParam
+    ) internal returns (uint256) {
+        S_SwapTemp memory swapTemp = S_SwapTemp({
+            swap_fee: _self.goodConfig.getBuyFee(_swapParam),
+            remain: _swapParam,
+            get: 0,
+            current_quantity: _self.currentState.amount1(),
+            current_value: _self.investState.amount1(),
+            config: _self.goodConfig
+        });
+        swapTemp.remain = swapTemp.remain + swapTemp.swap_fee;
+        uint128 value;
+
+        while (swapTemp.remain > 0) {
+            if (swapTemp.current_quantity < 10000) revert TTSwapError(56);
+            if (swapTemp.remain >= swapTemp.current_quantity / 100) {
+                _swapParam = swapTemp.current_quantity / 100;
+                swapTemp.remain -= _swapParam;
+            } else {
+                _swapParam = swapTemp.remain;
+                swapTemp.remain = 0;
+            }
+            value = uint128(
+                (2 * uint256(_swapParam) * uint256(swapTemp.current_value)) /
+                    (2 *
+                        uint256(swapTemp.current_quantity) -
+                        uint256(_swapParam))
+            );
+            swapTemp.get += value;
+            swapTemp.current_quantity -= _swapParam;
+        }
+        if (
+            swapTemp.current_quantity <
+            _self.goodConfig.getSafeLineLower(
+                _self.currentState.amount0() + _self.goodConfig.amount1()
+            )
+        ) {
+            revert TTSwapError(56);
+        }
+        _self.currentState = toTTSwapUINT256(
+            _self.currentState.amount0(),
+            swapTemp.current_quantity
+        );
+        _self.currentState = add(
+            _self.currentState,
+            toTTSwapUINT256(swapTemp.swap_fee, swapTemp.swap_fee)
+        );
+
+        return toTTSwapUINT256(swapTemp.swap_fee, swapTemp.get);
+    }
+
+    function payGoodInput(
+        S_GoodState storage _self,
+        uint128 _swapParam
+    ) internal returns (uint256) {
+        S_SwapTemp memory swapTemp = S_SwapTemp({
+            swap_fee: 0,
+            remain: _swapParam,
+            get: 0,
+            current_quantity: _self.currentState.amount1(),
+            current_value: _self.investState.amount1(),
+            config: _self.goodConfig
+        });
+        uint128 quantity;
+        if (swapTemp.current_value < 10000) revert TTSwapError(56);
+        while (swapTemp.remain > 0) {
+            if (swapTemp.remain >= swapTemp.current_value / 100) {
+                _swapParam = swapTemp.current_value / 100;
+                swapTemp.remain -= _swapParam;
+            } else {
+                _swapParam = swapTemp.remain;
+                swapTemp.remain = 0;
+            }
+            quantity = uint128(
+                (2 * uint256(_swapParam) * uint256(swapTemp.current_quantity)) /
+                    (2 * uint256(swapTemp.current_value) - uint256(_swapParam))
+            );
+            swapTemp.get += quantity;
+            swapTemp.current_quantity += quantity;
+        }
+        if (
+            swapTemp.current_quantity >
+            _self.goodConfig.getSafeLineUpper(
+                _self.currentState.amount0() + _self.goodConfig.amount1()
+            )
+        ) {
+            revert TTSwapError(55);
+        }
+        quantity =  swapTemp.current_quantity-_self.currentState.amount1() ;
+        swapTemp.swap_fee = _self.goodConfig.getSellFee(quantity);
         _self.currentState = toTTSwapUINT256(
             _self.currentState.amount0(),
             swapTemp.current_quantity
@@ -463,9 +567,8 @@ library L_Good {
             toTTSwapUINT256(proofInvest1, proofShares0).getamount0fromamount1(
                 _params._goodshares
             ), // Actual quantity to divest (normal good)
-            toTTSwapUINT256(proofMintTTSValue, proofShares0).getamount0fromamount1(
-                _params._goodshares
-            ) // Mint TTS value to divest (normal good)
+            toTTSwapUINT256(proofMintTTSValue, proofShares0)
+                .getamount0fromamount1(_params._goodshares) // Mint TTS value to divest (normal good)
         );
         // calculate the value from the proof (in terms of the value good) corresponding to the divested portion.
         // Uses proof-time value ratios to preserve value accounting across virtual/actual quantities.
@@ -558,7 +661,10 @@ library L_Good {
         );
         // Burn the investment proof
         _investProof.burnProof(
-            toTTSwapUINT256(normalGoodResult1_.shares, normalGoodResult1_.disinvestTTSValue),
+            toTTSwapUINT256(
+                normalGoodResult1_.shares,
+                normalGoodResult1_.disinvestTTSValue
+            ),
             disinvestvalue,
             toTTSwapUINT256(
                 normalGoodResult1_.virtualDisinvestQuantity,

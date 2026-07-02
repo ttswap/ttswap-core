@@ -118,7 +118,7 @@ contract testModifyGood is BaseSetup {
             users[1],
             defaultdata
         );
-        snapLastCall("modifyGoodByGoodOwner_fees");
+        _snapMarket("modifyGoodByGoodOwner_fees");
 
         assertTrue(ok, "returns true");
         uint256 after_ = _currentConfig();
@@ -196,6 +196,7 @@ contract testModifyGood is BaseSetup {
             before_.setPromised(true);
 
         market.modifyGoodByManager(btcGoodId, patch, marketcreator, defaultdata);
+        _snapMarket("modifyGoodByManager_feeSplit");
 
         uint256 after_ = _currentConfig();
         assertTrue(after_.checkGoodConfig(), "valid fee split");        assertTrue(after_.isPromised(), "promised");
@@ -241,7 +242,7 @@ contract testModifyGood is BaseSetup {
             marketcreator,
             defaultdata
         );
-        snapLastCall("modifyGoodByAdmin_valueGood");
+        _snapMarket("modifyGoodByAdmin_valueGood");
 
         assertTrue(ok, "returns true");
         uint256 after_ = _currentConfig();
@@ -393,6 +394,7 @@ contract testModifyGood is BaseSetup {
     function testLockGood_byManager() public {
         vm.prank(marketcreator);
         market.lockGood(btcGoodId, marketcreator, defaultdata);
+        _snapMarket("lockGood_byManager");
 
         assertTrue(_currentConfig().isFreeze(), "good frozen");
         vm.startPrank(users[2]);
@@ -412,6 +414,7 @@ contract testModifyGood is BaseSetup {
     function testLockGood_byOwner() public {
         vm.prank(users[1]);
         market.lockGood(btcGoodId, users[1], defaultdata);
+        _snapMarket("lockGood_byOwner");
         assertTrue(_currentConfig().isFreeze(), "owner locked good");
     }
 
@@ -424,6 +427,7 @@ contract testModifyGood is BaseSetup {
     function testChangeGoodOwner_happyPath() public {
         vm.prank(marketcreator);
         market.changeGoodOwner(btcGoodId, users[2], marketcreator, defaultdata);
+        _snapMarket("changeGoodOwner");
 
         S_GoodTmpState memory state = market.getGoodState(btcGoodId);
         assertEq(state.owner, users[2], "owner transferred");
@@ -431,6 +435,7 @@ contract testModifyGood is BaseSetup {
         vm.startPrank(users[2]);
         uint256 cfg = state.goodConfig;
         market.modifyGoodByGoodOwner(btcGoodId, cfg, users[2], defaultdata);
+        _snapMarket("modifyGoodByGoodOwner_after_owner_change");
         vm.stopPrank();
     }
 }

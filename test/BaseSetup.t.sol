@@ -65,6 +65,12 @@ contract BaseSetup is Test, GasSnapshot {
         vm.stopPrank();
     }
 
+    /// @dev Record gas of the immediately preceding external call to `market` (vm.lastCallGas).
+    /// Naming: `{action}_{pair_or_good}_{variant}` e.g. `buy_erc20_by_erc20_first`, `invest_erc20_normal_owner_first`.
+    function _snapMarket(string memory name) internal {
+        snapLastCall(name);
+    }
+
     /// @dev Withdraw at most 20% of proof shares (matches default getDisinvestChips divisor=20, factor=4).
     function _partialDisinvestShares(uint256 proofId) internal view returns (uint128) {
         uint128 total = market.getProofState(proofId).shares.amount0();

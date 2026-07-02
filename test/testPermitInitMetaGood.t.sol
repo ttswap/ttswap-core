@@ -290,7 +290,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
-        snapLastCall("init_good_erc20_approve");
+        _snapMarket("init_good_erc20_approve");
         _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
         vm.stopPrank();
     }
@@ -307,7 +307,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
-        snapLastCall("init_good_native_msgvalue");
+        _snapMarket("init_good_native_msgvalue");
         _assertInitGoodState(key.toId(), keyedCreator, true, address(0), INIT_QTY);
         vm.stopPrank();
     }
@@ -364,7 +364,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
-        snapLastCall("init_good_eip2612");
+        _snapMarket("init_good_eip2612");
         _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
         vm.stopPrank();
     }
@@ -413,7 +413,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
-        snapLastCall("init_good_permit2_allowance");
+        _snapMarket("init_good_permit2_allowance");
         _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
         vm.stopPrank();
     }
@@ -442,7 +442,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
-        snapLastCall("init_good_permit2_single");
+        _snapMarket("init_good_permit2_single");
         _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
         vm.stopPrank();
     }
@@ -509,7 +509,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
-        snapLastCall("init_good_permit2_sigtransfer");
+        _snapMarket("init_good_permit2_sigtransfer");
         _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
         vm.stopPrank();
     }

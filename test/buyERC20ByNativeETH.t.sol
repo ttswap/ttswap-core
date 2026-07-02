@@ -134,7 +134,7 @@ contract buyERC20ByNativeETH is BaseSetup {
             1,
             address(0)
         );
-        snapLastCall("buy_erc20_by_NativeETH_first");
+        _snapMarket("buy_erc20_by_NativeETH_first");
 
         assertGt(g1change.amount1(), 0, "input value moved");
         assertGt(g2change.amount1(), 0, "btc output > 0");
@@ -165,11 +165,11 @@ contract buyERC20ByNativeETH is BaseSetup {
 
         _warpToFreshRunSlot();
         _buyBtcWithEth(users[1], SWAP_IN, 1, address(0));
-        snapLastCall("buy_erc20_by_NativeETH_first");
+        _snapMarket("buy_erc20_by_NativeETH_first");
 
         _warpToFreshRunSlot();
         _buyBtcWithEth(users[1], SWAP_IN, 1, address(0));
-        snapLastCall("buy_erc20_by_NativeETH_second");
+        _snapMarket("buy_erc20_by_NativeETH_second");
         vm.stopPrank();
     }
 
@@ -180,15 +180,15 @@ contract buyERC20ByNativeETH is BaseSetup {
 
         _warpToFreshRunSlot();
         _buyBtcWithEth(users[1], SWAP_IN, 1, referral);
-        snapLastCall("buy_erc20_by_NativeETH_first_with_refer");
+        _snapMarket("buy_erc20_by_NativeETH_first_with_refer");
 
         _warpToFreshRunSlot();
         _buyBtcWithEth(users[1], SWAP_IN, 1, referral);
-        snapLastCall("buy_erc20_by_NativeETH_second_with_exists_refer_reject_add");
+        _snapMarket("buy_erc20_by_NativeETH_second_with_exists_refer_reject_add");
 
         _warpToFreshRunSlot();
         _buyBtcWithEth(users[1], SWAP_IN, 1, address(0));
-        snapLastCall("buy_erc20_by_NativeETH_second_with_exists_refer");
+        _snapMarket("buy_erc20_by_NativeETH_second_with_exists_refer");
         vm.stopPrank();
     }
 

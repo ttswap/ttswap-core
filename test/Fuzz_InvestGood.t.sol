@@ -60,4 +60,38 @@ contract Fuzz_InvestGood is FuzzBase {
         assertGt(proof.shares.amount0(), 0, "value good shares");
         vm.stopPrank();
     }
+
+    function testGas_InvestGood_btc() public {
+        uint128 investQty = 1 * 10 ** 7;
+        vm.startPrank(FUZZ_USER);
+        deal(address(btc), FUZZ_USER, investQty, false);
+        btc.approve(address(market), investQty);
+        _warp();
+        market.investGood(
+            _btcKey(),
+            toTTSwapUINT256(0, investQty),
+            defaultdata,
+            defaultdata,
+            FUZZ_USER
+        );
+        _snapMarket("gas_baseline_invest_btc");
+        vm.stopPrank();
+    }
+
+    function testGas_InvestGood_usdtValueGood() public {
+        uint128 investQty = 1000 * 10 ** 6;
+        vm.startPrank(FUZZ_USER);
+        deal(address(usdt), FUZZ_USER, investQty, false);
+        usdt.approve(address(market), investQty);
+        _warp();
+        market.investGood(
+            _usdtKey(),
+            toTTSwapUINT256(0, investQty),
+            defaultdata,
+            defaultdata,
+            FUZZ_USER
+        );
+        _snapMarket("gas_baseline_invest_usdt_value");
+        vm.stopPrank();
+    }
 }

@@ -132,7 +132,7 @@ contract testPowerWithFee is BaseSetup {
         S_ProofState memory proofBefore = market.getProofState(proofId);
 
         _investNative(marketcreator, INVEST_QTY);
-        snapLastCall("power_with_fee_invest");
+        _snapMarket("power_with_fee_invest");
 
         S_GoodTmpState memory after_ = market.getGoodState(nativeValueGoodId);
         S_ProofState memory proofAfter = market.getProofState(proofId);
@@ -179,7 +179,7 @@ contract testPowerWithFee is BaseSetup {
         uint256 ethBefore = marketcreator.balance;
 
         _disinvest(marketcreator, DISINVEST_SHARES);
-        snapLastCall("power_with_fee_disinvest_first");
+        _snapMarket("power_with_fee_disinvest_first");
 
         S_ProofState memory proofAfter = market.getProofState(proofId);
         S_GoodTmpState memory goodAfter = market.getGoodState(nativeValueGoodId);
@@ -193,9 +193,9 @@ contract testPowerWithFee is BaseSetup {
         assertLt(goodAfter.goodConfig.amount1(), goodBefore.goodConfig.amount1(), "V reduced");
 
         _disinvest(marketcreator, DISINVEST_SHARES);
-        snapLastCall("power_with_fee_disinvest_second");
+        _snapMarket("power_with_fee_disinvest_second");
         _disinvest(marketcreator, DISINVEST_SHARES);
-        snapLastCall("power_with_fee_disinvest_third");
+        _snapMarket("power_with_fee_disinvest_third");
         vm.stopPrank();
     }
 
@@ -210,7 +210,7 @@ contract testPowerWithFee is BaseSetup {
         for (uint256 i = 0; i < 3; i++) {
             _disinvest(marketcreator, DISINVEST_SHARES);
         }
-        snapLastCall("power_with_fee_disinvest_x3");
+        _snapMarket("power_with_fee_disinvest_x3");
 
         assertEq(
             market.getProofState(proofId).shares.amount0(),

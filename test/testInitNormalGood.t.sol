@@ -146,7 +146,7 @@ contract testInitNormalGood is BaseSetup {
             users[1],
             defaultdata
         );
-        snapLastCall("init_ERC20_By_ERC20");
+        _snapMarket("init_ERC20_By_ERC20");
 
         assertEq(
             usdt.balanceOf(address(market)),
@@ -203,7 +203,7 @@ contract testInitNormalGood is BaseSetup {
             users[1],
             defaultdata
         );
-        snapLastCall("init_NativeETH_By_ERC20");
+        _snapMarket("init_NativeETH_By_ERC20");
 
         assertEq(
             usdt.balanceOf(address(market)),
