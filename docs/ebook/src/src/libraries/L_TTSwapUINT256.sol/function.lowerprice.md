@@ -1,9 +1,12 @@
 # lowerprice
-Compares the prices of three T_BalanceUINT256 values
+Compares the prices of three T_BalanceUINT256 values using 512-bit arithmetic
+
+Avoids overflow: three uint128 multiplied can reach 2^384, exceeding uint256.
+Uses mulmod trick to compute full 512-bit products for safe comparison.
 
 
 ```solidity
-function lowerprice(uint256 a, uint256 b, uint256 c) pure returns (bool);
+function lowerprice(uint256 a, uint256 b, uint256 c) pure returns (bool result);
 ```
 **Parameters**
 
@@ -17,6 +20,6 @@ function lowerprice(uint256 a, uint256 b, uint256 c) pure returns (bool);
 
 |Name|Type|Description|
 |----|----|-----------|
-|`<none>`|`bool`|True if the price of a is lower than the prices of b and c, false otherwise|
+|`result`|`bool`|True if a0*b1*c1 > a1*b0*c0, false otherwise|
 
 

@@ -1,11 +1,14 @@
 # I_TTSwap_Token
+**Title:**
+Investment Proof Interface
+
 Contains a series of interfaces for goods
 
 
 ## Functions
 ### usershares
 
-*Returns the share information for a given user address.*
+Returns the share information for a given user address.
 
 
 ```solidity
@@ -26,7 +29,7 @@ function usershares(address user) external view returns (s_share memory);
 
 ### stakestate
 
-*Returns the current staking state.*
+Returns the current staking state.
 
 
 ```solidity
@@ -41,7 +44,7 @@ function stakestate() external view returns (uint256);
 
 ### poolstate
 
-*Returns the current pool state.*
+Returns the current pool state.
 
 
 ```solidity
@@ -56,7 +59,7 @@ function poolstate() external view returns (uint256);
 
 ### ttstokenconfig
 
-*Returns the TTS token configuration value.*
+Returns the TTS token configuration value.
 
 
 ```solidity
@@ -71,7 +74,7 @@ function ttstokenconfig() external view returns (uint256);
 
 ### left_share
 
-*Returns the amount of left share available for minting.*
+Returns the amount of left share available for minting.
 
 
 ```solidity
@@ -86,7 +89,7 @@ function left_share() external view returns (uint128);
 
 ### stakeproofinfo
 
-*Returns the stake proof information for a given index.*
+Returns the stake proof information for a given index.
 
 
 ```solidity
@@ -107,7 +110,7 @@ function stakeproofinfo(uint256 index) external view returns (s_proof memory);
 
 ### setRatio
 
-*Sets the trading volume ratio for the protocol.*
+Sets the trading volume ratio for the protocol.
 
 
 ```solidity
@@ -122,7 +125,7 @@ function setRatio(uint256 _ratio) external;
 
 ### setDAOAdmin
 
-*Grants or revokes DAO admin privileges to a recipient address.*
+Grants or revokes DAO admin privileges to a recipient address.
 
 
 ```solidity
@@ -138,7 +141,7 @@ function setDAOAdmin(address _recipient, bool result) external;
 
 ### setTokenAdmin
 
-*Grants or revokes Token admin privileges to a recipient address.*
+Grants or revokes Token admin privileges to a recipient address.
 
 
 ```solidity
@@ -154,7 +157,7 @@ function setTokenAdmin(address _recipient, bool result) external;
 
 ### setTokenManager
 
-*Grants or revokes Token manager privileges to a recipient address.*
+Grants or revokes Token manager privileges to a recipient address.
 
 
 ```solidity
@@ -170,7 +173,7 @@ function setTokenManager(address _recipient, bool result) external;
 
 ### setCallMintTTS
 
-*Grants or revokes permission to call mintTTS to a recipient address.*
+Grants or revokes permission to call mintTTS to a recipient address.
 
 
 ```solidity
@@ -186,7 +189,7 @@ function setCallMintTTS(address _recipient, bool result) external;
 
 ### setMarketAdmin
 
-*Grants or revokes Market admin privileges to a recipient address.*
+Grants or revokes Market admin privileges to a recipient address.
 
 
 ```solidity
@@ -202,7 +205,7 @@ function setMarketAdmin(address _recipient, bool result) external;
 
 ### setMarketManager
 
-*Grants or revokes Market manager privileges to a recipient address.*
+Grants or revokes Market manager privileges to a recipient address.
 
 
 ```solidity
@@ -218,7 +221,7 @@ function setMarketManager(address _recipient, bool result) external;
 
 ### setStakeAdmin
 
-*Grants or revokes Stake admin privileges to a recipient address.*
+Grants or revokes Stake admin privileges to a recipient address.
 
 
 ```solidity
@@ -234,7 +237,7 @@ function setStakeAdmin(address _recipient, bool result) external;
 
 ### setStakeManager
 
-*Grants or revokes Stake manager privileges to a recipient address.*
+Grants or revokes Stake manager privileges to a recipient address.
 
 
 ```solidity
@@ -250,7 +253,7 @@ function setStakeManager(address _recipient, bool result) external;
 
 ### setBan
 
-*Sets or unsets a ban on a recipient address, restricting their access.*
+Sets or unsets a ban on a recipient address, restricting their access.
 
 
 ```solidity
@@ -266,7 +269,7 @@ function setBan(address _recipient, bool result) external;
 
 ### publicsell
 
-*Returns the amount of TTS available for public sale*
+Returns the amount of TTS available for public sale
 
 
 ```solidity
@@ -281,7 +284,7 @@ function publicsell() external view returns (uint128 _publicsell);
 
 ### userConfig
 
-*Returns the authorization level for a given address*
+Returns the authorization level for a given address
 
 
 ```solidity
@@ -302,7 +305,7 @@ function userConfig(address recipent) external view returns (uint256 _auth);
 
 ### setEnv
 
-*Sets the environment variables for normal good ID, value good ID, and market contract address*
+Sets the environment variables for normal good ID, value good ID, and market contract address
 
 
 ```solidity
@@ -325,7 +328,7 @@ Increments the shares_index and adds the new share to the shares mapping
 
 Emits an e_addShare event with the share details
 
-*Adds a new mint share to the contract*
+Adds a new mint share to the contract
 
 
 ```solidity
@@ -341,7 +344,7 @@ function addShare(s_share calldata _share, address owner) external;
 
 ### burnShare
 
-*Burns the share at the specified index*
+Burns the share at the specified index
 
 
 ```solidity
@@ -356,7 +359,7 @@ function burnShare(address owner) external;
 
 ### shareMint
 
-*Mints a share at the specified*
+Mints a share at the specified
 
 
 ```solidity
@@ -365,7 +368,7 @@ function shareMint() external;
 
 ### publicSell
 
-*how much cost to buy tts*
+how much cost to buy tts
 
 
 ```solidity
@@ -381,7 +384,7 @@ function publicSell(uint256 usdtamount, bytes calldata data) external;
 
 ### withdrawPublicSell
 
-*Withdraws the specified amount from the public sale to the recipient*
+Withdraws the specified amount from the public sale to the recipient
 
 
 ```solidity
@@ -397,7 +400,7 @@ function withdrawPublicSell(uint256 amount, address recipent) external;
 
 ### burn
 
-*Burns the specified value of tokens from the given account*
+Burns the specified value of tokens from the given account
 
 
 ```solidity
@@ -487,7 +490,7 @@ function getreferral(address _customer) external view returns (address referral)
 
 ### permitShare
 
-*Permits a share to be transferred*
+Permits a share to be transferred
 
 
 ```solidity
@@ -505,7 +508,7 @@ function permitShare(s_share memory _share, uint128 dealline, bytes calldata sig
 
 ### shareHash
 
-*Calculates the hash of a share transfer*
+Calculates the hash of a share transfer
 
 
 ```solidity
@@ -652,7 +655,9 @@ Emitted when unstaking occurs
 
 
 ```solidity
-event e_stakeinfo(address recipient, uint256 proofvalue, uint256 unstakestate, uint256 stakestate, uint256 poolstate);
+event e_stakeinfo(
+    address recipient, uint256 proofvalue, uint256 unstakestate, uint256 stakestate, uint256 poolstate
+);
 ```
 
 **Parameters**

@@ -1,9 +1,11 @@
 # mulDiv
-Performs a multiplication followed by a division
+Performs a multiplication followed by a division (full precision)
+
+Optimized to prevent intermediate overflow during multiplication
 
 
 ```solidity
-function mulDiv(uint256 config, uint256 amount, uint256 domitor) pure returns (uint128 a);
+function mulDiv(uint256 config, uint256 amount, uint256 divisor) pure returns (uint128 a);
 ```
 **Parameters**
 
@@ -11,7 +13,7 @@ function mulDiv(uint256 config, uint256 amount, uint256 domitor) pure returns (u
 |----|----|-----------|
 |`config`|`uint256`|The multiplicand|
 |`amount`|`uint256`|The multiplier|
-|`domitor`|`uint256`|The divisor|
+|`divisor`|`uint256`|The divisor|
 
 **Returns**
 

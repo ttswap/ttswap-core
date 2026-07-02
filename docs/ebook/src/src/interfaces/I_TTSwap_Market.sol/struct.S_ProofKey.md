@@ -1,12 +1,11 @@
 # S_ProofKey
-*Struct representing a key of a proof*
+Proof id derivation input: `proofId = keccak256(abi.encodePacked(owner, currentgood))` (64 bytes in memory).
 
 
 ```solidity
 struct S_ProofKey {
-    address owner;
-    address currentgood;
-    address valuegood;
+address owner;
+uint256 currentgood;
 }
 ```
 

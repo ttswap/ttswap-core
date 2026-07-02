@@ -63,8 +63,7 @@ library L_GoodConfigLibrary {
     uint256 internal constant marketmanager_config_mask =
         0x1fffffffffffffe0000000000000000000000000000000000000000000000000;
 
-    /// @dev Good-owner-writable region: bits 172-128 (power, chips, trading fees).
-    ///      Low 128 bits are **not** in the owner mask — they hold runtime `virtualQty` (updated by invest/disinvest).
+    /// @dev Good-owner-writable region: bits 172-128 (power, chips, trading fees). 
     uint256 internal constant owner_config_mask =
         0x000000000000000000001fffffffffff00000000000000000000000000000000;
 
