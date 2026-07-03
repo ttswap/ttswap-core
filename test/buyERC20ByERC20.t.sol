@@ -124,7 +124,7 @@ contract buyERC20ByERC20 is BaseSetup {
             1,
             address(0)
         );
-        snapLastCall("buy_erc20_by_erc20_first");
+        _snapMarket("buy_erc20_by_erc20_first");
 
         assertGt(g1change.amount1(), 0, "usdt value moved");
         assertGt(g2change.amount1(), 0, "btc output > 0");
@@ -156,11 +156,11 @@ contract buyERC20ByERC20 is BaseSetup {
 
         _warpForBuy();
         _buyBtcWithUsdt(users[1], SWAP_IN, 1, address(0));
-        snapLastCall("buy_erc20_by_erc20_first");
+        _snapMarket("buy_erc20_by_erc20_first");
 
         _warpForBuy();
         _buyBtcWithUsdt(users[1], SWAP_IN, 1, address(0));
-        snapLastCall("buy_erc20_by_erc20_second");
+        _snapMarket("buy_erc20_by_erc20_second");
         vm.stopPrank();
     }
 
@@ -172,15 +172,15 @@ contract buyERC20ByERC20 is BaseSetup {
 
         _warpForBuy();
         _buyBtcWithUsdt(users[1], SWAP_IN, 1, referral);
-        snapLastCall("buy_erc20_by_erc20_first_with_refer");
+        _snapMarket("buy_erc20_by_erc20_first_with_refer");
 
         _warpForBuy();
         _buyBtcWithUsdt(users[1], SWAP_IN, 1, referral);
-        snapLastCall("buy_erc20_by_erc20_second_with_exists_refer_reject_add");
+        _snapMarket("buy_erc20_by_erc20_second_with_exists_refer_reject_add");
 
         _warpForBuy();
         _buyBtcWithUsdt(users[1], SWAP_IN, 1, address(0));
-        snapLastCall("buy_erc20_by_erc20_second_with_exists_refer");
+        _snapMarket("buy_erc20_by_erc20_second_with_exists_refer");
         vm.stopPrank();
     }
 

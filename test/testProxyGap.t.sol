@@ -14,6 +14,7 @@ contract testProxyGap is BaseSetup {
 
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 63));
         market.getGoodState(0);
+        _snapMarket("getGoodState_revert_frozen_proxy");
     }
 
     function testMarketProxy_disableUpgrade_thenFreezeMarket_reverts1() public {

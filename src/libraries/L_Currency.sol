@@ -97,15 +97,17 @@ library L_CurrencyLibrary {
         uint256 amount,
         bytes calldata detail
     ) internal {
-        bool success;
+        bool success = false;
         if (token.isNative()) {
             // Native ETH: value is tracked via L_Transient; executor must be the payer.
             if (executor != from) revert TTSwapError(39);
             L_Transient.decreaseValue(amount);
+            success = true;
         } else if (detail.length == 0) {
             // Plain ERC20 transferFrom path (no permit).
             if (executor != from) revert TTSwapError(39);
             transferFromInter(token, from, to, amount);
+            success = true;
         } else {
             S_transferData memory _simplePermit = abi.decode(
                 detail,
@@ -169,6 +171,7 @@ library L_CurrencyLibrary {
                     to_uint160(amount),
                     token
                 );
+                success = true;
             } else if (_simplePermit.transfertype == 4) {
                 // Permit2 Permit + TransferFrom: set allowance on Permit2 then move tokens.
                 S_Permit2 memory _permit = abi.decode(
@@ -198,6 +201,7 @@ library L_CurrencyLibrary {
                     to_uint160(amount),
                     token
                 );
+                success = true;
             } else if (_simplePermit.transfertype == 5) {
                 // Permit2 PermitTransferFrom: signature-based transfer without prior allowance.
                 S_Permit2 memory _permit = abi.decode(
@@ -220,10 +224,10 @@ library L_CurrencyLibrary {
                     from,
                     bytes.concat(_permit.r, _permit.s, bytes1(_permit.v))
                 );
-            } else {
-                revert TTSwapError(42);
+                success = true;
             }
         }
+        if (!success) revert TTSwapError(42);
     }
 
     function transferFrom(

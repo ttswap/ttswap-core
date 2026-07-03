@@ -10,12 +10,22 @@ import {L_Transient} from "../libraries/L_Transient.sol";
 import {TTSwapError} from "../libraries/L_Error.sol";
 import {toUint128} from "../libraries/L_TTSwapUINT256.sol";
 
+/// @title T_GoodKey — universal token identifier for market operations
+/// @notice Every tradable asset is addressed by `(ercType, contractAddress, id)`.
+/// @dev **ercType** (v2.0 production paths):
+///      - `1` = ERC-20 or native ETH placeholder
+///      - `2` = ERC-1155 (reserved, reverts today)
+///      - `3` = ERC-6909 (reserved, reverts today)
+/// @dev **Native ETH**: `contractAddress == address(1)`; value moves via `msg.value` + `L_Transient` budget.
+/// @dev **Good id**: `toId()` — for ERC-20/native, lower 160 bits of `contractAddress`; for 1155/6909, hashed key.
 struct T_GoodKey {
-    uint8 ercType; //1:erc20, 2:erc1155 3:erc6909
+    uint8 ercType;
     address contractAddress;
     uint256 id;
 }
 
+/// @title T_GoodKeyLibrary
+/// @notice Token transfers, balance reads, and id derivation for `T_GoodKey`.
 library T_GoodKeyLibrary {
     // address constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     // address constant _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
@@ -384,20 +394,22 @@ library T_GoodKeyLibrary {
         }
     }
 
+    /// @notice Returns `contractAddress == address(1)` (native ETH sentinel, not a deployed contract).
     function isNative(T_GoodKey memory goodkey) internal pure returns (bool) {
         return goodkey.contractAddress == address(1);
     }
 
-    function to_uint160(uint256 amount) internal pure returns (uint160) {
-        if (amount != uint160(amount)) revert TTSwapError(52);
-        return uint160(amount);
-    }
-
+    /// @notice Packs `(ercType, contractAddress)` into one word for `e_initGood` indexing.
     function composedata(
         T_GoodKey memory goodkey
     ) internal pure returns (uint256) {
         return
             uint256(uint160(goodkey.contractAddress)) +
             (uint256(goodkey.ercType) << 160);
+    }
+
+    function to_uint160(uint256 amount) internal pure returns (uint160) {
+        if (amount != uint160(amount)) revert TTSwapError(52);
+        return uint160(amount);
     }
 }

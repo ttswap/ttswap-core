@@ -140,6 +140,7 @@ contract testMarketGapP2 is BaseSetup {
         assertEq(market.nonces(users[1]), 0, "initial");
         vm.prank(users[1]);
         market.cancelNonce();
+        _snapMarket("cancelNonce");
         assertEq(market.nonces(users[1]), 1, "incremented");
         assertEq(market.nonces(users[2]), 0, "other user isolated");
     }
@@ -176,6 +177,7 @@ contract testMarketGapP2 is BaseSetup {
             sig,
             0
         );
+        _snapMarket("buyGood_revert_staleNonce_after_cancel");
     }
 
     // ── P2-02 setReferral ──────────────────────────────────────────────────
@@ -233,10 +235,12 @@ contract testMarketGapP2 is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("investGood_refreshPromise_noEmit_notPromised");
         uint256 proofId = _proofId(users[1], btcGoodId);
 
         vm.recordLogs();
         market.refreshPromise(proofId);
+        _snapMarket("refreshPromise_noEmit_notPromised");
         Vm.Log[] memory logs = vm.getRecordedLogs();
         for (uint256 i = 0; i < logs.length; i++) {
             assertTrue(logs[i].topics[0] != PROMISE_TOPIC, "no promise event");
@@ -258,10 +262,12 @@ contract testMarketGapP2 is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("investGood_refreshPromise_noEmit_notOwner");
         uint256 proofId = _proofId(users[1], usdtGoodId);
 
         vm.recordLogs();
         market.refreshPromise(proofId);
+        _snapMarket("refreshPromise_noEmit_notOwner");
         Vm.Log[] memory logs = vm.getRecordedLogs();
         for (uint256 i = 0; i < logs.length; i++) {
             assertTrue(logs[i].topics[0] != PROMISE_TOPIC, "no emit when not good owner");

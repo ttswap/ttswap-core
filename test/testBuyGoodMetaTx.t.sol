@@ -227,7 +227,7 @@ contract testBuyGoodMetaTx is BaseSetup {
             address(0),
             TRADER_KEY
         );
-        snapLastCall("buyGood_metaTx_relayer");
+        _snapMarket("buyGood_metaTx_relayer");
 
         uint128 feeQty = _expectedRelayerFee();
         assertGt(g1change.amount1(), 0, "input value moved");
@@ -275,6 +275,7 @@ contract testBuyGoodMetaTx is BaseSetup {
             sig,
             uint256(pastDeadline)
         );
+        _snapMarket("buyGood_metaTx_revert_expiredDeadline");
     }
 
     // ── TASK-P0-003 relayer fee exceeds output ─────────────────────────────
@@ -341,6 +342,7 @@ contract testBuyGoodMetaTx is BaseSetup {
     function testBuyGoodMetaTx_revert_staleNonce() public {
         vm.prank(trader);
         market.cancelNonce();
+        _snapMarket("cancelNonce_metaTx_setup");
 
         _warpToFreshRunSlot();
         bytes memory permitData = _signEip2612(SWAP_IN, TRADER_KEY);

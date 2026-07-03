@@ -164,7 +164,7 @@ contract testInitGoodWithPrice is BaseSetup {
         _fundAndApproveBtc(users[1], 10 * BTC_QTY);
 
         uint256 goodId = _initBtcGood(users[1], BTC_VALUE, BTC_QTY);
-        snapLastCall("initGood_BTC_withPrice");
+        _snapMarket("initGood_BTC_withPrice");
 
         assertEq(btc.balanceOf(users[1]), 9 * BTC_QTY, "user btc balance");
         assertEq(btc.balanceOf(address(market)), BTC_QTY, "market btc balance");
@@ -194,7 +194,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
-        snapLastCall("initGood_NativeETH_withPrice");
+        _snapMarket("initGood_NativeETH_withPrice");
 
         assertEq(users[1].balance, 9 * BTC_QTY, "user eth balance");
         assertEq(address(market).balance, BTC_QTY, "market eth balance");
@@ -355,7 +355,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
-        snapLastCall("investGood_poolPrice_first");
+        _snapMarket("investGood_poolPrice_first");
 
         S_GoodTmpState memory after1 = market.getGoodState(goodId);
         assertGt(
@@ -377,7 +377,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
-        snapLastCall("investGood_poolPrice_second");
+        _snapMarket("investGood_poolPrice_second");
 
         S_GoodTmpState memory after2 = market.getGoodState(goodId);
         assertGt(
@@ -429,7 +429,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[2]
         );
-        snapLastCall("investGood_nonOwner_poolPrice");
+        _snapMarket("investGood_nonOwner_poolPrice");
 
         S_GoodTmpState memory state = market.getGoodState(goodId);
         assertGt(state.currentState.amount1(), BTC_QTY, "pool grew");
@@ -475,7 +475,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
-        snapLastCall("investGood_owner_samePrice");
+        _snapMarket("investGood_owner_samePrice");
 
         S_GoodTmpState memory state = market.getGoodState(goodId);
         assertGt(state.currentState.amount1(), BTC_QTY, "same-price invest ok");
@@ -498,7 +498,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
-        snapLastCall("investGood_metagood_normalUser");
+        _snapMarket("investGood_metagood_normalUser");
 
         S_GoodTmpState memory after_ = market.getGoodState(metaGoodId);
         assertGt(

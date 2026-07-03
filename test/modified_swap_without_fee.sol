@@ -266,7 +266,7 @@ contract testSwapWithoutFee is BaseSetup {
         uint256 usdtBefore = usdt.balanceOf(marketcreator);
 
         (, uint256 g2) = _buy(_usdcKey(), _usdtKey(), SWAP_IN, MIN_OUT);
-        snapLastCall("swap_without_fee_a2b");
+        _snapMarket("swap_without_fee_a2b");
 
         assertGt(g2.amount1(), 0, "received usdt");
         assertEq(usdc.balanceOf(marketcreator), usdcBefore - SWAP_IN, "spent usdc");
@@ -281,7 +281,7 @@ contract testSwapWithoutFee is BaseSetup {
         uint256 usdcBefore = usdc.balanceOf(marketcreator);
         _buy(_usdcKey(), _usdtKey(), HALF_SWAP, MIN_OUT);
         _buy(_usdcKey(), _usdtKey(), HALF_SWAP, MIN_OUT);
-        snapLastCall("swap_without_fee_a2b_twice");
+        _snapMarket("swap_without_fee_a2b_twice");
 
         assertEq(usdc.balanceOf(marketcreator), usdcBefore - SWAP_IN, "spent total usdc");
         vm.stopPrank();
@@ -299,7 +299,7 @@ contract testSwapWithoutFee is BaseSetup {
         assertGt(usdtReceived, MIN_OUT, "leg1 output");
 
         _buy(_usdtKey(), _usdcKey(), usdtReceived, 0);
-        snapLastCall("swap_without_fee_a2b2a");
+        _snapMarket("swap_without_fee_a2b2a");
 
         uint256 usdcDiff = usdcBefore > usdc.balanceOf(marketcreator)
             ? usdcBefore - usdc.balanceOf(marketcreator)
@@ -320,7 +320,7 @@ contract testSwapWithoutFee is BaseSetup {
             (, uint256 leg1) = _buy(_usdcKey(), _usdtKey(), SWAP_IN, MIN_OUT);
             _buy(_usdtKey(), _usdcKey(), leg1.amount1(), 0);
         }
-        snapLastCall("swap_without_fee_a2b2a_twice");
+        _snapMarket("swap_without_fee_a2b2a_twice");
 
         uint256 usdcDiff = usdcBefore > usdc.balanceOf(marketcreator)
             ? usdcBefore - usdc.balanceOf(marketcreator)
@@ -341,7 +341,7 @@ contract testSwapWithoutFee is BaseSetup {
         (, uint256 leg1) = _buy(_usdcKey(), _usdtKey(), SWAP_IN, MIN_OUT);
         (, uint256 leg2) = _buy(_usdtKey(), _btcKey(), leg1.amount1(), 0);
         _buy(_btcKey(), _usdcKey(), leg2.amount1(), 0);
-        snapLastCall("swap_without_fee_a2b2c2a");
+        _snapMarket("swap_without_fee_a2b2c2a");
 
         assertGt(usdc.balanceOf(marketcreator), usdcBefore - SWAP_IN, "recovered most usdc");
         // Three-hop integer rounding can leave sub-1000 wei dust in market custody.

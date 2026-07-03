@@ -7,23 +7,25 @@ import {S_ProofState, S_ProofKey} from "../interfaces/I_TTSwap_Market.sol";
 
 /**
  * @title L_Proof Library
- * @notice Library for managing investment proofs and staking operations.
- * @dev Handles state updates for investment proofs (S_ProofState) and interactions with the TTS Token staking system.
+ * @notice Tracks a user's liquidity position in one good as an "investment proof" (NFT-like id).
+ * @dev Proof id = `keccak256(abi.encode(S_ProofKey))` where key is `(owner, currentgood)`.
+ *
+ * @dev **Proof state fields** (`S_ProofState`) — per-position snapshots, not global pool fields:
+ * - `currentgood`: good id this proof is bound to
+ * - `shares.amount0`: LP shares; `shares.amount1`: TTS stake value
+ * - `state.amount0`: virtual value at proof ratios; `state.amount1`: actual value at proof ratios
+ * - `invest.amount0`: virtual qty at proof time (`Q` leg); `invest.amount1`: actual qty deposited (`investQty` leg)
+ *
+ * @dev Distinct from on-pool `goodConfig.amount1()` (`virtualQty` tracker) and `currentState` (`investQty`, `Q`).
  */
 library L_Proof {
     using L_TTSwapUINT256Library for uint256;
 
-    /**
-     * @dev Updates the investment state of a proof after a new investment.
-     * @param _self The storage pointer to the proof state being updated.
-     * @param _currenctgood The address of the normal good being invested in.
-     * @param _shares The shares to add (amount0: normal shares, amount1: value shares).
-     * @param _state The value state to add (amount0: total value, amount1: total actual value).
-     * @param _invest The normal good investment to add (amount0: virtual, amount1: actual).
-     * @notice Updates the cumulative totals for shares, value, and investment quantities.
-     * If this is the first investment (invest.amount1 == 0), it sets the `currentgood`.
-     * If a value good is provided, it updates the `valuegood` address and amounts.
-     */
+    /// @notice Adds a new deposit (or increases position) on an existing proof.
+    /// @dev On first deposit (`invest.amount1 == 0`), sets `currentgood`.
+    /// @param _shares `(newShares, ttsStakeValue)` to add.
+    /// @param _state `(virtualValue, actualValue)` increment.
+    /// @param _invest `(virtualQty, actualQty)` increment.
     function updateInvest(
         S_ProofState storage _self,
         uint256 _currenctgood,
@@ -37,35 +39,21 @@ library L_Proof {
         _self.invest = add(_self.invest, _invest);
     }
 
-    /**
-     * @dev Burns a portion of the proof during disinvestment.
-     * @param _self The storage pointer to the proof state being updated.
-     * @param _shares The shares to subtract (amount0: normal shares, amount1: value shares).
-     * @param _state The value state to subtract (amount0: total value, amount1: total actual value).
-     * @param _invest The normal good investment to subtract (amount0: virtual, amount1: actual).
-     * @notice Reduces the cumulative totals. Used when a user withdraws liquidity.
-     */
+    /// @notice Reduces proof balances after a partial or full disinvest.
+    /// @dev Called from `L_Good.disinvestGood` after pool state is updated.
     function burnProof(
         S_ProofState storage _self,
         uint256 _shares,
         uint256 _state,
         uint256 _invest
     ) internal {
-        // Subtract the calculated investment from the total investment
         _self.invest = sub(_self.invest, _invest);
-        // Reduce the total state by the burned value
         _self.state = sub(_self.state, _state);
         _self.shares = sub(_self.shares, _shares);
     }
 
-    /**
-     * @dev Stakes a certain amount of proof value to the TTS Token contract.
-     * @param contractaddress The interface of the TTS Token contract.
-     * @param to The address of the user staking the value.
-     * @param proofvalue The amount of proof value to stake.
-     * @return The net construction fee or value recorded by the token contract.
-     * @notice Calls the external `stake` function on the TTS Token contract.
-     */
+    /// @notice Stakes proof value into the TTS governance token (called on invest).
+    /// @return Amount recorded by the token contract (may net construction fee).
     function stake(
         I_TTSwap_Token contractaddress,
         address to,
@@ -74,13 +62,7 @@ library L_Proof {
         return contractaddress.stake(to, proofvalue);
     }
 
-    /**
-     * @dev Unstakes a certain amount of proof value from the TTS Token contract.
-     * @param contractaddress The interface of the TTS Token contract.
-     * @param from The address of the user unstaking.
-     * @param divestvalue The amount of proof value to unstake.
-     * @notice Calls the external `unstake` function on the TTS Token contract.
-     */
+    /// @notice Unstakes TTS when LP withdraws and proof TTS value is released.
     function unstake(
         I_TTSwap_Token contractaddress,
         address from,
@@ -90,16 +72,10 @@ library L_Proof {
     }
 }
 
-/**
- * @title L_ProofIdLibrary
- * @notice Library for calculating unique proof IDs.
- */
+/// @title L_ProofIdLibrary
+/// @notice Deterministic proof id from `(owner, goodId)` — one proof per user per good.
 library L_ProofIdLibrary {
-    /**
-     * @dev Generates a unique ID for a proof key.
-     * @param proofKey The proof key structure containing owner and good addresses.
-     * @return poolId The Keccak-256 hash of the proof key.
-     */
+    /// @dev `keccak256` over 64 bytes of `S_ProofKey` (owner + currentgood).
     function toId(
         S_ProofKey memory proofKey
     ) internal pure returns (uint256 poolId) {

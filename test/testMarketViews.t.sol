@@ -151,6 +151,7 @@ contract testMarketViews is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("investGood_queryCommission_setup");
         market.disinvestProof(
             _proofId(users[1], btcGoodId),
             BTC_INVEST / 4,
@@ -158,6 +159,7 @@ contract testMarketViews is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("disinvestProof_queryCommission_setup");
         vm.stopPrank();
 
         assertGt(market.queryCommission(ids, users[3])[0], 1, "gate commission accrued");

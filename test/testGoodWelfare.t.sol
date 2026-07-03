@@ -85,7 +85,7 @@ contract testGoodWelfare is BaseSetup {
 
         S_GoodTmpState memory before_ = market.getGoodState(btcGoodId);
         market.goodWelfare(btcGoodId, WELFARE, defaultdata, users[1], defaultdata);
-        snapLastCall("goodWelfare_btc");
+        _snapMarket("goodWelfare_btc");
 
         S_GoodTmpState memory after_ = market.getGoodState(btcGoodId);
         assertEq(
@@ -136,6 +136,7 @@ contract testGoodWelfare is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("goodWelfare_nativeETH");
 
         S_GoodTmpState memory after_ = market.getGoodState(nativeGoodId);
         assertEq(

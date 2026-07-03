@@ -156,7 +156,7 @@ contract testSwapWithFee is BaseSetup {
         S_GoodTmpState memory usdtStateBefore = market.getGoodState(usdtGoodId);
 
         (uint256 g1, uint256 g2) = _buy(_usdcKey(), _usdtKey(), SWAP_IN, MIN_OUT);
-        snapLastCall("swap_with_fee_a2b");
+        _snapMarket("swap_with_fee_a2b");
 
         assertGt(g1.amount1(), 0, "value moved on input good");
         assertGt(g2.amount1(), 0, "output received");
@@ -191,7 +191,7 @@ contract testSwapWithFee is BaseSetup {
 
         (, uint256 leg1) = _buy(_usdcKey(), _usdtKey(), SWAP_IN, MIN_OUT);
         _buy(_usdtKey(), _usdcKey(), leg1.amount1(), 0);
-        snapLastCall("swap_with_fee_a2b2a");
+        _snapMarket("swap_with_fee_a2b2a");
 
         assertLt(usdc.balanceOf(marketcreator), usdcBefore, "fees reduce round-trip usdc");
         assertGt(usdcBefore - usdc.balanceOf(marketcreator), 0, "non-zero fee loss");
@@ -225,7 +225,7 @@ contract testSwapWithFee is BaseSetup {
         (, uint256 leg1) = _buy(_usdcKey(), _usdtKey(), LARGE_SWAP, MIN_OUT);
         (, uint256 leg2) = _buy(_usdtKey(), _btcKey(), leg1.amount1(), 0);
         _buy(_btcKey(), _usdcKey(), leg2.amount1(), 0);
-        snapLastCall("swap_with_fee_a2b2c2a");
+        _snapMarket("swap_with_fee_a2b2c2a");
 
         assertLt(usdc.balanceOf(marketcreator), usdcBefore, "triangular path pays fees");
         assertGt(usdcBefore - usdc.balanceOf(marketcreator), LARGE_SWAP / 10_000, "meaningful fee drag");

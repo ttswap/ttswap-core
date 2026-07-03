@@ -57,4 +57,14 @@ contract Fuzz_CollectCommission is FuzzBase {
         assertLe(afterCollect[0], 1, "collected to sentinel/zero");
         vm.stopPrank();
     }
+
+    function testGas_CollectCommission() public {
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = btcGoodId;
+
+        vm.startPrank(gate);
+        market.collectCommission(ids, gate, defaultdata);
+        _snapMarket("gas_baseline_collect_commission");
+        vm.stopPrank();
+    }
 }

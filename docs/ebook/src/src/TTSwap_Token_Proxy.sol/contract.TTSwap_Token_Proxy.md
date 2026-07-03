@@ -1,130 +1,134 @@
 # TTSwap_Token_Proxy
-This contract implements a decentralized market system with the following key features:
-- Meta good, value goods, and normal goods management
-- Automated market making (AMM) with configurable fees
-- Investment and disinvestment mechanisms
-- Flash loan functionality
-- Commission distribution system
-- ETH or WETH staking integration
+**Title:**
+TTSwap Token Proxy
 
-*Core market contract for TTSwap protocol that manages goods trading, investing, and staking operations*
+This contract stores the token state (balances, allowances, etc.) and delegates
+logic execution to the implementation contract. It supports upgradability.
+
+Proxy contract for TTSwap Token using delegatecall.
 
 
 ## State Variables
 ### name
 
 ```solidity
-string internal name;
+string internal name
 ```
 
 
 ### symbol
 
 ```solidity
-string internal symbol;
+string internal symbol
 ```
 
 
 ### totalSupply
 
 ```solidity
-string internal totalSupply;
+uint256 internal totalSupply
 ```
 
 
 ### balanceOf
 
 ```solidity
-mapping(address => uint256) internal balanceOf;
+mapping(address => uint256) internal balanceOf
 ```
 
 
 ### allowance
 
 ```solidity
-mapping(address => mapping(address => uint256)) internal allowance;
+mapping(address => mapping(address => uint256)) internal allowance
 ```
 
 
 ### nonces
 
 ```solidity
-mapping(address => uint256) internal nonces;
+mapping(address => uint256) internal nonces
 ```
 
 
 ### implementation
 
 ```solidity
-address internal implementation;
-```
-
-
-### upgradeable
-
-```solidity
-bool internal upgradeable;
-```
-
-
-### usdt
-
-```solidity
-address internal usdt;
+address public implementation
 ```
 
 
 ### ttstokenconfig
 
 ```solidity
-uint256 internal ttstokenconfig;
+uint256 internal ttstokenconfig
+```
+
+
+### upgradeable
+
+```solidity
+bool public upgradeable
 ```
 
 
 ### stakestate
 
 ```solidity
-uint256 internal stakestate;
+uint256 internal stakestate
 ```
 
 
 ### left_share
 
 ```solidity
-uint128 internal left_share = 45_000_000_000_000;
+uint128 internal left_share = 45_000_000_000_000_000_000
 ```
 
 
 ### publicsell
 
 ```solidity
-uint128 internal publicsell;
+uint128 internal publicsell
 ```
 
 
 ### userConfig
 
 ```solidity
-mapping(address => uint256) internal userConfig;
+mapping(address => uint256) internal userConfig
 ```
 
 
 ## Functions
 ### constructor
 
+Initializes the token proxy with admin, config, metadata, and implementation.
+
 
 ```solidity
 constructor(
-    address _usdt,
     address _dao_admin,
     uint256 _ttsconfig,
     string memory _name,
     string memory _symbol,
     address _implementation
-);
+) ;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_dao_admin`|`address`|The address of the initial DAO admin.|
+|`_ttsconfig`|`uint256`|The initial token configuration value.|
+|`_name`|`string`|The name of the token.|
+|`_symbol`|`string`|The symbol of the token.|
+|`_implementation`|`address`|The address of the initial Token implementation logic.|
+
 
 ### fallback
+
+Fallback function that delegates calls to the implementation contract.
 
 
 ```solidity
@@ -133,30 +137,42 @@ fallback() external payable;
 
 ### onlyTokenAdminProxy
 
-onlydao admin can execute
+Restricts access to Token Admins.
 
 
 ```solidity
-modifier onlyTokenAdminProxy();
+modifier onlyTokenAdminProxy() ;
 ```
 
 ### onlyTokenOperatorProxy
 
-onlydao admin can execute
+Restricts access to Token Managers (Operators).
 
 
 ```solidity
-modifier onlyTokenOperatorProxy();
+modifier onlyTokenOperatorProxy() ;
 ```
 
 ### upgrade
+
+Upgrades the token implementation contract.
 
 
 ```solidity
 function upgrade(address _implementation) external onlyTokenAdminProxy;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_implementation`|`address`|The new implementation address.|
+
 
 ### freezeToken
+
+Freezes the token logic by setting implementation to address(0).
+
+Can be called by Token Manager for emergency stops.
 
 
 ```solidity

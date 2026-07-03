@@ -76,7 +76,7 @@ contract testRefreshPromise is BaseSetup {
         vm.startPrank(users[1]);
         vm.recordLogs();
         market.refreshPromise(proofId);
-        snapLastCall("refresh_promise_owner");
+        _snapMarket("refresh_promise_owner");
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bool found;
@@ -98,5 +98,6 @@ contract testRefreshPromise is BaseSetup {
         vm.prank(users[2]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 19));
         market.refreshPromise(proofId);
+        _snapMarket("refresh_promise_revert_notOwner");
     }
 }

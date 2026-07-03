@@ -72,4 +72,45 @@ contract Fuzz_BuyGood is FuzzBase {
         }
         vm.stopPrank();
     }
+
+    /// @dev Fixed-input gas baseline for fuzz-covered buyGood paths.
+    function testGas_BuyGood_usdtToBtc() public {
+        uint128 swapAmount = 1000 * 10 ** 6;
+        vm.startPrank(FUZZ_USER);
+        deal(address(usdt), FUZZ_USER, swapAmount, false);
+        usdt.approve(address(market), swapAmount);
+        _warp();
+        market.buyGood(
+            _usdtKey(),
+            _btcKey(),
+            toTTSwapUINT256(swapAmount, 0),
+            address(0),
+            defaultdata,
+            FUZZ_USER,
+            defaultdata,
+            0
+        );
+        _snapMarket("gas_baseline_buy_usdt_btc");
+        vm.stopPrank();
+    }
+
+    function testGas_BuyGood_btcToUsdt() public {
+        uint128 swapAmount = 1 * 10 ** 6;
+        vm.startPrank(FUZZ_USER);
+        deal(address(btc), FUZZ_USER, swapAmount, false);
+        btc.approve(address(market), swapAmount);
+        _warp();
+        market.buyGood(
+            _btcKey(),
+            _usdtKey(),
+            toTTSwapUINT256(swapAmount, 0),
+            address(0),
+            defaultdata,
+            FUZZ_USER,
+            defaultdata,
+            0
+        );
+        _snapMarket("gas_baseline_buy_btc_usdt");
+        vm.stopPrank();
+    }
 }

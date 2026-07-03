@@ -254,7 +254,7 @@ contract testInvestGood is BaseSetup {
 
         _warpToFreshRunSlot();
         assertTrue(_investBtc(users[1], 0, BTC_INVEST), "invest ok");
-        snapLastCall("invest_erc20_normal_owner_first");
+        _snapMarket("invest_erc20_normal_owner_first");
         uint256 proofId = _proofId(users[1], btcGoodId);
 
         S_GoodTmpState memory after_ = market.getGoodState(btcGoodId);
@@ -276,12 +276,12 @@ contract testInvestGood is BaseSetup {
         vm.startPrank(users[1]);
         _warpToFreshRunSlot();
         _investBtc(users[1], 0, BTC_INVEST);
-        snapLastCall("invest_erc20_normal_owner_second");
+        _snapMarket("invest_erc20_normal_owner_second");
 
         S_GoodTmpState memory mid = market.getGoodState(btcGoodId);
         _warpToFreshRunSlot();
         _investBtc(users[1], 0, BTC_INVEST);
-        snapLastCall("invest_erc20_normal_owner_third");
+        _snapMarket("invest_erc20_normal_owner_third");
 
         S_GoodTmpState memory after_ = market.getGoodState(btcGoodId);
         assertGt(after_.currentState.amount1(), mid.currentState.amount1(), "second invest grew pool");
@@ -297,7 +297,7 @@ contract testInvestGood is BaseSetup {
 
         _warpToFreshRunSlot();
         assertTrue(_investBtc(users[4], 0, BTC_INVEST), "other user invest");
-        snapLastCall("invest_erc20_normal_other_first");
+        _snapMarket("invest_erc20_normal_other_first");
         uint256 proofId = _proofId(users[4], btcGoodId);
 
         S_GoodTmpState memory after_ = market.getGoodState(btcGoodId);
@@ -316,7 +316,7 @@ contract testInvestGood is BaseSetup {
             _investBtc(users[1], BTC_INIT_VALUE, BTC_INVEST),
             "owner same-price invest"
         );
-        snapLastCall("invest_erc20_normal_owner_explicitPrice");
+        _snapMarket("invest_erc20_normal_owner_explicitPrice");
         S_GoodTmpState memory state = market.getGoodState(btcGoodId);
         assertGt(state.currentState.amount1(), BTC_INIT_QTY, "pool grew");
         vm.stopPrank();
@@ -419,7 +419,7 @@ contract testInvestGood is BaseSetup {
 
         _warpToFreshRunSlot();
         assertTrue(_investUsdt(marketcreator, 0, USDT_INVEST), "value good invest");
-        snapLastCall("invest_erc20_value_owner_first");
+        _snapMarket("invest_erc20_value_owner_first");
         uint256 proofId = _proofId(marketcreator, usdtGoodId);
 
         S_GoodTmpState memory after_ = market.getGoodState(usdtGoodId);
@@ -440,12 +440,12 @@ contract testInvestGood is BaseSetup {
         usdt.approve(address(market), type(uint256).max);
         _warpToFreshRunSlot();
         _investUsdt(marketcreator, 0, USDT_INVEST);
-        snapLastCall("invest_erc20_value_owner_second");
+        _snapMarket("invest_erc20_value_owner_second");
 
         S_GoodTmpState memory mid = market.getGoodState(usdtGoodId);
         _warpToFreshRunSlot();
         _investUsdt(marketcreator, 0, USDT_INVEST);
-        snapLastCall("invest_erc20_value_owner_third");
+        _snapMarket("invest_erc20_value_owner_third");
 
         assertGt(
             market.getGoodState(usdtGoodId).currentState.amount1(),
@@ -462,7 +462,7 @@ contract testInvestGood is BaseSetup {
 
         _warpToFreshRunSlot();
         assertTrue(_investUsdt(users[2], 0, USDT_INVEST), "other user value invest");
-        snapLastCall("invest_erc20_value_other_first");
+        _snapMarket("invest_erc20_value_other_first");
         uint256 proofId = _proofId(users[2], usdtGoodId);
 
         S_ProofState memory proof = market.getProofState(proofId);
@@ -482,7 +482,7 @@ contract testInvestGood is BaseSetup {
             _investUsdt(users[1], 0, USDT_SMALL_INVEST),
             "small metagood invest"
         );
-        snapLastCall("invest_erc20_value_small");
+        _snapMarket("invest_erc20_value_small");
 
         assertGt(
             market.getGoodState(usdtGoodId).currentState.amount1(),
@@ -504,7 +504,7 @@ contract testInvestGood is BaseSetup {
             _investNative(users[1], 0, NATIVE_INVEST),
             "native normal invest"
         );
-        snapLastCall("invest_native_normal_owner_first");
+        _snapMarket("invest_native_normal_owner_first");
 
         S_GoodTmpState memory after_ = market.getGoodState(nativeNormalGoodId);
         assertGt(after_.currentState.amount1(), before_.currentState.amount1(), "virtual up");
@@ -522,7 +522,7 @@ contract testInvestGood is BaseSetup {
         _investNative(users[1], 0, NATIVE_INVEST);
         _warpToFreshRunSlot();
         _investNative(users[1], 0, NATIVE_INVEST);
-        snapLastCall("invest_native_normal_owner_third");
+        _snapMarket("invest_native_normal_owner_third");
         S_GoodTmpState memory state = market.getGoodState(nativeNormalGoodId);
         assertGt(state.currentState.amount1(), 2 * NATIVE_INIT_QTY, "two extra invests");
         vm.stopPrank();
@@ -538,7 +538,7 @@ contract testInvestGood is BaseSetup {
             _investNative(users[4], 0, NATIVE_INVEST),
             "other native invest"
         );
-        snapLastCall("invest_native_normal_other_first");
+        _snapMarket("invest_native_normal_other_first");
 
         S_ProofState memory proof = market.getProofState(proofId);
         assertGt(proof.invest.amount1(), 0, "proof minted");
@@ -560,7 +560,7 @@ contract testInvestGood is BaseSetup {
 
         _warpToFreshRunSlot();
         _investUsdt(marketcreator, 0, USDT_INVEST);
-        snapLastCall("invest_value_power_no_fee");
+        _snapMarket("invest_value_power_no_fee");
 
         S_GoodTmpState memory after_ = market.getGoodState(usdtGoodId);
         uint128 virtualDelta = after_.currentState.amount1() - virtualBefore;
@@ -583,7 +583,7 @@ contract testInvestGood is BaseSetup {
 
         _warpToFreshRunSlot();
         _investUsdt(marketcreator, 0, USDT_INVEST);
-        snapLastCall("invest_value_power_with_fee");
+        _snapMarket("invest_value_power_with_fee");
 
         S_GoodTmpState memory after_ = market.getGoodState(usdtGoodId);
         uint128 virtualDelta = after_.currentState.amount1() - before_.currentState.amount1();
@@ -772,7 +772,7 @@ contract testInvestNativeETHValueGood is BaseSetup {
             _investNative(marketcreator, 0, NATIVE_VAL_QTY),
             "native value invest"
         );
-        snapLastCall("invest_native_value_owner_first");
+        _snapMarket("invest_native_value_owner_first");
 
         S_GoodTmpState memory after_ = market.getGoodState(nativeValueGoodId);
         assertGt(after_.currentState.amount1(), before_.currentState.amount1(), "virtual up");
@@ -789,7 +789,7 @@ contract testInvestNativeETHValueGood is BaseSetup {
             _investNative(users[2], 0, NATIVE_VAL_QTY),
             "other native value invest"
         );
-        snapLastCall("invest_native_value_other_first");
+        _snapMarket("invest_native_value_other_first");
 
         S_ProofState memory proof = market.getProofState(proofId);
         assertGt(proof.invest.amount1(), 0, "proof for user2");
@@ -803,7 +803,7 @@ contract testInvestNativeETHValueGood is BaseSetup {
         _investNative(marketcreator, 0, NATIVE_VAL_QTY);
         _warpToFreshRunSlot();
         _investNative(marketcreator, 0, NATIVE_VAL_QTY);
-        snapLastCall("invest_native_value_owner_third");
+        _snapMarket("invest_native_value_owner_third");
 
         S_GoodTmpState memory state = market.getGoodState(nativeValueGoodId);
         assertGt(state.currentState.amount0(), 2 * NATIVE_VAL_QTY, "two deposits");

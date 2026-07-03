@@ -100,6 +100,7 @@ contract testProxyUpgrade is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("buyGood_proxy_setup");
         vm.stopPrank();
     }
 
@@ -142,6 +143,7 @@ contract testProxyUpgrade is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("buyGood_after_proxy_upgrade");
         vm.stopPrank();
     }
 

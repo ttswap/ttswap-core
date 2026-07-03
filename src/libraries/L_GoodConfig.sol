@@ -4,9 +4,18 @@ pragma solidity 0.8.29;
 import {TTSwapError} from "./L_Error.sol";
 
 /// @title L_GoodConfigLibrary
-/// @notice Packed good configuration stored in a single `uint256` (high 128 bits) plus live market value `V` (low 128 bits).
+/// @notice Packed good configuration: fee flags in high bits + **live `virtualQty` tracker** in low 128 bits.
+/// @dev `config.amount1()` (low 128 bits) is NOT market value `V` — use `investState.amount1()` for `V`.
 /// @dev Bit extraction pattern: `shr(255 - hi + lo, shl(255 - hi, config))` reads the field `[hi..lo]`.
 ///      Fee split fields must sum to 100% when normalized by `checkGoodConfig()`.
+///
+/// @dev **Quantity glossary (see also `L_TTSwapUINT256`)**
+///      - `currentState.amount0` (`investQty`): actual / principal token units in the pool.
+///      - `currentState.amount1` (`Q`): total virtual pool depth for the AMM (= actual + leverage virtual + fee legs on swaps).
+///      - `goodConfig.amount1()` (`virtualQty`): **leverage-only** virtual excess, excluding actual deposits.
+///        Updated on invest/disinvest: `+= investQuantity - netActual` (e.g. invest 1 @ 3× → `+= 2`).
+///        Invariant at invest time: `Q ≈ investQty + virtualQty` (before swap fee skew).
+///      - `investState.amount1` (`V`): total pool value used for pricing (`price ≈ V / Q`).
 ///
 /// @dev Configuration bit layout (MSB = bit 255):
 /// | Bits      | Field           | Width | Scale / unit              | Default |
@@ -35,7 +44,7 @@ import {TTSwapError} from "./L_Error.sol";
 /// | 147-142   | disinvestFee    | 6     | × 0.0001 (stored / 10000) | 8       |
 /// | 141-135   | buyFee          | 7     | × 0.0001 (stored / 10000) | 8       |
 /// | 134-128   | sellFee         | 7     | × 0.0001 (stored / 10000) | 8       |
-/// | 127-0     | marketValue (V) | 128   | live pool value           | 0       |
+/// | 127-0     | virtualQty      | 128   | leverage virtual only (excludes actual investQty) | 0       |
 ///
 /// @dev Default `initial_config` composition:
 ///      2*2**252 +6* 2**247 + 1 * 2**243 + 5 * 2**240 + 8 * 2**235 + 8 * 2**230 + 2 * 2**225 +2 * 2**220+100*2**212+60*2**204+25*2**154+ 8 * 2**148 + 8 * 2**142 + 8 * 2**135 + 8 * 2**128 + 1 * 2**168 + 20 * 2**160 
@@ -54,7 +63,7 @@ library L_GoodConfigLibrary {
     uint256 internal constant marketmanager_config_mask =
         0x1fffffffffffffe0000000000000000000000000000000000000000000000000;
 
-    /// @dev Good-owner-writable region: bits 172-128 (power, chips, trading fees). Low 128 bits hold live `V`.
+    /// @dev Good-owner-writable region: bits 172-128 (power, chips, trading fees). 
     uint256 internal constant owner_config_mask =
         0x000000000000000000001fffffffffff00000000000000000000000000000000;
 
@@ -101,9 +110,10 @@ library L_GoodConfigLibrary {
             (config & ~owner_config_mask) | (owner_config & owner_config_mask);
     }
 
-    /// @notice Refreshes the anti-replay time slot and enforces single-writer per slot.
-    /// @dev Slot = `(block.timestamp % 4095) % 10` (0-9). Caller must match the stored slot;
-    ///      after success the slot is rewritten to the current value (bits 190-179).
+    /// @notice Records that this good was used in the current block slot (`block.number % 4095`).
+    /// @dev Reverts `TTSwapError(46)` if the same good is touched twice in the same slot —
+    ///      mitigates same-block replay / flash-loan style sequencing on a single pool.
+    /// @dev Integrators: advance `block.number` or wait one block between dependent trades on the same good.
     function updateRunBlockConfig(
         uint256 config
     ) internal view returns (uint256 a) {

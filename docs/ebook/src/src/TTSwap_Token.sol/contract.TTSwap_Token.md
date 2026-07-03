@@ -2,95 +2,96 @@
 **Inherits:**
 [I_TTSwap_Token](/src/interfaces/I_TTSwap_Token.sol/interface.I_TTSwap_Token.md), [ERC20](/src/base/ERC20.sol/abstract.ERC20.md), [IEIP712](/src/interfaces/IEIP712.sol/interface.IEIP712.md)
 
-*Implements ERC20 token with additional staking and cross-chain functionality*
+**Title:**
+TTS Token Contract
+
+Implements ERC20 token with additional staking and cross-chain functionality
 
 
 ## State Variables
 ### implementation
 
 ```solidity
-address internal implementation;
-```
-
-
-### upgradeable
-
-```solidity
-bool internal upgradeable;
+address internal implementation
 ```
 
 
 ### usdt
 
 ```solidity
-address internal usdt;
+address internal immutable usdt
 ```
 
 
 ### ttstokenconfig
 
 ```solidity
-uint256 public override ttstokenconfig;
+uint256 public override ttstokenconfig
+```
+
+
+### upgradeable
+
+```solidity
+bool internal upgradeable
 ```
 
 
 ### stakestate
 
 ```solidity
-uint256 public override stakestate;
+uint256 public override stakestate
 ```
 
 
 ### left_share
 
 ```solidity
-uint128 public override left_share = 45_000_000_000_000;
+uint128 public override left_share = 45_000_000_000_000_000_000
 ```
 
 
 ### publicsell
-*Returns the amount of TTS available for public sale*
+Returns the amount of TTS available for public sale
 
 
 ```solidity
-uint128 public override publicsell;
+uint128 public override publicsell
 ```
 
 
 ### userConfig
-*Returns the authorization level for a given address*
-
 
 ```solidity
-mapping(address => uint256) public override userConfig;
+mapping(address => uint256) public override userConfig
 ```
 
 
 ### marketcontract
 
 ```solidity
-address internal marketcontract;
+address internal marketcontract
 ```
 
 
 ### poolstate
 
 ```solidity
-uint256 public override poolstate;
+uint256 public override poolstate
 ```
 
 
 ### shares
 
 ```solidity
-mapping(address => s_share) internal shares;
+mapping(address => s_share) internal shares
 ```
 
 
 ### stakeproof
 
 ```solidity
-mapping(uint256 => s_proof) internal stakeproof;
+mapping(uint256 => s_proof) internal stakeproof
 ```
 
 
@@ -99,7 +100,14 @@ mapping(uint256 => s_proof) internal stakeproof;
 ```solidity
 bytes32 internal constant _PERMITSHARE_TYPEHASH = keccak256(
     "permitShare(uint128 amount,uint120 chips,uint8 metric,address owner,uint128 existamount,uint128 deadline,uint256 nonce)"
-);
+)
+```
+
+
+### Version
+
+```solidity
+string internal constant Version = "1.16.0"
 ```
 
 
@@ -108,23 +116,23 @@ bytes32 internal constant _PERMITSHARE_TYPEHASH = keccak256(
 
 
 ```solidity
-constructor() ERC20("TTSwap Token", "TTS", 6);
+constructor(address _usdt) ERC20("TTSwap Token", "TTS", 12);
 ```
 
 ### onlymain
 
-*Modifier to ensure function is only called on the main chain*
+Modifier to ensure function is only called on the main chain
 
 
 ```solidity
-modifier onlymain();
+modifier onlymain() ;
 ```
 
 ### setDAOAdmin
 
 Only callable by an existing DAO admin.
 
-*Grants or revokes DAO admin privileges to a recipient address.*
+Grants or revokes DAO admin privileges to a recipient address.
 
 
 ```solidity
@@ -142,7 +150,7 @@ function setDAOAdmin(address _recipient, bool result) external override;
 
 Only callable by a DAO admin.
 
-*Grants or revokes Token admin privileges to a recipient address.*
+Grants or revokes Token admin privileges to a recipient address.
 
 
 ```solidity
@@ -160,7 +168,7 @@ function setTokenAdmin(address _recipient, bool result) external override;
 
 Only callable by a Token admin.
 
-*Grants or revokes Token manager privileges to a recipient address.*
+Grants or revokes Token manager privileges to a recipient address.
 
 
 ```solidity
@@ -178,7 +186,7 @@ function setTokenManager(address _recipient, bool result) external override;
 
 Only callable by a Token admin.
 
-*Grants or revokes permission to call mintTTS to a recipient address.*
+Grants or revokes permission to call mintTTS to a recipient address.
 
 
 ```solidity
@@ -196,7 +204,7 @@ function setCallMintTTS(address _recipient, bool result) external override;
 
 Only callable by a DAO admin.
 
-*Grants or revokes Market admin privileges to a recipient address.*
+Grants or revokes Market admin privileges to a recipient address.
 
 
 ```solidity
@@ -214,7 +222,7 @@ function setMarketAdmin(address _recipient, bool result) external override;
 
 Only callable by a Market admin.
 
-*Grants or revokes Market manager privileges to a recipient address.*
+Grants or revokes Market manager privileges to a recipient address.
 
 
 ```solidity
@@ -232,7 +240,7 @@ function setMarketManager(address _recipient, bool result) external override;
 
 Only callable by a DAO admin.
 
-*Grants or revokes Stake admin privileges to a recipient address.*
+Grants or revokes Stake admin privileges to a recipient address.
 
 
 ```solidity
@@ -250,7 +258,7 @@ function setStakeAdmin(address _recipient, bool result) external override;
 
 Only callable by a Stake admin.
 
-*Grants or revokes Stake manager privileges to a recipient address.*
+Grants or revokes Stake manager privileges to a recipient address.
 
 
 ```solidity
@@ -268,7 +276,7 @@ function setStakeManager(address _recipient, bool result) external override;
 
 Only callable by a Token manager.
 
-*Sets or unsets a ban on a recipient address, restricting their access.*
+Sets or unsets a ban on a recipient address, restricting their access.
 
 
 ```solidity
@@ -284,7 +292,7 @@ function setBan(address _recipient, bool result) external override;
 
 ### usershares
 
-*Returns the share information for a given user address.*
+Returns the share information for a given user address.
 
 
 ```solidity
@@ -305,7 +313,7 @@ function usershares(address user) external view override returns (s_share memory
 
 ### stakeproofinfo
 
-*Returns the stake proof information for a given index.*
+Returns the stake proof information for a given index.
 
 
 ```solidity
@@ -330,7 +338,7 @@ Only callable by authorized addresses (auths[msg.sender] == 1)
 
 Will only set the referral if the user doesn't already have one
 
-*Adds a referral relationship between a user and a referrer*
+Adds a referral relationship between a user and a referrer
 
 
 ```solidity
@@ -348,7 +356,7 @@ function setReferral(address user, address referral) external override;
 
 Get the DAO admin and referral for a customer
 
-*Retrieves both the DAO admin address and the referrer address for a given customer*
+Retrieves both the DAO admin address and the referrer address for a given customer
 
 
 ```solidity
@@ -369,7 +377,7 @@ function getreferral(address _customer) external view override returns (address)
 
 ### setRatio
 
-*this chain trade vol ratio in protocol*
+this chain trade vol ratio in protocol
 
 
 ```solidity
@@ -384,7 +392,7 @@ function setRatio(uint256 _ratio) external override;
 
 ### setEnv
 
-*Set environment variables for the contract*
+Set environment variables for the contract
 
 
 ```solidity
@@ -407,7 +415,7 @@ Increments the shares_index and adds the new share to the shares mapping
 
 Emits an e_addShare event with the share details
 
-*Adds a new mint share to the contract*
+Adds a new mint share to the contract
 
 
 ```solidity
@@ -436,7 +444,7 @@ Adds the leftamount of the burned share back to left_share
 
 Emits an e_burnShare event and deletes the share from the shares mapping
 
-*Burns (removes) a mint share from the contract*
+Burns (removes) a mint share from the contract
 
 
 ```solidity
@@ -459,7 +467,7 @@ Mints tokens to the share recipient, reduces leftamount, and increments metric
 
 Emits an e_daomint event with the minted amount and index
 
-*Allows the DAO to mint tokens based on a specific share*
+Allows the DAO to mint tokens based on a specific share
 
 
 ```solidity
@@ -468,7 +476,7 @@ function shareMint() external override onlymain;
 
 ### publicSell
 
-*Perform public token sale*
+Perform public token sale
 
 
 ```solidity
@@ -488,7 +496,7 @@ Only callable on the main chain by the DAO admin
 
 Transfers the specified amount of USDT to the recipient
 
-*Withdraws funds from public token sale*
+Withdraws funds from public token sale
 
 
 ```solidity
@@ -504,9 +512,17 @@ function withdrawPublicSell(uint256 amount, address recipient) external override
 
 ### stake
 
-Stake tokens
+Staking allows users to earn a share of the platform's transaction fees or inflationary rewards.
+- Calculates pending rewards and updates the global pool state (`_stakeFee`).
+- Records the stake in a mapping, associating it with the `_staker` and `msg.sender` (market contract).
+- Updates the global `stakestate` and `poolstate`.
 
-*Stake tokens*
+Stakes a user's proof of investment to earn platform rewards.
+
+**Notes:**
+- security: Requires `msg.sender` to have `isCallMintTTS` permission (only Market contract).
+
+- security: Uses `_stakeFee` to checkpoint global rewards before modifying user stake.
 
 
 ```solidity
@@ -516,21 +532,30 @@ function stake(address _staker, uint128 proofvalue) external override returns (u
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_staker`|`address`|Address of the staker|
-|`proofvalue`|`uint128`|Amount to stake|
+|`_staker`|`address`|The address of the user staking their proof (usually msg.sender, but can be delegated).|
+|`proofvalue`|`uint128`|The value of the proof being staked (represents investment amount).|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`netconstruct`|`uint128`|Net construct value|
+|`netconstruct`|`uint128`|The net construction fee or initial stake value recorded.|
 
 
 ### unstake
 
-Unstake tokens
+This function calculates the user's share of the pool's growth since staking.
+- Updates global pool state (`_stakeFee`).
+- Calculates profit based on the change in `poolstate` relative to `stakestate`.
+- Mints new TTS tokens as profit to the `_staker`.
+- Burns the staked proof value from the state.
 
-*Unstake tokens*
+Unstakes a user's proof of investment and claims accumulated rewards.
+
+**Notes:**
+- security: Requires `msg.sender` to have `isCallMintTTS` permission.
+
+- security: Handles partial unstaking correctly.
 
 
 ```solidity
@@ -540,13 +565,13 @@ function unstake(address _staker, uint128 proofvalue) external override;
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_staker`|`address`|Address of the staker|
-|`proofvalue`|`uint128`|Amount to unstake|
+|`_staker`|`address`|The address of the user unstaking.|
+|`proofvalue`|`uint128`|The amount of proof value to unstake.|
 
 
 ### _stakeFee
 
-*Internal function to handle staking fees*
+Internal function to handle staking fees
 
 
 ```solidity
@@ -555,7 +580,7 @@ function _stakeFee() internal;
 
 ### burn
 
-*Burn tokens from an account*
+Burn tokens from an account
 
 
 ```solidity
@@ -584,7 +609,7 @@ function _burn(address from, uint256 amount) internal override;
 
 ### permitShare
 
-*Permits a share to be transferred*
+Permits a share to be transferred
 
 
 ```solidity
@@ -604,7 +629,7 @@ function permitShare(s_share memory _share, uint128 dealline, bytes calldata sig
 
 ### shareHash
 
-*Calculates the hash of a share transfer*
+Calculates the hash of a share transfer
 
 
 ```solidity
@@ -624,15 +649,6 @@ function shareHash(s_share memory _share, address owner, uint128 leftamount, uin
 |`deadline`|`uint128`|The deadline for the share transfer|
 |`nonce`|`uint256`||
 
-
-### _buildDomainSeparator
-
-Builds a domain separator using the current chainId and contract address.
-
-
-```solidity
-function _buildDomainSeparator(bytes32 typeHash, bytes32 nameHash) private view returns (bytes32);
-```
 
 ### _hashTypedData
 
@@ -662,5 +678,19 @@ function computeDomainSeparator() internal view override returns (bytes32);
 
 ```solidity
 function disableUpgrade() external;
+```
+
+### mint
+
+
+```solidity
+function mint(address to, uint256 amount) external onlymain;
+```
+
+### burn
+
+
+```solidity
+function burn(address from, uint256 amount) external onlymain;
 ```
 

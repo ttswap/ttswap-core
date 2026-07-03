@@ -4,70 +4,70 @@ Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC20.s
 
 Modern and gas efficient ERC20 + EIP-2612 implementation.
 
-*Do not manually set balances without updating totalSupply, as the sum of all user balances must not exceed it.*
+Do not manually set balances without updating totalSupply, as the sum of all user balances must not exceed it.
 
 
 ## State Variables
 ### name
 
 ```solidity
-string public name;
+string public name
 ```
 
 
 ### symbol
 
 ```solidity
-string public symbol;
+string public symbol
 ```
 
 
 ### decimals
 
 ```solidity
-uint8 public immutable decimals;
+uint8 public immutable decimals
 ```
 
 
 ### totalSupply
 
 ```solidity
-uint256 public totalSupply;
+uint256 public totalSupply
 ```
 
 
 ### balanceOf
 
 ```solidity
-mapping(address => uint256) public balanceOf;
+mapping(address => uint256) public balanceOf
 ```
 
 
 ### allowance
 
 ```solidity
-mapping(address => mapping(address => uint256)) public allowance;
+mapping(address => mapping(address => uint256)) public allowance
 ```
 
 
 ### INITIAL_CHAIN_ID
 
 ```solidity
-uint256 internal immutable INITIAL_CHAIN_ID;
+uint256 internal immutable INITIAL_CHAIN_ID
 ```
 
 
 ### INITIAL_DOMAIN_SEPARATOR
 
 ```solidity
-bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
+bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR
 ```
 
 
 ### nonces
 
 ```solidity
-mapping(address => uint256) public nonces;
+mapping(address => uint256) public nonces
 ```
 
 
@@ -76,7 +76,7 @@ mapping(address => uint256) public nonces;
 
 
 ```solidity
-constructor(string memory _name, string memory _symbol, uint8 _decimals);
+constructor(string memory _name, string memory _symbol, uint8 _decimals) ;
 ```
 
 ### approve

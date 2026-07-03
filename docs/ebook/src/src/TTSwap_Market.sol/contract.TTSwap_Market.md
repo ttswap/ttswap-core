@@ -2,143 +2,220 @@
 **Inherits:**
 [I_TTSwap_Market](/src/interfaces/I_TTSwap_Market.sol/interface.I_TTSwap_Market.md), [IMulticall_v4](/src/interfaces/IMulticall_v4.sol/interface.IMulticall_v4.md)
 
+**Title:**
+TTSwap_Market
+
 **Author:**
 ttswap.exchange@gmail.com
 
-This contract implements a decentralized market system with the following key features:
-- Meta good, value goods, and normal goods management
-- Automated market making (AMM) with configurable fees
-- Investment and disinvestment mechanisms
-- Commission distribution system
+Core on-chain market: create goods, provide liquidity, swap, pay, and withdraw.
 
-*Core market contract for TTSwap protocol that manages goods trading, investing, and staking operations*
+**Mental model for integrators**
+- A **good** = one token pool with its own virtual AMM state and fee config.
+- A **proof** = one user's LP position in a good (id = hash of owner + good).
+- **buyGood** = exact-input swap (you specify how much you sell; min output is slippage guard).
+- **payGood** = exact-output swap or same-token transfer (you specify how much recipient gets).
+- **Value good** flag (config bit 255) marks pricing/reference tokens (e.g. stablecoin side).
+
+**Good quantity fields** (see `L_GoodConfig` glossary):
+`currentState.amount0` = investQty; `currentState.amount1` = Q;
+`goodConfig.amount1()` = leverage virtualQty only; `investState.amount1` = V.
+
+**Meta-transactions**
+Only `buyGood` and `payGood` verify EIP-712 when `msg.sender != _trader`.
+All other functions with a `signature` argument keep it for ABI compatibility only;
+they require `_trader == msg.sender` via `_checkTrader`.
+
+**Security modifiers**
+- `guardedEntry`: reentrancy lock (standalone 0→2, or 1→2 inside multicall).
+- `msgValue`: transient native-ETH budget for the whole call tree.
+- `multicallEntry`: arms lock level 1 so batched delegatecalls share one ETH budget.
+website  http://www.ttswap.io
+twitter  https://x.com/ttswapfinance
+telegram https://t.me/ttswapfinance
+discord  https://discord.gg/XygqnmQgX3
 
 
 ## State Variables
-### TTS_CONTRACT
-Handles:
-- Minting rewards for market participation
-- Staking operations and rewards
-- Referral tracking and rewards
-- Governance token functionality
-
-*Address of the official TTS token contract*
+### implementation
+Reserved storage slot for **proxy implementation pointer** (UUPS / transparent proxy layout).
+Intentionally unused in logic-only builds; keeps layout aligned with deployed proxy. See audit M-06.
 
 
 ```solidity
-I_TTSwap_Token private immutable TTS_CONTRACT;
+address internal implementation
 ```
 
 
-### securitykeeper
-Address of the security keeper
-
-*The address of the security keeper*
-
-**Notes:**
-- security: The address of the security keeper when deploy market contract
-
-- security: The address of the security keeper will be removed by market admin when contract run safety
+### TTS_CONTRACT
+TTS token contract — permissions, referral, stake/unstake hooks.
 
 
 ```solidity
-address internal securitykeeper;
+I_TTSwap_Token internal immutable TTS_CONTRACT
+```
+
+
+### nonces
+Per-trader nonce consumed by EIP-712 signed `buyGood` / `payGood` (also manually bumpable via `cancelNonce`).
+
+
+```solidity
+mapping(address _trader => uint256 nonce) public nonces
+```
+
+
+### upgradeable
+Reserved flag for upgrade / admin flows in proxy deployments; placeholder in logic contract. See audit M-06.
+
+
+```solidity
+bool internal upgradeable
 ```
 
 
 ### goods
-Stores the complete state of each good including:
-- Current trading state(invest quantity & current quantity)
-- Investment state (invest shares & invest value)
-- Owner information
-- Configuration parameters
-
-*Mapping of good addresses to their state information*
+All goods indexed by `T_GoodKey.toId()`.
+Each stores pool depth, LP totals, owner, fees, and per-recipient commission balances.
 
 
 ```solidity
-mapping(address goodid => S_GoodState) private goods;
+mapping(uint256 goodid => S_GoodState) private goods
 ```
 
 
 ### proofs
-Records all investment proofs in the system:
-shares amount0:normal good shares amount1:value good shares
-state amount0:total value : amount1:total actual value
-invest amount0:normal good virtual quantity amount1:normal good actual quantity
-valueinvest amount0:value good virtual quantity amount1:value good actual quantity
-
-*Mapping of proof IDs to their state information*
+LP proofs indexed by `S_ProofKey.toId()` (hash of owner + good id).
 
 
 ```solidity
-mapping(uint256 proofid => S_ProofState) private proofs;
+mapping(uint256 proofid => S_ProofState) private proofs
+```
+
+
+### executeFee
+Relayer execution fee denominator: fee in output-token units = poolPrice(executeFee).
+`50_000_000_000` is the fixed amount0 side; amount1 is derived per output good price.
+
+
+```solidity
+uint128 internal constant executeFee = 50_000_000_000
+```
+
+
+### Version
+EIP-712 domain version string.
+
+
+```solidity
+string internal constant Version = "2.0.0"
 ```
 
 
 ## Functions
 ### constructor
 
-*Constructor for TTSwap_Market*
-
 
 ```solidity
-constructor(I_TTSwap_Token _TTS_Contract, address _securitykeeper);
+constructor(I_TTSwap_Token _TTS_Contract) ;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_TTS_Contract`|`I_TTSwap_Token`|The address of the official token contract|
-|`_securitykeeper`|`address`|The address of the security keeper|
+|`_TTS_Contract`|`I_TTSwap_Token`|Official TTSwap token (roles, referral, staking).|
 
 
 ### onlyMarketadmin
 
-only market admin can execute
+Requires `TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin()`.
 
 
 ```solidity
-modifier onlyMarketadmin();
+modifier onlyMarketadmin() ;
 ```
 
 ### onlyMarketor
 
-only market manager can execute
+Requires `TTS_CONTRACT.userConfig(msg.sender).isMarketManager()`.
 
 
 ```solidity
-modifier onlyMarketor();
+modifier onlyMarketor() ;
 ```
 
 ### msgValue
 
-run when eth token transfer to market contract
+Wraps native-ETH accounting (`L_Transient`) around the function body.
+Use on any entrypoint that may move native goods or receive `msg.value`.
 
 
 ```solidity
-modifier msgValue();
+modifier msgValue() ;
 ```
 
-### noReentrant
+### multicallEntry
 
-This will revert if the contract is locked
+Multicall entry: arms lock level 1 so guarded subcalls can promote 1→2.
 
 
 ```solidity
-modifier noReentrant();
+modifier multicallEntry() ;
 ```
+
+### guardedEntry
+
+Guarded entry: works standalone (lock 0→2) and inside multicall (lock 1→2).
+Reverts on reentrancy (lock == 2). Restores previous lock level on exit.
+
+
+```solidity
+modifier guardedEntry() ;
+```
+
+### _checkTrader
+
+Direct-call only: `_trader` must be `msg.sender` (no relayer on this path).
+
+
+```solidity
+function _checkTrader(address _trader) private view;
+```
+
+### _checkGoodActive
+
+Shared guard for swap / invest paths.
+
+Also enforces **run-block** anti-replay: one state-changing touch per good per `block.number % 4095`.
+
+
+```solidity
+function _checkGoodActive(S_GoodState storage g, uint256 freezeErr, uint256 emptyErr) private view;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`g`|`S_GoodState`||
+|`freezeErr`|`uint256`|Error code when good is frozen (10 buy-side, 11 pay output, etc.).|
+|`emptyErr`|`uint256`|Error code when good not initialized (12 / 13).|
+
 
 ### multicall
 
-Enables calling multiple methods in a single call to the contract
+Batch multiple market calls in one transaction (delegatecall into self).
 
-*The `msg.value` is passed onto all subcalls, even if a previous subcall has consumed the ether.
-Subcalls can instead use `address(this).value` to see the available ETH, and consume it using {value: x}.*
+Must be `payable` with `msgValue` + `multicallEntry` so native ETH budget is set once
+at the outer boundary and not re-seeded on each subcall (see `L_Transient`).
 
 
 ```solidity
-function multicall(bytes[] calldata data) external payable msgValue returns (bytes[] memory results);
+function multicall(bytes[] calldata data)
+    external
+    payable
+    msgValue
+    multicallEntry
+    returns (bytes[] memory results);
 ```
 **Parameters**
 
@@ -153,251 +230,219 @@ function multicall(bytes[] calldata data) external payable msgValue returns (byt
 |`results`|`bytes[]`|The results from each of the calls passed in via data|
 
 
-### initMetaGood
-
-This function:
-- Creates a new meta good with specified parameters
-- Sets up initial liquidity pool
-- Mints corresponding tokens to the market creator
-- Initializes proof tracking
-- Emits initialization events
-
-*Initializes a meta good with initial liquidity*
-
-**Note:**
-security: Only callable by market admin
-
-
-```solidity
-function initMetaGood(address _erc20address, uint256 _initial, uint256 _goodConfig, bytes calldata data)
-    external
-    payable
-    onlyMarketadmin
-    msgValue
-    returns (bool);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_erc20address`|`address`|The address of the ERC20 token to be used as the meta good|
-|`_initial`|`uint256`|The initial liquidity amounts: - amount0: Initial token value - amount1: Initial token amount|
-|`_goodConfig`|`uint256`|Configuration parameters for the good: - Fee rates (trading, investment) - Trading limits (min/max amounts) - Special flags ( emergency pause)|
-|`data`|`bytes`|Additional data for token transfer|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`<none>`|`bool`|bool Success status of the initialization|
-
-
 ### initGood
 
-Initialize a normal good in the market
+Create a new good (token pool) with a user-chosen initial price.
 
-*Initializes a good*
+Deposits `_initial.amount1` tokens and declares `_initial.amount0` as total pool value.
+Mints the first proof for `msg.sender` with 100% of initial shares.
 
 
 ```solidity
 function initGood(
-    address _valuegood,
+    T_GoodKey memory _goodKey,
     uint256 _initial,
-    address _erc20address,
-    uint256 _goodConfig,
     bytes calldata _normaldata,
-    bytes calldata _valuedata
-) external payable override noReentrant msgValue returns (bool);
+    address _trader,
+    bytes calldata _signature
+) external payable override guardedEntry msgValue returns (bool);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_valuegood`|`address`|The value good ID|
-|`_initial`|`uint256`|The initial balance,amount0 is the amount of the normal good,amount1 is the amount of the value good|
-|`_erc20address`|`address`|The address of the ERC20 token|
-|`_goodConfig`|`uint256`|The good configuration|
-|`_normaldata`|`bytes`|The data of the normal good|
-|`_valuedata`|`bytes`|The data of the value good|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`<none>`|`bool`|bool Returns true if successful|
-
-
-### buyGood
-
-This function:
-- Calculates optimal swap amounts using AMM formulas
-- Applies trading fees and updates fee states
-- Updates good states and reserves
-- Handles referral rewards and distributions
-- Emits trade events with detailed information
-
-*Executes a buy order between two goods*
-
-**Notes:**
-- security: Protected by reentrancy guard
-
-- security: Validates input parameters and state
-
-
-```solidity
-function buyGood(
-    address _goodid1,
-    address _goodid2,
-    uint256 _swapQuantity,
-    uint128 _side,
-    address _recipent,
-    bytes calldata data
-) external payable noReentrant msgValue returns (uint256 good1change, uint256 good2change);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_goodid1`|`address`|The address of the input good|
-|`_goodid2`|`address`|The address of the output good|
-|`_swapQuantity`|`uint256`|The amount of _goodid1 to swap - amount0: The quantity of the input good - amount1: The limit quantity of the output good|
-|`_side`|`uint128`|0:for pay 1for buy|
-|`_recipent`|`address`|The address to receive referral rewards|
-|`data`|`bytes`|Additional data for token transfer|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`good1change`|`uint256`|The amount of _goodid1 used: - amount0: Trading fees - amount1: Actual swap amount|
-|`good2change`|`uint256`|The amount of _goodid2 received: - amount0: Trading fees - amount1: Actual received amount|
-
-
-### buyGoodCheck
-
-This function:
-- Simulates the buyGood operation without executing it
-- Uses the same AMM formulas as buyGood
-- Validates input parameters and market state
-- Returns expected amounts including fees
-- Useful for frontend price quotes and transaction previews
-
-*Simulates a buy order between two goods to check expected amounts*
-
-**Notes:**
-- security: View function, does not modify state
-
-- security: Reverts if:
-- Either good is not initialized
-- Swap quantity is zero
-- Same good is used for both input and output
-- Trade times exceeds 200
-- Insufficient liquidity for the swap
-
-
-```solidity
-function buyGoodCheck(address _goodid1, address _goodid2, uint256 _swapQuantity, bool _side)
-    external
-    view
-    returns (uint256 good1change, uint256 good2change);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`_goodid1`|`address`|The address of the input good|
-|`_goodid2`|`address`|The address of the output good|
-|`_swapQuantity`|`uint256`|The amount of _goodid1 to swap - amount0: The quantity of the input good - amount1: The limit quantity of the output good|
-|`_side`|`bool`|1:for buy 0:for pay|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`good1change`|`uint256`|The expected amount of _goodid1 to be used: - amount0: Expected trading fees - amount1: Expected swap amount|
-|`good2change`|`uint256`|The expected amount of _goodid2 to be received: - amount0: Expected trading fees - amount1: Expected received amount|
+|`_goodKey`|`T_GoodKey`|Token identifier (ERC-20 or native sentinel `address(1)`).|
+|`_initial`|`uint256`|amount0 = declared value, amount1 = token quantity deposited.|
+|`_normaldata`|`bytes`|Encoded transfer path (approve / permit / Permit2) for ERC-20; empty for native with `msg.value`.|
+|`_trader`|`address`|Must equal `msg.sender`.|
+|`_signature`|`bytes`|Unused (ABI placeholder).|
 
 
 ### investGood
 
-This function:
-- Processes investment in the target good
-- Optionally processes value good investment
-- Updates proof state
-- Mints corresponding tokens
-- Calculates and distributes fees
+Add single-token liquidity to an existing good without pairing a value good.
 
-*Invests in a good with optional value good backing*
+The caller deposits only the target token; its credited value is derived from
+the current pool price and scaled by the leverage factor (`enpower`).
+Flow: isInvestBlocked (price guard) → transfer tokens in → compute virtual shares
+→ update good state → update/create proof → stake value to TTS.
+Reverts with TTSwapError(47) if the deposit price exceeds the current pool price,
+TTSwapError(38) if the resulting investment value is below the dust threshold.
 
 
 ```solidity
-function investGood(address _togood, address _valuegood, uint128 _quantity, bytes calldata data1, bytes calldata data2)
-    external
-    payable
-    override
-    noReentrant
-    msgValue
-    returns (bool);
+function investGood(
+    T_GoodKey memory _goodKey,
+    uint256 _invest,
+    bytes calldata _gooddata,
+    bytes calldata signature,
+    address _trader
+) external payable override guardedEntry msgValue returns (bool result);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_togood`|`address`|The address of the good to invest in|
-|`_valuegood`|`address`|The address of the value good (can be address(0))|
-|`_quantity`|`uint128`|The amount to invest _togood|
-|`data1`|`bytes`|Additional data for _togood transfer|
-|`data2`|`bytes`|Additional data for _valuegood transfer|
+|`_goodKey`|`T_GoodKey`| Address of the ERC-20 token (good) to invest in.|
+|`_invest`|`uint256`| Packed uint256 — amount0: credited value per unit, amount1: token quantity to deposit.|
+|`_gooddata`|`bytes`| Encoded transfer authorisation (plain approve / EIP-2612 / Permit2).|
+|`signature`|`bytes`|Reserved for ABI compatibility; **not verified** here (C-01 scheme B). Do not rely on relayer semantics.|
+|`_trader`|`address`|Must equal `msg.sender` (enforced by `_checkTrader`); receives the investment proof context in events.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`<none>`|`bool`|bool Success status of the investment|
+|`result`|`bool`| True on success.|
+
+
+### buyGood
+
+This function calculates the swap amount based on the AMM formula, deducts fees,
+updates reserves, and transfers tokens.
+
+Executes a swap (buy) between two goods.
+
+**Notes:**
+- security: Protected by reentrancy guard.
+
+- security: Verifies EIP-712 signature if the caller is a relayer.
+
+- security: Checks slippage tolerance against gross AMM output (`_swapQuantity.amount1()`).
+
+- security: Validates that the pool has sufficient liquidity and is not frozen.
+
+
+```solidity
+function buyGood(
+    T_GoodKey memory _goodKey1,
+    T_GoodKey memory _goodKey2,
+    uint256 _swapQuantity,
+    address _recipient,
+    bytes calldata data,
+    address _trader,
+    bytes calldata signature,
+    uint256 external_info
+) external payable override guardedEntry msgValue returns (uint256 good1change, uint256 good2change);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_goodKey1`|`T_GoodKey`|The address of the input good (selling).|
+|`_goodKey2`|`T_GoodKey`|The address of the output good (buying).|
+|`_swapQuantity`|`uint256`|The swap details: - amount0: The input quantity of _goodid1. - amount1: The minimum gross output quantity of _goodid2 before any relayer execution fee.|
+|`_recipient`|`address`|The address to receive the bought goods (if different from trader). Also used for referral tracking if different from trader.|
+|`data`|`bytes`|Additional data for the input token transfer (Permit/Transfer).|
+|`_trader`|`address`|The address of the trader initiating the swap (must match signer if signature used).|
+|`signature`|`bytes`|The EIP-712 signature authorizing the trade (if msg.sender != _trader).|
+|`external_info`|`uint256`|External business metadata (e.g., payment order id or other extra info).|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`good1change`|`uint256`|The state change of the input good: - amount0: Fee quantity deducted. - amount1: Actual input quantity swapped.|
+|`good2change`|`uint256`|The state change of the output good: - amount0: Fee quantity deducted. - amount1: Gross output quantity from the AMM before any relayer execution fee.|
+
+
+### payGood
+
+This function calculates the input amount needed to get a specific gross output amount (inverse swap).
+If `_goodid1` == `_goodid2`, it performs a direct transfer path with relayer fee deduction semantics.
+
+Executes a payment or swap using specific output quantity (Pay).
+
+**Notes:**
+- security: Protected by reentrancy guard.
+
+- security: Verifies EIP-712 signature if the caller is a relayer.
+
+- security: Checks max input limit (`_swapQuantity.amount0()`).
+
+- security: `external_info` is included in signature payload as business context metadata.
+
+
+```solidity
+function payGood(
+    T_GoodKey memory _goodKey1,
+    T_GoodKey memory _goodKey2,
+    uint256 _swapQuantity,
+    address _recipient,
+    bytes calldata data,
+    address _trader,
+    bytes calldata signature,
+    uint256 external_info
+) external payable guardedEntry msgValue returns (uint256 good1change, uint256 good2change);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_goodKey1`|`T_GoodKey`|The address of the input good (paying with).|
+|`_goodKey2`|`T_GoodKey`|The address of the output good (paying to).|
+|`_swapQuantity`|`uint256`|The swap details: - amount0: The maximum input quantity of _goodid1 (slippage protection). - amount1: The target gross output quantity of _goodid2 before any relayer execution fee.|
+|`_recipient`|`address`|The address to receive the payment (goods). In relayer mode, net delivery may be lower because execution fee is deducted from gross output.|
+|`data`|`bytes`|Additional data for the input token transfer (Permit/Transfer).|
+|`_trader`|`address`|The address of the trader initiating the payment (must match signer).|
+|`signature`|`bytes`|The EIP-712 signature authorizing the payment (if msg.sender != _trader).|
+|`external_info`|`uint256`|amount0: external business metadata (e.g. payment order id). amount1: deadline; if non-zero and `block.timestamp` exceeds it, reverts `TTSwapError(53)`.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`good1change`|`uint256`|The state change of the input good: - amount0: Fee quantity deducted. - amount1: Actual input quantity used.|
+|`good2change`|`uint256`|The state change of the output good: - amount0: Fee quantity deducted. - amount1: Gross output quantity from the AMM / direct-pay path before any relayer execution fee.|
 
 
 ### disinvestProof
 
-This function:
-- Validates proof ownership and state
-- Processes disinvestment for both normal and value goods
-- Handles commission distribution and fee collection
-- Updates proof state and burns tokens
-- Distributes rewards to gate and referrer
-- Unstakes TTS tokens
-
-*Disinvests from a proof by withdrawing invested tokens and collecting profits*
-
-**Notes:**
-- security: Protected by noReentrant modifier
-
-- security: Reverts if:
-- Proof ID does not match sender's proof
-- Invalid proof state
-- Insufficient balance for disinvestment
+Withdraw LP shares: return principal + profit, split fees to gate/referral/platform.
 
 
 ```solidity
-function disinvestProof(uint256 _proofid, uint128 _goodshares, address _gate)
-    external
-    override
-    noReentrant
-    returns (uint128, uint128);
+function disinvestProof(
+    uint256 _proofid,
+    uint128 _goodshares,
+    address _gate,
+    address _trader,
+    bytes calldata signature
+) external override guardedEntry returns (uint128);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_proofid`|`uint256`|The ID of the proof to disinvest from|
-|`_goodshares`|`uint128`||
-|`_gate`|`address`|The address to receive gate rewards (falls back to DAO admin if banned)|
+|`_proofid`|`uint256`|Proof id for `(msg.sender, good)`.|
+|`_goodshares`|`uint128`|Share amount to burn (partial withdraw allowed per `getDisinvestChips`).|
+|`_gate`|`address`|Gate address for operator/customer fee routing (zeroed if banned).|
+|`_trader`|`address`|Must equal `msg.sender`.|
+|`signature`|`bytes`|Unused (ABI placeholder).|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`<none>`|`uint128`|uint128 The profit amount from normal good disinvestment|
-|`<none>`|`uint128`|uint128 The profit amount from value good disinvestment (if applicable)|
+|`<none>`|`uint128`|Profit credited to the user after fees (normal-good leg).|
+
+
+### refreshPromise
+
+Emits `e_getPromiseProof` for applied goods when the caller is the good owner and proof matches `msg.sender`.
+
+**C-01 / M-08**: No EIP-712 and **no relayer/meta-tx**; only the proof owner can call (enforced via `S_ProofKey(msg.sender, ...)`).
+Integrators must not assume a signature or `_trader` parameter — caller MUST be `msg.sender`.
+
+
+```solidity
+function refreshPromise(uint256 _proofid) external;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_proofid`|`uint256`|Proof id derived from `(msg.sender, currentgood, valuegood)`.|
 
 
 ### ishigher
@@ -408,7 +453,7 @@ This function:
 - Essential for maintaining trading synchronization between goods
 - Returns false if either good is not registered (state = 0)
 
-*Compares the current trading states of two goods to determine if the first good is in a higher iteration*
+Compares the current trading states of two goods to determine if the first good is in a higher iteration
 
 **Notes:**
 - security: This is a view function with no state modifications
@@ -417,14 +462,14 @@ This function:
 
 
 ```solidity
-function ishigher(address goodid, address valuegood, uint256 compareprice) external view override returns (bool);
+function ishigher(uint256 goodid, uint256 valuegood, uint256 compareprice) external view returns (bool);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`goodid`|`address`|ID of the good to check|
-|`valuegood`|`address`|ID of the value good|
+|`goodid`|`uint256`|First good id.|
+|`valuegood`|`uint256`|Second good id (reference / value side).|
 |`compareprice`|`uint256`|the price of use good2 for good1|
 
 **Returns**
@@ -441,7 +486,7 @@ This function is a view function that:
 - Useful for checking the latest trading status of a pair of goods
 - Can be used to verify if goods are in sync for trading operations
 
-*Retrieves the current state of two goods in a single call*
+Retrieves the current state of two goods in a single call
 
 **Notes:**
 - security: This is a view function with no state modifications
@@ -450,83 +495,86 @@ This function is a view function that:
 
 
 ```solidity
-function getRecentGoodState(address good1, address good2)
+function getRecentGoodState(uint256 good1, uint256 good2)
     external
     view
-    override
     returns (uint256 good1currentstate, uint256 good2currentstate);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`good1`|`address`|The address of the first good to query|
-|`good2`|`address`|The address of the second good to query|
+|`good1`|`uint256`|The address of the first good to query|
+|`good2`|`uint256`|The address of the second good to query|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`good1currentstate`|`uint256`|good1correntstate The current state of the first good, representing its latest trading iteration|
-|`good2currentstate`|`uint256`|good2correntstate The current state of the second good, representing its latest trading iteration|
+|`good1currentstate`|`uint256`|`(V, Q)` for good1 — see `L_Good.getGoodState`.|
+|`good2currentstate`|`uint256`|`(V, Q)` for good2.|
 
 
 ### getProofState
 
-Retrieves the current state of a proof
+Retrieves the current state of a proof.
 
 
 ```solidity
-function getProofState(uint256 proofid) external view override returns (S_ProofState memory);
+function getProofState(uint256 proofid) external view returns (S_ProofState memory);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`proofid`|`uint256`|The ID of the proof to query|
+|`proofid`|`uint256`|Proof id (`keccak256(owner, goodId)`).|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`<none>`|`S_ProofState`|proofstate The current state of the proof, currentgood The current good associated with the proof valuegood The value good associated with the proof shares normal good shares, value good shares state Total value, Total actual value invest normal good virtual quantity, normal good actual quantity valueinvest value good virtual quantity, value good actual quantity|
+|`<none>`|`S_ProofState`|proofstate Snapshot — see `S_ProofState` / `L_Proof` (position-level, not pool `virtualQty`).|
 
 
 ### getGoodState
 
-Retrieves the current state of a good
+Retrieves the current state of a good.
 
 
 ```solidity
-function getGoodState(address good) external view override returns (S_GoodTmpState memory);
+function getGoodState(uint256 good) external view returns (S_GoodTmpState memory);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`good`|`address`|The address of the good to query|
+|`good`|`uint256`|Good id.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`<none>`|`S_GoodTmpState`|goodstate The current state of the good, goodConfig Configuration of the good, check goodconfig.sol or whitepaper for details owner Creator of the good currentState Present investQuantity, CurrentQuantity investState Shares, value|
+|`<none>`|`S_GoodTmpState`|goodstate Snapshot: - goodConfig: fee flags + `virtualQty` in low 128 bits (`config.amount1()`). - currentState.amount0 = `investQty`; amount1 = `Q` (total virtual depth). - investState.amount0 = shares; amount1 = `V` (pool value).|
 
 
-### updateGoodConfig
+### modifyGoodByGoodOwner
 
 Updates a good's configuration
 
 
 ```solidity
-function updateGoodConfig(address _goodid, uint256 _goodConfig) external override returns (bool);
+function modifyGoodByGoodOwner(uint256 _goodid, uint256 _goodConfig, address _trader, bytes calldata signature)
+    external
+    returns (bool);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_goodid`|`address`|The ID of the good|
+|`_goodid`|`uint256`|The ID of the good|
 |`_goodConfig`|`uint256`|The new configuration|
+|`_trader`|`address`|Must equal `msg.sender` (enforced by `_checkTrader`).|
+|`signature`|`bytes`|Reserved for ABI compatibility; **not verified** here.|
 
 **Returns**
 
@@ -535,26 +583,76 @@ function updateGoodConfig(address _goodid, uint256 _goodConfig) external overrid
 |`<none>`|`bool`|Success status|
 
 
-### modifyGoodConfig
+### modifyGoodByManager
 
-Allows market admin to modify a good's attributes
+Market manager patches manager-writable bits (fee split, safe lines, flags).
 
 
 ```solidity
-function modifyGoodConfig(address _goodid, uint256 _goodConfig) external override onlyMarketor returns (bool);
+function modifyGoodByManager(uint256 _goodid, uint256 _goodConfig, address _trader, bytes calldata signature)
+    external
+    onlyMarketor
+    returns (bool);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_goodid`|`address`|The ID of the good|
+|`_goodid`|`uint256`|The ID of the good|
 |`_goodConfig`|`uint256`|The new configuration|
+|`_trader`|`address`|Must equal `msg.sender` (enforced by `_checkTrader`).|
+|`signature`|`bytes`|Reserved for ABI compatibility; **not verified** here.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`<none>`|`bool`|Success status|
+
+
+### modifyGoodByAdmin
+
+Market admin patches admin bits (value-good flag, ERC type).
+
+
+```solidity
+function modifyGoodByAdmin(uint256 _goodid, uint256 _goodConfig, address _trader, bytes calldata signature)
+    external
+    override
+    onlyMarketadmin
+    returns (bool);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_goodid`|`uint256`|The ID of the good|
+|`_goodConfig`|`uint256`|The new configuration|
+|`_trader`|`address`|Must equal `msg.sender` (enforced by `_checkTrader`).|
+|`signature`|`bytes`|Reserved for ABI compatibility; **not verified** here.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`bool`|Success status|
+
+
+### lockGood
+
+Locks a good when the caller is market manager or good owner.
+
+
+```solidity
+function lockGood(uint256 _goodid, address _trader, bytes calldata signature) external override;
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_goodid`|`uint256`|The good to lock.|
+|`_trader`|`address`|Must equal `msg.sender` (enforced by `_checkTrader`).|
+|`signature`|`bytes`|Reserved for ABI compatibility; **not verified** here.|
 
 
 ### changeGoodOwner
@@ -563,29 +661,41 @@ Changes the owner of a good
 
 
 ```solidity
-function changeGoodOwner(address _goodid, address _to) external override onlyMarketor;
+function changeGoodOwner(uint256 _goodid, address _to, address _trader, bytes calldata signature)
+    external
+    override
+    onlyMarketor;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_goodid`|`address`|The ID of the good|
+|`_goodid`|`uint256`|The ID of the good|
 |`_to`|`address`|The new owner's address|
+|`_trader`|`address`|Must equal `msg.sender` (enforced by `_checkTrader`).|
+|`signature`|`bytes`|Reserved for ABI compatibility; **not verified** here.|
 
 
 ### collectCommission
 
 Collects commission for specified goods
 
+Market admin collects platform slot (`recipient == address(0)` internally).
+
 
 ```solidity
-function collectCommission(address[] calldata _goodid) external override noReentrant;
+function collectCommission(uint256[] calldata _goodid, address _trader, bytes calldata signature)
+    external
+    override
+    guardedEntry;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_goodid`|`address[]`|Array of good IDs|
+|`_goodid`|`uint256[]`|Array of good IDs|
+|`_trader`|`address`|Must equal `msg.sender` (enforced by `_checkTrader`).|
+|`signature`|`bytes`|Reserved for ABI compatibility; **not verified** here.|
 
 
 ### queryCommission
@@ -596,7 +706,7 @@ This function:
 - Returns 0 for goods where no commission is available
 - Maintains gas efficiency by using a fixed array size
 
-*Queries commission amounts for multiple goods for a specific recipient*
+Queries commission amounts for multiple goods for a specific recipient
 
 **Notes:**
 - security: Reverts if more than 100 goods are queried
@@ -605,18 +715,14 @@ This function:
 
 
 ```solidity
-function queryCommission(address[] calldata _goodid, address _recipent)
-    external
-    view
-    override
-    returns (uint256[] memory);
+function queryCommission(uint256[] calldata _goodid, address _recipient) external view returns (uint256[] memory);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`_goodid`|`address[]`|Array of good addresses to query commission for|
-|`_recipent`|`address`|The address to check commission amounts for|
+|`_goodid`|`uint256[]`|Array of good addresses to query commission for|
+|`_recipient`|`address`|The address to check commission amounts for|
 
 **Returns**
 
@@ -633,7 +739,7 @@ This function:
 - Transfers tokens from the sender to the good
 - Emits an event with the welfare contribution details
 
-*Adds welfare funds to a good's fee pool*
+Adds welfare funds to a good's fee pool
 
 **Notes:**
 - security: Protected by noReentrant modifier
@@ -642,33 +748,50 @@ This function:
 
 
 ```solidity
-function goodWelfare(address goodid, uint128 welfare, bytes calldata data)
-    external
-    payable
-    override
-    noReentrant
-    msgValue;
+function goodWelfare(
+    uint256 goodid,
+    uint128 welfare,
+    bytes calldata data,
+    address _trader,
+    bytes calldata signature
+) external payable guardedEntry msgValue;
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`goodid`|`address`|The address of the good to receive welfare|
+|`goodid`|`uint256`|The address of the good to receive welfare|
 |`welfare`|`uint128`|The amount of tokens to add as welfare|
 |`data`|`bytes`|Additional data for token transfer|
+|`_trader`|`address`|Must equal `msg.sender` (enforced by `_checkTrader`).|
+|`signature`|`bytes`|Reserved for ABI compatibility; **not verified** here.|
 
 
-### removeSecurityKeeper
+### DOMAIN_SEPARATOR
+
+Returns the EIP-712 domain separator used by relayed entrypoints.
+
+Always computed from the current execution context so proxy calls bind signatures
+to the proxy address instead of the implementation address.
 
 
 ```solidity
-function removeSecurityKeeper() external onlyMarketadmin;
+function DOMAIN_SEPARATOR() public view virtual returns (bytes32);
 ```
 
-### securityKeeper
+### computeDomainSeparator
 
 
 ```solidity
-function securityKeeper(address erc20) external noReentrant;
+function computeDomainSeparator() internal view virtual returns (bytes32);
+```
+
+### cancelNonce
+
+Invalidate pending EIP-712 signatures by bumping the caller's nonce.
+
+
+```solidity
+function cancelNonce() external;
 ```
 

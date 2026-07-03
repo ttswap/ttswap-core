@@ -1,7 +1,10 @@
 # IAllowanceTransfer
+**Title:**
+AllowanceTransfer
+
 Handles ERC20 token permissions through signature based allowance setting and ERC20 token transfers by checking allowed amounts
 
-*Requires user's token approval on the Permit2 contract*
+Requires user's token approval on the Permit2 contract
 
 
 ## Functions
@@ -11,7 +14,7 @@ A mapping from owner address to token address to spender address to PackedAllowa
 
 The mapping is indexed in the above order see: allowance[ownerAddress][tokenAddress][spenderAddress]
 
-*The packed slot holds the allowed amount, expiration at which the allowed amount is no longer valid, and current nonce thats updated on any signature based approvals.*
+The packed slot holds the allowed amount, expiration at which the allowed amount is no longer valid, and current nonce thats updated on any signature based approvals.
 
 
 ```solidity
@@ -22,9 +25,9 @@ function allowance(address, address, address) external view returns (uint160, ui
 
 Approves the spender to use up to amount of the specified token up until the expiration
 
-*The packed allowance also holds a nonce, which will stay unchanged in approve*
+The packed allowance also holds a nonce, which will stay unchanged in approve
 
-*Setting amount to type(uint160).max sets an unlimited approval*
+Setting amount to type(uint160).max sets an unlimited approval
 
 
 ```solidity
@@ -44,7 +47,7 @@ function approve(address token, address spender, uint160 amount, uint48 expirati
 
 Permit a spender to a given amount of the owners token via the owner's EIP-712 signature
 
-*May fail if the owner's nonce was invalidated in-flight by invalidateNonce*
+May fail if the owner's nonce was invalidated in-flight by invalidateNonce
 
 
 ```solidity
@@ -63,7 +66,7 @@ function permit(address owner, PermitSingle memory permitSingle, bytes calldata 
 
 Permit a spender to the signed amounts of the owners tokens via the owner's EIP-712 signature
 
-*May fail if the owner's nonce was invalidated in-flight by invalidateNonce*
+May fail if the owner's nonce was invalidated in-flight by invalidateNonce
 
 
 ```solidity
@@ -82,8 +85,8 @@ function permit(address owner, PermitBatch memory permitBatch, bytes calldata si
 
 Transfer approved tokens from one address to another
 
-*Requires the from address to have approved at least the desired amount
-of tokens to msg.sender.*
+Requires the from address to have approved at least the desired amount
+of tokens to msg.sender.
 
 
 ```solidity
@@ -103,8 +106,8 @@ function transferFrom(address from, address to, uint160 amount, address token) e
 
 Transfer approved tokens in a batch
 
-*Requires the from addresses to have approved at least the desired amount
-of tokens to msg.sender.*
+Requires the from addresses to have approved at least the desired amount
+of tokens to msg.sender.
 
 
 ```solidity
@@ -137,7 +140,7 @@ function lockdown(TokenSpenderPair[] calldata approvals) external;
 
 Invalidate nonces for a given (token, spender) pair
 
-*Can't invalidate more than 2**16 nonces per transaction.*
+Can't invalidate more than 2**16 nonces per transaction.
 
 
 ```solidity
@@ -240,9 +243,13 @@ The permit data for a token
 
 ```solidity
 struct PermitDetails {
+    // ERC20 token address
     address token;
+    // the maximum amount allowed to spend
     uint160 amount;
+    // timestamp at which a spender's token allowances become invalid
     uint48 expiration;
+    // an incrementing value indexed per owner,token,and spender for each signature
     uint48 nonce;
 }
 ```
@@ -253,8 +260,11 @@ The permit message signed for a single token allownce
 
 ```solidity
 struct PermitSingle {
+    // the permit data for a single token alownce
     PermitDetails details;
+    // address permissioned on the allowed tokens
     address spender;
+    // deadline on the permit signature
     uint256 sigDeadline;
 }
 ```
@@ -265,8 +275,11 @@ The permit message signed for multiple token allowances
 
 ```solidity
 struct PermitBatch {
+    // the permit data for multiple token allowances
     PermitDetails[] details;
+    // address permissioned on the allowed tokens
     address spender;
+    // deadline on the permit signature
     uint256 sigDeadline;
 }
 ```
@@ -274,15 +287,18 @@ struct PermitBatch {
 ### PackedAllowance
 The saved permissions
 
-*This info is saved per owner, per token, per spender and all signed over in the permit message*
+This info is saved per owner, per token, per spender and all signed over in the permit message
 
-*Setting amount to type(uint160).max sets an unlimited approval*
+Setting amount to type(uint160).max sets an unlimited approval
 
 
 ```solidity
 struct PackedAllowance {
+    // amount allowed
     uint160 amount;
+    // permission expiry
     uint48 expiration;
+    // an incrementing value indexed per owner,token,and spender for each signature
     uint48 nonce;
 }
 ```
@@ -293,7 +309,9 @@ A token spender pair.
 
 ```solidity
 struct TokenSpenderPair {
+    // the token the spender is approved
     address token;
+    // the spender address
     address spender;
 }
 ```
@@ -304,9 +322,13 @@ Details for a token transfer.
 
 ```solidity
 struct AllowanceTransferDetails {
+    // the owner of the token
     address from;
+    // the recipient of the token
     address to;
+    // the amount of the token
     uint160 amount;
+    // the token to be transferred
     address token;
 }
 ```
