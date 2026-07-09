@@ -304,7 +304,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
         // reset _invest to 0 & store the mint tts value
         _invest = 0;
-        if (g.goodConfig.isPromised()) _invest = investvalue;
+        if (g.goodConfig.isPromised()||g.goodConfig.isvaluegood()) _invest = investvalue;
         // Update the investment proof with the new shares and amounts.
         proofs[proofNo].updateInvest(
             _goodKey.toId(),
