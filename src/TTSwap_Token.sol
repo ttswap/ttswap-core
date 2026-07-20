@@ -57,7 +57,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         keccak256(
             "permitShare(uint128 amount,uint120 chips,uint8 metric,address owner,uint128 existamount,uint128 deadline,uint256 nonce)"
         );
-    string internal constant Version = "1.16.0";
+    string internal constant Version = "2.0.0";
     constructor(address _usdt) ERC20("TTSwap Token", "TTS", 12) {
         usdt = _usdt;
     }
