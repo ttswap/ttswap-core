@@ -27,11 +27,11 @@ struct T_GoodKey {
 /// @title T_GoodKeyLibrary
 /// @notice Token transfers, balance reads, and id derivation for `T_GoodKey`.
 library T_GoodKeyLibrary {
-    // address constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-    // address constant _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    address constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+    address constant _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     //testnet
-    address constant dai = 0xCaFBbAd55eb09efe7bec8408Cff9932Be7D9A7fA;
-    address constant _permit2 = 0xa50eb0d081E986c280efF32dae089939Ea07bd22;
+    // address constant dai = 0xCaFBbAd55eb09efe7bec8408Cff9932Be7D9A7fA;
+    // address constant _permit2 = 0xa50eb0d081E986c280efF32dae089939Ea07bd22;
     using T_GoodKeyLibrary for T_GoodKey;
 
     /// @notice Derives a unique market good ID from `T_GoodKey`.
