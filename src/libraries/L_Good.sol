@@ -449,6 +449,7 @@ library L_Good {
         uint128 enpower
     ) internal {
         uint128 _investValue;
+
         // Calculate the invest virtual quantity
         // The user receives virtual shares magnified by the power/leverage factor.
 
