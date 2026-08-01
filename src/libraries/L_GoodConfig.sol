@@ -39,7 +39,7 @@ import {TTSwapError} from "./L_Error.sol";
 /// | 184-173   | reserved        | 12    | unused                    | 0       |
 /// | 172-168   | power           | 5     | × 100 (0 → 100)           | 1       |
 /// | 167-160   | disinvestChips  | 8     | chunk divisor (×4 output) | 10      |
-/// | 159-154   | investThreshold | 6     |                           | 30      |
+/// | 159-154   | investThreshold | 6     |                           | 100      |
 /// | 153-148   | investFee       | 6     | × 0.0001 (stored / 10000) | 8       |
 /// | 147-142   | disinvestFee    | 6     | × 0.0001 (stored / 10000) | 8       |
 /// | 141-135   | buyFee          | 7     | × 0.0001 (stored / 10000) | 8       |
@@ -47,13 +47,13 @@ import {TTSwapError} from "./L_Error.sol";
 /// | 127-0     | virtualQty      | 128   | leverage virtual only (excludes actual investQty) | 0       |
 ///
 /// @dev Default `initial_config` composition:
-///      2*2**252 +6* 2**247 + 1 * 2**243 + 5 * 2**240 + 8 * 2**235 + 8 * 2**230 + 2 * 2**225 +2 * 2**220+100*2**212+60*2**204+25*2**154+ 8 * 2**148 + 8 * 2**142 + 8 * 2**135 + 8 * 2**128 + 1 * 2**168 + 20 * 2**160 
+///      2*2**252 +6* 2**247 + 1 * 2**243 + 5 * 2**240 + 8 * 2**235 + 8 * 2**230 + 2 * 2**225 +2 * 2**220+100*2**212+60*2**204+0*2**154+ 8 * 2**148 + 8 * 2**142 + 8 * 2**135 + 8 * 2**128 + 1 * 2**168 + 20 * 2**160 
 library L_GoodConfigLibrary {
     using L_GoodConfigLibrary for uint256;
 
     /// @dev Default packed config (fee split sums to 100%, trading fees = 8 bps each).
     uint256 constant initial_config =
-        0x230d42042643c000000001146482040800000000000000000000000000000000;
+        0x230d42042643c000000001140082040800000000000000000000000000000000;
 
     /// @dev Admin-writable region: bit 255 (good type) + bits 254-253 (ERC type).
     uint256 constant admin_config_mask =
