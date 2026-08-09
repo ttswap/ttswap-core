@@ -311,6 +311,7 @@ library L_Good {
                         uint256(swapTemp.current_quantity) -
                         uint256(_swapParam))
             );
+            value += 1;
             swapTemp.get += value;
             swapTemp.current_quantity -= _swapParam;
         }
@@ -372,6 +373,7 @@ library L_Good {
                 (2 * uint256(_swapParam) * uint256(swapTemp.current_quantity)) /
                     (2 * uint256(swapTemp.current_value) - uint256(_swapParam))
             );
+            quantity += 1;
             swapTemp.get += quantity;
             swapTemp.current_quantity += quantity;
         }
