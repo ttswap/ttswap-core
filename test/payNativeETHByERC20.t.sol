@@ -76,10 +76,6 @@ contract payNativeETHByERC20 is BaseSetup {
         vm.stopPrank();
     }
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.prank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-    }
 
     function _payNativeWithUsdt(
         address trader,

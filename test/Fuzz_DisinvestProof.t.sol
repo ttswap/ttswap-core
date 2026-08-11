@@ -35,11 +35,14 @@ contract Fuzz_DisinvestProof is FuzzBase {
     function testFuzz_DisinvestProof_partial(uint128 withdrawShares) public {
         S_ProofState memory proof = market.getProofState(proofId);
         uint128 total = proof.shares.amount0();
-        if (total == 0) return;
+        if (total < 100) return;
 
-        uint128 maxWithdraw = total / 100;
-        if (maxWithdraw < 1) return;
-        withdrawShares = uint128(bound(withdrawShares, 1, maxWithdraw));
+        // Stay above the protocol dust path (`disinvestvalue.amount1 < 1e12`),
+        // which rewrites a partial exit into a full-position chip check.
+        uint128 minWithdraw = total / 50;
+        uint128 maxWithdraw = total / 10;
+        if (minWithdraw == 0 || minWithdraw >= maxWithdraw) return;
+        withdrawShares = uint128(bound(withdrawShares, minWithdraw, maxWithdraw));
         uint256 balBefore = btc.balanceOf(FUZZ_USER);
 
         vm.startPrank(FUZZ_USER);

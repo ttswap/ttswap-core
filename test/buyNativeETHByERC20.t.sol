@@ -87,11 +87,6 @@ contract buyNativeETHByERC20 is BaseSetup {
 
 
     /// @dev Admin marks USDT pool as value good (bit 255).
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
 
     function _buyEthWithUsdt(

@@ -193,21 +193,26 @@ contract testGoodConfig is Test {
 
     function test_updateAdminConfig() public pure {
         uint256 base = INITIAL_CONFIG;
-        uint256 adminPatch = (1 << 255) | (3 << 247);
+        uint256 adminPatch = (1 << 255) |
+            _pack(80, SAFE_LINE_UPPER_SHIFT) |
+            _pack(90, SAFE_LINE_LOWER_SHIFT);
         uint256 merged = base.updateAdminConfig(adminPatch);
         assertTrue(merged.isvaluegood());
+        assertEq(merged.getSafeLineUpper(50_000), 40_000);
+        assertEq(merged.getSafeLineLower(50_000), 45_000);
         assertEq(merged.getBuyFee(10_000), base.getBuyFee(10_000));
+        assertEq(merged.getLiquidFee(10_000), base.getLiquidFee(10_000));
     }
 
     function test_updateManagerConfig() public pure {
         uint256 base = INITIAL_CONFIG;
         uint256 managerPatch = _validFeeSplitConfig() |
             _pack(1, LIMIT_POWER_SHIFT) |
-            _pack(90, SAFE_LINE_LOWER_SHIFT) |
-            (1 << 252);
+            (1 << 236); // isFreeze
         uint256 merged = base.updateManagerConfig(managerPatch);
-        assertEq(merged.getSafeLineLower(50_000), 45_000);
         assertTrue(merged.isFreeze());
+        // safeLine remains admin-controlled / unchanged by manager
+        assertEq(merged.getSafeLineLower(50_000), base.getSafeLineLower(50_000));
         assertEq(merged.getBuyFee(10_000), base.getBuyFee(10_000));
     }
 

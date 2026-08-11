@@ -158,11 +158,6 @@ contract testInvestGood is BaseSetup {
         vm.stopPrank();
     }
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _freezeGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
@@ -742,11 +737,6 @@ contract testInvestNativeETHValueGood is BaseSetup {
     }
 
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _investNative(
         address trader,

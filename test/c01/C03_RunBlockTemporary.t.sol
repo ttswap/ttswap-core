@@ -75,10 +75,6 @@ contract C03_RunBlockTemporary is BaseSetup {
         vm.stopPrank();
     }
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.prank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-    }
 
     function _zeroPayGoodSameToken(address who) internal {
         vm.prank(who);

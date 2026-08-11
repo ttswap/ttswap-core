@@ -87,11 +87,6 @@ contract buyERC20ByNativeETH is BaseSetup {
 
 
     /// @dev Admin marks the payment-side pool as a value good (bit 255).
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
 
     function _buyBtcWithEth(
