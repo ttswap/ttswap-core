@@ -3,8 +3,9 @@ pragma solidity 0.8.29;
 
 /// @dev Shared v2.0 good-config constants aligned with `L_GoodConfig.sol`.
 library TestConfigConstants {
+    /// @dev Must match `L_GoodConfigLibrary.initial_config` (investFee = 8 bps).
     uint256 internal constant INITIAL_GOOD_CONFIG =
-        0x230d42042643c000000001146482040800000000000000000000000000000000;
+        0x230d42042643c000000001140082040800000000000000000000000000000000;
 
     uint256 internal constant LIQUID_SHIFT = 247;
     uint256 internal constant OPERATOR_SHIFT = 243;
