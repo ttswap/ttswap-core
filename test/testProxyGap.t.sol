@@ -41,16 +41,13 @@ contract testProxyGap is BaseSetup {
         assertEq(address(market_proxy).balance, 1 ether, "balance held");
     }
 
-    function testTokenProxy_freeze_delegatecallToZero_emptyReturn() public {
+    function testTokenProxy_freeze_delegatecallToZero_reverts63() public {
         vm.prank(marketcreator);
         tts_token_proxy.freezeToken();
         assertEq(tts_token_proxy.implementation(), address(0), "impl zero");
 
-        (bool ok, bytes memory ret) = address(tts_token_proxy).staticcall(
-            abi.encodeWithSignature("totalSupply()")
-        );
-        assertTrue(ok, "delegatecall succeeds");
-        assertEq(ret.length, 0, "empty returndata unlike Market proxy TTSwapError(63)");
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 63));
+        tts_token.totalSupply();
     }
 
     function testTokenProxy_freezeToken_revert_notManager() public {
@@ -59,16 +56,13 @@ contract testProxyGap is BaseSetup {
         tts_token_proxy.freezeToken();
     }
 
-    function testTokenProxy_upgrade_toZero_emptyReturn() public {
+    function testTokenProxy_upgrade_toZero_reverts63() public {
         vm.prank(marketcreator);
         tts_token_proxy.upgrade(address(0));
         assertEq(tts_token_proxy.implementation(), address(0), "impl zero");
 
-        (bool ok, bytes memory ret) = address(tts_token_proxy).staticcall(
-            abi.encodeWithSignature("totalSupply()")
-        );
-        assertTrue(ok, "delegatecall succeeds");
-        assertEq(ret.length, 0, "zero impl yields empty returndata");
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 63));
+        tts_token.totalSupply();
     }
 
     function testTokenProxy_receiveEth_acceptsValue() public {
