@@ -47,11 +47,6 @@ contract testBuySafeLine is BaseSetup {
 
 
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     /// @dev Tight upper safeline on input good: post-swap qty must not exceed ~80% of reserve.
     function _tightSafeLine(uint256 goodId) internal {
@@ -61,7 +56,7 @@ contract testBuySafeLine is BaseSetup {
             (cfg & ~BaseSetup.SAFE_LINE_MASK) |
             (uint256(80) << TestConfigConstants.SAFE_LINE_UPPER_SHIFT) |
             (uint256(1) << TestConfigConstants.SAFE_LINE_LOWER_SHIFT);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        market.modifyGoodByAdmin(goodId, cfg, marketcreator, defaultdata);
         vm.stopPrank();
     }
 

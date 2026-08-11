@@ -94,11 +94,6 @@ contract testSwapWithoutFee is BaseSetup {
         _relaxSafeLine(goodId);
     }
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _zeroSwapFees(uint256 goodId) internal {
         vm.startPrank(marketcreator);

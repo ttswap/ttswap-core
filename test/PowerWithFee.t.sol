@@ -75,11 +75,6 @@ contract testPowerWithFee is BaseSetup {
     }
 
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _setLimitPower(uint256 goodId, uint256 field) internal {
         vm.startPrank(marketcreator);

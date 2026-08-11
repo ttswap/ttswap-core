@@ -33,9 +33,6 @@ contract testGoodConfig is Test {
         return value << shift;
     }
 
-    function _updateRunTime(uint256 cfg) external returns (uint256) {
-        return cfg.updateRunBlockConfig();
-    }
 
     function _validFeeSplitConfig() internal pure returns (uint256) {
         return
@@ -125,9 +122,9 @@ contract testGoodConfig is Test {
     }
 
     function test_getSafeLineLower() public pure {
-        assertEq(_pack(0, SAFE_LINE_LOWER_SHIFT).getSafeLineLower(50_000), 50_000);
-        assertEq(_pack(60, SAFE_LINE_LOWER_SHIFT).getSafeLineLower(50_000), 30_000);
-        assertEq(INITIAL_CONFIG.getSafeLineLower(50_000), 30_000);
+        assertEq(_pack(0, SAFE_LINE_LOWER_SHIFT).getSafeLineLower128(50_000), 50_000);
+        assertEq(_pack(60, SAFE_LINE_LOWER_SHIFT).getSafeLineLower128(50_000), 30_000);
+        assertEq(INITIAL_CONFIG.getSafeLineLower128(50_000), 30_000);
     }
 
     function test_getContractType() public pure {
@@ -135,22 +132,6 @@ contract testGoodConfig is Test {
         assertEq(_pack(0x3C, CONTRACT_TYPE_SHIFT).getContractType(), 0x3C);
         assertEq(_pack(0x7F, CONTRACT_TYPE_SHIFT).getContractType(), 0x7F);
         assertEq(INITIAL_CONFIG.getContractType(), 0);
-    }
-
-    function test_getRunTimeConfig() public pure {
-        assertEq(_pack(0, RUN_TIME_SHIFT).getRunBlockConfig(), 0);
-        assertEq(_pack(7, RUN_TIME_SHIFT).getRunBlockConfig(), 7);
-    }
-
-    function test_updateRunTimeConfig() public {
-        uint256 slot = block.number % 4095;
-        uint256 cfg = _validFeeSplitConfig() | _pack(slot + 1, RUN_TIME_SHIFT);
-        uint256 updated = cfg.updateRunBlockConfig();
-        assertEq(updated.getRunBlockConfig(), slot);
-
-        uint256 wrongSlot = _validFeeSplitConfig() | _pack(slot, RUN_TIME_SHIFT);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
-        this._updateRunTime(wrongSlot);
     }
 
     function test_getPower() public pure {
@@ -193,21 +174,26 @@ contract testGoodConfig is Test {
 
     function test_updateAdminConfig() public pure {
         uint256 base = INITIAL_CONFIG;
-        uint256 adminPatch = (1 << 255) | (3 << 247);
+        uint256 adminPatch = (1 << 255) |
+            _pack(80, SAFE_LINE_UPPER_SHIFT) |
+            _pack(90, SAFE_LINE_LOWER_SHIFT);
         uint256 merged = base.updateAdminConfig(adminPatch);
         assertTrue(merged.isvaluegood());
+        assertEq(merged.getSafeLineUpper(50_000), 40_000);
+        assertEq(merged.getSafeLineLower128(50_000), 45_000);
         assertEq(merged.getBuyFee(10_000), base.getBuyFee(10_000));
+        assertEq(merged.getLiquidFee(10_000), base.getLiquidFee(10_000));
     }
 
     function test_updateManagerConfig() public pure {
         uint256 base = INITIAL_CONFIG;
         uint256 managerPatch = _validFeeSplitConfig() |
             _pack(1, LIMIT_POWER_SHIFT) |
-            _pack(90, SAFE_LINE_LOWER_SHIFT) |
-            (1 << 252);
+            (1 << 236); // isFreeze
         uint256 merged = base.updateManagerConfig(managerPatch);
-        assertEq(merged.getSafeLineLower(50_000), 45_000);
         assertTrue(merged.isFreeze());
+        // safeLine remains admin-controlled / unchanged by manager
+        assertEq(merged.getSafeLineLower128(50_000), base.getSafeLineLower128(50_000));
         assertEq(merged.getBuyFee(10_000), base.getBuyFee(10_000));
     }
 
@@ -236,10 +222,6 @@ contract testGoodConfig is Test {
         assertFalse(uint256(0).checkGoodConfig());
     }
 
-    function test_getRunTimeConfig_maxSlot() public pure {
-        assertEq(_pack(409, RUN_TIME_SHIFT).getRunBlockConfig(), 409);
-    }
-
     function test_initialConfig_allDefaults() public pure {
         assertTrue(INITIAL_CONFIG.checkGoodConfig());
         assertFalse(INITIAL_CONFIG.isvaluegood());
@@ -248,7 +230,7 @@ contract testGoodConfig is Test {
         assertEq(INITIAL_CONFIG.getLiquidFee(10_000), 6_000);
         assertEq(INITIAL_CONFIG.getLimitPower(), 200);
         assertEq(INITIAL_CONFIG.getSafeLineUpper(50_000), 50_000);
-        assertEq(INITIAL_CONFIG.getSafeLineLower(50_000), 30_000);
+        assertEq(INITIAL_CONFIG.getSafeLineLower128(50_000), 30_000);
         assertEq(INITIAL_CONFIG.getPower(), 100);
         assertEq(INITIAL_CONFIG.getDisinvestChips(10_000), 2_000);
         assertEq(INITIAL_CONFIG.getBuyFee(10_000), 8);

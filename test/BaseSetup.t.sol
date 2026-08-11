@@ -38,6 +38,14 @@ contract BaseSetup is Test, GasSnapshot {
     /// @dev v2.0 removed on-chain good verification; no-op for legacy test setup hooks.
     function _verifyGood(uint256 /* goodId */) internal {}
 
+    /// @dev Mark good as value-good without clearing other admin bits (safeLine / reserved).
+    function _markAsValueGood(uint256 goodId) internal {
+        vm.startPrank(marketcreator);
+        uint256 cfg = market.getGoodState(goodId).goodConfig | (1 << 255);
+        market.modifyGoodByAdmin(goodId, cfg, marketcreator, defaultdata);
+        vm.stopPrank();
+    }
+
     function _expectedInitGoodConfig() internal pure returns (uint256) {
         return TestConfigConstants.INITIAL_GOOD_CONFIG;
     }
@@ -54,6 +62,7 @@ contract BaseSetup is Test, GasSnapshot {
     }
 
     /// @dev Relax pool-depth guards for routine swaps: upper=255 (~2.55x reserve input), lower=1 (1% floor).
+    /// @dev safeLineUpper/Lower are admin-only (bits 254-239).
     function _relaxSafeLine(uint256 goodId) internal {
         vm.startPrank(marketcreator);
         uint256 cfg = market.getGoodState(goodId).goodConfig;
@@ -61,7 +70,7 @@ contract BaseSetup is Test, GasSnapshot {
             (cfg & ~SAFE_LINE_MASK) |
             (uint256(255) << TestConfigConstants.SAFE_LINE_UPPER_SHIFT) |
             (uint256(1) << TestConfigConstants.SAFE_LINE_LOWER_SHIFT);
-        market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        market.modifyGoodByAdmin(goodId, cfg, marketcreator, defaultdata);
         vm.stopPrank();
     }
 

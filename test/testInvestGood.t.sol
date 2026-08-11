@@ -158,11 +158,6 @@ contract testInvestGood is BaseSetup {
         vm.stopPrank();
     }
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _freezeGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
@@ -601,7 +596,8 @@ contract testInvestGood is BaseSetup {
 
     // ── shared revert guards ───────────────────────────────────────────────
 
-    function testInvestGood_revert_busySlot() public {
+    /// @dev Run-block anti-replay was removed; same-block consecutive invest must succeed.
+    function testInvestGood_sameBlock_consecutive_ok() public {
         vm.startPrank(users[1]);
         vm.warp(0);
         btc.approve(address(market), BTC_INVEST * 2);
@@ -613,7 +609,6 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[1]
         );
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
         market.investGood(
             _btcKey(),
             toTTSwapUINT256(0, BTC_INVEST),
@@ -742,11 +737,6 @@ contract testInvestNativeETHValueGood is BaseSetup {
     }
 
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _investNative(
         address trader,
