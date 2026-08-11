@@ -27,8 +27,9 @@ contract testPermitInitGood is BaseSetup {
     using L_TTSwapUINT256Library for uint256;
     using L_ProofIdLibrary for S_ProofKey;
 
+    /// @dev Canonical Permit2 address used by `T_GoodKeyLibrary._permit2`.
     address internal constant PERMIT2 =
-        0xa50eb0d081E986c280efF32dae089939Ea07bd22;
+        0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
     bytes32 internal constant PERMIT_TYPEHASH =
         keccak256(
