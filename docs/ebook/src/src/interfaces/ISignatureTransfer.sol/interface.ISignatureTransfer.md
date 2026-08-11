@@ -1,7 +1,10 @@
 # ISignatureTransfer
+**Title:**
+SignatureTransfer
+
 Handles ERC20 token transfers through signature based actions
 
-*Requires user's token approval on the Permit2 contract*
+Requires user's token approval on the Permit2 contract
 
 
 ## Functions
@@ -9,13 +12,13 @@ Handles ERC20 token transfers through signature based actions
 
 A map from token owner address and a caller specified word index to a bitmap. Used to set bits in the bitmap to prevent against signature replay protection
 
-*Uses unordered nonces so that permit messages do not need to be spent in a certain order*
+Uses unordered nonces so that permit messages do not need to be spent in a certain order
 
-*The mapping is indexed first by the token owner, then by an index specified in the nonce*
+The mapping is indexed first by the token owner, then by an index specified in the nonce
 
-*It returns a uint256 bitmap*
+It returns a uint256 bitmap
 
-*The index, or wordPosition is capped at type(uint248).max*
+The index, or wordPosition is capped at type(uint248).max
 
 
 ```solidity
@@ -26,7 +29,7 @@ function nonceBitmap(address, uint256) external view returns (uint256);
 
 Transfers a token using a signed permit message
 
-*Reverts if the requested amount is greater than the permitted signed amount*
+Reverts if the requested amount is greater than the permitted signed amount
 
 
 ```solidity
@@ -53,9 +56,9 @@ Transfers a token using a signed permit message
 
 Includes extra data provided by the caller to verify signature over
 
-*The witness type string must follow EIP712 ordering of nested structs and must include the TokenPermissions type definition*
+The witness type string must follow EIP712 ordering of nested structs and must include the TokenPermissions type definition
 
-*Reverts if the requested amount is greater than the permitted signed amount*
+Reverts if the requested amount is greater than the permitted signed amount
 
 
 ```solidity
@@ -109,7 +112,7 @@ Transfers multiple tokens using a signed permit message
 
 Includes extra data provided by the caller to verify signature over
 
-*The witness type string must follow EIP712 ordering of nested structs and must include the TokenPermissions type definition*
+The witness type string must follow EIP712 ordering of nested structs and must include the TokenPermissions type definition
 
 
 ```solidity
@@ -138,7 +141,7 @@ function permitWitnessTransferFrom(
 
 Invalidates the bits specified in mask for the bitmap at the word position
 
-*The wordPos is maxed at type(uint248).max*
+The wordPos is maxed at type(uint248).max
 
 
 ```solidity
@@ -179,7 +182,7 @@ error InvalidAmount(uint256 maxAmount);
 ### LengthMismatch
 Thrown when the number of tokens permissioned to a spender does not match the number of tokens being transferred
 
-*If the spender does not need to transfer the number of tokens permitted, the spender can request amount 0 to be transferred*
+If the spender does not need to transfer the number of tokens permitted, the spender can request amount 0 to be transferred
 
 
 ```solidity
@@ -193,7 +196,9 @@ The token and amount details for a transfer signed in the permit transfer signat
 
 ```solidity
 struct TokenPermissions {
+    // ERC20 token address
     address token;
+    // the maximum amount that can be spent
     uint256 amount;
 }
 ```
@@ -205,7 +210,9 @@ The signed permit message for a single token transfer
 ```solidity
 struct PermitTransferFrom {
     TokenPermissions permitted;
+    // a unique value for every token owner's signature to prevent signature replays
     uint256 nonce;
+    // deadline on the permit signature
     uint256 deadline;
 }
 ```
@@ -213,14 +220,16 @@ struct PermitTransferFrom {
 ### SignatureTransferDetails
 Specifies the recipient address and amount for batched transfers.
 
-*Recipients and amounts correspond to the index of the signed token permissions array.*
+Recipients and amounts correspond to the index of the signed token permissions array.
 
-*Reverts if the requested amount is greater than the permitted signed amount.*
+Reverts if the requested amount is greater than the permitted signed amount.
 
 
 ```solidity
 struct SignatureTransferDetails {
+    // recipient address
     address to;
+    // spender requested amount
     uint256 requestedAmount;
 }
 ```
@@ -228,15 +237,18 @@ struct SignatureTransferDetails {
 ### PermitBatchTransferFrom
 Used to reconstruct the signed permit message for multiple token transfers
 
-*Do not need to pass in spender address as it is required that it is msg.sender*
+Do not need to pass in spender address as it is required that it is msg.sender
 
-*Note that a user still signs over a spender address*
+Note that a user still signs over a spender address
 
 
 ```solidity
 struct PermitBatchTransferFrom {
+    // the tokens and corresponding amounts permitted for a transfer
     TokenPermissions[] permitted;
+    // a unique value for every token owner's signature to prevent signature replays
     uint256 nonce;
+    // deadline on the permit signature
     uint256 deadline;
 }
 ```

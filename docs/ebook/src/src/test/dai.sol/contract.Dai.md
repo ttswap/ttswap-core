@@ -6,77 +6,77 @@ dai.sol -- Dai Stablecoin ERC-20 Token
 ### wards
 
 ```solidity
-mapping(address => uint256) public wards;
+mapping(address => uint256) public wards
 ```
 
 
 ### name
 
 ```solidity
-string public constant name = "Dai Stablecoin";
+string public constant name = "Dai Stablecoin"
 ```
 
 
 ### symbol
 
 ```solidity
-string public constant symbol = "DAI";
+string public constant symbol = "DAI"
 ```
 
 
 ### version
 
 ```solidity
-string public constant version = "1";
+string public constant version = "1"
 ```
 
 
 ### decimals
 
 ```solidity
-uint8 public constant decimals = 18;
+uint8 public constant decimals = 18
 ```
 
 
 ### totalSupply
 
 ```solidity
-uint256 public totalSupply;
+uint256 public totalSupply
 ```
 
 
 ### balanceOf
 
 ```solidity
-mapping(address => uint256) public balanceOf;
+mapping(address => uint256) public balanceOf
 ```
 
 
 ### allowance
 
 ```solidity
-mapping(address => mapping(address => uint256)) public allowance;
+mapping(address => mapping(address => uint256)) public allowance
 ```
 
 
 ### nonces
 
 ```solidity
-mapping(address => uint256) public nonces;
+mapping(address => uint256) public nonces
 ```
 
 
 ### DOMAIN_SEPARATOR
 
 ```solidity
-bytes32 public DOMAIN_SEPARATOR;
+bytes32 public DOMAIN_SEPARATOR
 ```
 
 
 ### PERMIT_TYPEHASH
 
 ```solidity
-bytes32 public constant PERMIT_TYPEHASH = 0xea2aa0a1be11a07ed86d755c93467f4f82362b452371d1ba94d1715123511acb;
+bytes32 public constant PERMIT_TYPEHASH = 0xea2aa0a1be11a07ed86d755c93467f4f82362b452371d1ba94d1715123511acb
 ```
 
 
@@ -99,7 +99,7 @@ function deny(address guy) external auth;
 
 
 ```solidity
-modifier auth();
+modifier auth() ;
 ```
 
 ### add

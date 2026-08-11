@@ -1,13 +1,172 @@
 # L_GoodConfigLibrary
-A library for managing and retrieving configuration data for goods
+**Title:**
+L_GoodConfigLibrary
 
-*This library uses bitwise operations and assembly for efficient storage and retrieval of configuration data*
+Packed good configuration: fee flags in high bits + **live `virtualQty` tracker** in low 128 bits.
+
+`config.amount1()` (low 128 bits) is NOT market value `V` — use `investState.amount1()` for `V`.
+
+Bit extraction pattern: `shr(255 - hi + lo, shl(255 - hi, config))` reads the field `[hi..lo]`.
+Fee split fields must sum to 100% when normalized by `checkGoodConfig()`.
+
+**Quantity glossary (see also `L_TTSwapUINT256`)**
+- `currentState.amount0` (`investQty`): actual / principal token units in the pool.
+- `currentState.amount1` (`Q`): total virtual pool depth for the AMM (= actual + leverage virtual + fee legs on swaps).
+- `goodConfig.amount1()` (`virtualQty`): **leverage-only** virtual excess, excluding actual deposits.
+Updated on invest/disinvest: `+= investQuantity - netActual` (e.g. invest 1 @ 3× → `+= 2`).
+Invariant at invest time: `Q ≈ investQty + virtualQty` (before swap fee skew).
+- `investState.amount1` (`V`): total pool value used for pricing (`price ≈ V / Q`).
+
+Configuration bit layout (MSB = bit 255):
+| Bits      | Field           | Width | Scale / unit              | Default |
+|-----------|-----------------|-------|---------------------------|---------|
+| 255       | isValueGood     | 1     | flag                      | 0       |
+| 254-253   | isreserved1     | 2     |                           | 0       |
+| 252       | isFreeze        | 1     | flag                      | 0       |
+| 251       | reserved1       | 1     | flag                      | 0       |
+| 250       | isPromise       | 1     | flag                      | 0       |
+| 249-247   | liquidFee       | 3     | × 0.1  (stored / 10)      | 6       |
+| 246-243   | operatorFee     | 4     | × 0.02 (stored / 50)      | 1       |
+| 242-240   | gateFee         | 3     | × 0.04 (stored / 25)      | 5       |
+| 239-235   | referFee        | 5     | × 0.01 (stored / 100)     | 8       |
+| 234-230   | customerFee     | 5     | × 0.01 (stored / 100)     | 8       |
+| 229-225   | platformFee     | 5     | × 0.01 (stored / 100)     | 2       |
+| 224-220   | limitPower      | 5     | × 100 (0 → 100)           | 1       |
+| 219-212   | safeLineUpper   | 8     |                           | 100     |
+| 211-204   | safeLineLower   | 8     |                           | 60      |
+| 203-197   | contractType    | 7     | raw                       | 0       |
+| 196-185   | lastRunSlot     | 12    | anti-replay time slot     | 0       |
+| 184-173   | reserved        | 12    | unused                    | 0       |
+| 172-168   | power           | 5     | × 100 (0 → 100)           | 1       |
+| 167-160   | disinvestChips  | 8     | chunk divisor (×4 output) | 10      |
+| 159-154   | investThreshold | 6     |                           | 30      |
+| 153-148   | investFee       | 6     | × 0.0001 (stored / 10000) | 8       |
+| 147-142   | disinvestFee    | 6     | × 0.0001 (stored / 10000) | 8       |
+| 141-135   | buyFee          | 7     | × 0.0001 (stored / 10000) | 8       |
+| 134-128   | sellFee         | 7     | × 0.0001 (stored / 10000) | 8       |
+| 127-0     | virtualQty      | 128   | leverage virtual only (excludes actual investQty) | 0       |
+
+Default `initial_config` composition:
+2*2**252 +6* 2**247 + 1 * 2**243 + 5 * 2**240 + 8 * 2**235 + 8 * 2**230 + 2 * 2**225 +2 * 2**220+100*2**212+60*2**204+25*2**154+ 8 * 2**148 + 8 * 2**142 + 8 * 2**135 + 8 * 2**128 + 1 * 2**168 + 20 * 2**160
+
+
+## State Variables
+### initial_config
+Default packed config (fee split sums to 100%, trading fees = 8 bps each).
+
+
+```solidity
+uint256 constant initial_config = 0x230d42042643c000000001146482040800000000000000000000000000000000
+```
+
+
+### admin_config_mask
+Admin-writable region: bit 255 (good type) + bits 254-253 (ERC type).
+
+
+```solidity
+uint256 constant admin_config_mask = 0xe000000000000000000000000000000000000000000000000000000000000000
+```
+
+
+### marketmanager_config_mask
+Market-manager-writable region: bits 252-197 (flags, fee split, limits, metadata).
+
+
+```solidity
+uint256 internal constant marketmanager_config_mask =
+    0x1fffffffffffffe0000000000000000000000000000000000000000000000000
+```
+
+
+### owner_config_mask
+Good-owner-writable region: bits 172-128 (power, chips, trading fees).
+
+
+```solidity
+uint256 internal constant owner_config_mask = 0x000000000000000000001fffffffffff00000000000000000000000000000000
+```
+
+
+### contract_type_mask
+Isolated mask for `contractType` (bits 203-197).
+
+
+```solidity
+uint256 internal constant contract_type_mask = 0x0000000000000fe0000000000000000000000000000000000000000000000000
+```
+
+
+### run_time_config_mask
+`lastRunSlot` field mask (bits 196-185).
+
+
+```solidity
+uint256 internal constant run_time_config_mask = 0x000000000000001ffe0000000000000000000000000000000000000000000000
+```
+
+
+### min_invest_threshold
+
+```solidity
+uint256 internal constant min_invest_threshold = 30
+```
 
 
 ## Functions
+### setInitialConfig
+
+Returns the protocol default packed configuration.
+
+
+```solidity
+function setInitialConfig() internal pure returns (uint256);
+```
+
+### updateAdminConfig
+
+Merges admin-controlled bits (255, 254-247) from `admin_config`.
+
+
+```solidity
+function updateAdminConfig(uint256 config, uint256 admin_config) internal pure returns (uint256);
+```
+
+### updateManagerConfig
+
+Merges market-manager-controlled bits (246-191) from `market_manager_config`.
+
+
+```solidity
+function updateManagerConfig(uint256 config, uint256 market_manager_config) internal pure returns (uint256);
+```
+
+### updateGoodOwnerConfig
+
+Merges good-owner-controlled bits (166-128) from `owner_config`.
+
+
+```solidity
+function updateGoodOwnerConfig(uint256 config, uint256 owner_config) internal pure returns (uint256);
+```
+
+### updateRunBlockConfig
+
+Records that this good was used in the current block slot (`block.number % 4095`).
+
+Reverts `TTSwapError(46)` if the same good is touched twice in the same slot —
+mitigates same-block replay / flash-loan style sequencing on a single pool.
+
+Integrators: advance `block.number` or wait one block between dependent trades on the same good.
+
+
+```solidity
+function updateRunBlockConfig(uint256 config) internal view returns (uint256 a);
+```
+
 ### isvaluegood
 
-Check if the good is a value good
+Checks if the good is configured as a value good.
 
 
 ```solidity
@@ -17,18 +176,18 @@ function isvaluegood(uint256 config) internal pure returns (bool a);
 
 |Name|Type|Description|
 |----|----|-----------|
-|`config`|`uint256`|The configuration value|
+|`config`|`uint256`|The configuration value.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`a`|`bool`|True if it's a value good, false otherwise|
+|`a`|`bool`|True if it's a value good, false otherwise.|
 
 
 ### isnormalgood
 
-Check if the good is a normal good
+Checks if the good is configured as a normal good.
 
 
 ```solidity
@@ -38,23 +197,75 @@ function isnormalgood(uint256 config) internal pure returns (bool a);
 
 |Name|Type|Description|
 |----|----|-----------|
-|`config`|`uint256`|The configuration value|
+|`config`|`uint256`|The configuration value.|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`a`|`bool`|True if it's a normal good, false otherwise|
+|`a`|`bool`|True if it's a normal good, false otherwise.|
 
+
+### setValueGood
+
+Sets or clears bit 255 (`isValueGood`).
+
+
+```solidity
+function setValueGood(uint256 config, bool value_good) internal pure returns (uint256 a);
+```
 
 ### isFreeze
+
+Checks if the good is frozen (trading paused).
 
 
 ```solidity
 function isFreeze(uint256 config) internal pure returns (bool a);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`config`|`uint256`|The configuration value.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`a`|`bool`|True if the good is frozen, false otherwise.|
+
+
+### setFreeze
+
+Sets or clears bit 246 (`isFreeze`).
+
+
+```solidity
+function setFreeze(uint256 config, bool freeze) internal pure returns (uint256 a);
+```
+
+### isPromised
+
+Returns whether the good is under a value promise (bit 244).
+
+
+```solidity
+function isPromised(uint256 config) internal pure returns (bool a);
+```
+
+### setPromised
+
+Sets or clears bit 244 (`isPromise`).
+
+
+```solidity
+function setPromised(uint256 config, bool promised) internal pure returns (uint256 a);
+```
 
 ### getLiquidFee
+
+Liquidity-provider fee from bits 243-241: `stored × amount / 10`.
 
 
 ```solidity
@@ -63,12 +274,16 @@ function getLiquidFee(uint256 config, uint256 amount) internal pure returns (uin
 
 ### getOperatorFee
 
+Operator fee from bits 240-237: `stored × amount / 50`.
+
 
 ```solidity
 function getOperatorFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
 ```
 
 ### getGateFee
+
+Gate fee from bits 236-234: `stored × amount / 25`.
 
 
 ```solidity
@@ -77,12 +292,16 @@ function getGateFee(uint256 config, uint256 amount) internal pure returns (uint1
 
 ### getReferFee
 
+Referral fee from bits 233-229: `stored × amount / 100`.
+
 
 ```solidity
 function getReferFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
 ```
 
 ### getCustomerFee
+
+Customer fee from bits 228-224: `stored × amount / 100`.
 
 
 ```solidity
@@ -91,12 +310,16 @@ function getCustomerFee(uint256 config, uint256 amount) internal pure returns (u
 
 ### getPlatformFee128
 
+Platform fee from bits 223-219: `stored × amount / 100` (uint128).
+
 
 ```solidity
 function getPlatformFee128(uint256 config, uint256 amount) internal pure returns (uint128 a);
 ```
 
 ### getPlatformFee256
+
+Platform fee from bits 223-219: `stored × amount / 100` (uint256).
 
 
 ```solidity
@@ -105,197 +328,165 @@ function getPlatformFee256(uint256 config, uint256 amount) internal pure returns
 
 ### getLimitPower
 
+Max swap leverage from bits 218-214, scaled ×100 (stored 0 → 100).
+
 
 ```solidity
 function getLimitPower(uint256 config) internal pure returns (uint128 a);
 ```
 
-### getInvestFee
+### getSafeLineUpper
 
-Calculate the investment fee for a given amount
-
-
-```solidity
-function getInvestFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`config`|`uint256`|The configuration value|
-|`amount`|`uint256`|The investment amount|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`a`|`uint128`|The calculated investment fee|
-
-
-### getInvestFullFee
+Safety-line amount from bits 219-212: stored 0 → `amount`, else `stored × amount / 1000`.
 
 
 ```solidity
-function getInvestFullFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+function getSafeLineUpper(uint256 config, uint128 amount) internal pure returns (uint128 a);
 ```
 
-### getDisinvestFee
+### getSafeLineLower
 
-Calculate the disinvestment fee for a given amount
+Safety-line amount from bits 211-204: stored 0 → `amount`, else `stored × amount / 1000`.
 
 
 ```solidity
-function getDisinvestFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+function getSafeLineLower(uint256 config, uint128 amount) internal pure returns (uint128 a);
 ```
-**Parameters**
 
-|Name|Type|Description|
-|----|----|-----------|
-|`config`|`uint256`|The configuration value|
-|`amount`|`uint256`|The disinvestment amount|
+### getContractType
 
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`a`|`uint128`|The calculated disinvestment fee|
-
-
-### getBuyFee
-
-Calculate the buying fee for a given amount
+Contract-type identifier from bits 203-197 (7 bits).
 
 
 ```solidity
-function getBuyFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+function getContractType(uint256 config) internal pure returns (uint128 a);
 ```
-**Parameters**
 
-|Name|Type|Description|
-|----|----|-----------|
-|`config`|`uint256`|The configuration value|
-|`amount`|`uint256`|The buying amount|
+### getRunBlockConfig
 
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`a`|`uint128`|The calculated buying fee|
-
-
-### getSellFee
-
-Calculate the selling fee for a given amount
+Anti-replay time slot from bits 190-179.
 
 
 ```solidity
-function getSellFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+function getRunBlockConfig(uint256 config) internal pure returns (uint256 a);
 ```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`config`|`uint256`|The configuration value|
-|`amount`|`uint256`|The selling amount|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`a`|`uint128`|The calculated selling fee|
-
-
-### getPowerBig
-
-Get the swap chips for a given amount
-
-
-```solidity
-function getPowerBig(uint256 config, uint128 amount) internal pure returns (uint128);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`config`|`uint256`|The configuration value|
-|`amount`|`uint128`|The amount|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`<none>`|`uint128`|The swap chips for the given amount|
-
-
-### getPowerLow
-
-Get the swap chips for a given amount
-
-
-```solidity
-function getPowerLow(uint256 config, uint128 amount) internal pure returns (uint128);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`config`|`uint256`|The configuration value|
-|`amount`|`uint128`|The amount|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`<none>`|`uint128`|The swap chips for the given amount|
-
 
 ### getPower
 
-Get the swap chips for a given amount
+Active swap power from bits 166-162, scaled ×100 (stored 0 → 100).
 
 
 ```solidity
-function getPower(uint256 config) internal pure returns (uint128);
+function getPower(uint256 config) internal pure returns (uint128 a);
 ```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`config`|`uint256`|The configuration value|
-
-**Returns**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`<none>`|`uint128`|The swap chips for the given amount|
-
 
 ### getDisinvestChips
 
-Get the disinvestment chips for a given amount
+Max single disinvest chunk from bits 161-154.
+
+Stored value is a divisor; output cap = `(amount / stored) × 4`. Stored 0 disables chunking.
 
 
 ```solidity
 function getDisinvestChips(uint256 config, uint128 amount) internal pure returns (uint128);
 ```
+
+### getInvestThreshold
+
+Invest threshold from bits 153-148.
+
+
+```solidity
+function getInvestThreshold(uint256 config, uint128 amount) internal pure returns (uint128 a);
+```
+
+### getInvestFee
+
+Invest fee from bits 153-148: `stored × amount / 10000`.
+
+
+```solidity
+function getInvestFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+```
+
+### getInvestFullFee
+
+Calculate the full investment quantity (before fee deduction).
+
+This is the inverse of fee calculation, used when determining how much initial input is needed to yield a target output amount after fees.
+
+
+```solidity
+function getInvestFullFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`config`|`uint256`|The configuration value|
-|`amount`|`uint128`|The amount|
+|`config`|`uint256`|The configuration value.|
+|`amount`|`uint256`|The target investment amount (net of fees).|
 
 **Returns**
 
 |Name|Type|Description|
 |----|----|-----------|
-|`<none>`|`uint128`|The disinvestment chips for the given amount|
+|`a`|`uint128`|The gross investment amount required.|
 
+
+### getDisinvestFee
+
+Disinvest fee from bits 147-142: `stored × amount / 10000`.
+
+
+```solidity
+function getDisinvestFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+```
+
+### getBuyFee
+
+Buy fee from bits 141-135: `stored × amount / 10000`.
+
+
+```solidity
+function getBuyFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+```
+
+### getSellFee
+
+Sell fee from bits 134-128: `stored × amount / 10000`.
+
+
+```solidity
+function getSellFee(uint256 config, uint256 amount) internal pure returns (uint128 a);
+```
 
 ### checkGoodConfig
+
+Validates if a configuration value is well-formed and consistent.
+
+Checks that the sum of all fee components (liquidity, operator, gate, referal, customer, platform) equals 100%.
+Each component is extracted from specific bit ranges and normalized.
+- Liquid: [241..243] * 10
+- Operator: [237..240] * 2
+- Gate: [234..236] * 4
+- Referral: [229..233]
+- Customer: [224..228]
+- Platform: [219..223]
 
 
 ```solidity
 function checkGoodConfig(uint256 config) internal pure returns (bool result);
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`config`|`uint256`|The configuration value to check.|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`result`|`bool`|True if the configuration is valid (sum == 100 and no component is 0), false otherwise.|
+
 

@@ -8,18 +8,19 @@ import {IERC20} from "../interfaces/IERC20.sol";
 import {IDAIPermit} from "../interfaces/IDAIPermit.sol";
 import {L_Transient} from "./L_Transient.sol";
 import {TTSwapError} from "./L_Error.sol";
+import {toUint128} from "./L_TTSwapUINT256.sol";
 
 address constant NATIVE = address(1);
 // // mainnet
 address constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
 address constant _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-// //testnet  
+// testnet
 // address constant dai = 0xCaFBbAd55eb09efe7bec8408Cff9932Be7D9A7fA;
 // address constant _permit2 = 0xa50eb0d081E986c280efF32dae089939Ea07bd22;
 
 /// @title L_CurrencyLibrary
 /// @notice This library allows for transferring and holding native tokens and ERC20 tokens.
-/// @dev Handles various transfer methods including native ETH, standard ERC20 transferFrom, 
+/// @dev Handles various transfer methods including native ETH, standard ERC20 transferFrom,
 /// ERC20 Permit, and Permit2 (TransferFrom, Permit, PermitTransferFrom).
 /// It abstracts away the complexity of different token standards and permit signatures.
 library L_CurrencyLibrary {
@@ -96,15 +97,17 @@ library L_CurrencyLibrary {
         uint256 amount,
         bytes calldata detail
     ) internal {
-        bool success;
+        bool success = false;
         if (token.isNative()) {
             // Native ETH: value is tracked via L_Transient; executor must be the payer.
             if (executor != from) revert TTSwapError(39);
             L_Transient.decreaseValue(amount);
+            success = true;
         } else if (detail.length == 0) {
             // Plain ERC20 transferFrom path (no permit).
-            if (executor != from) revert  TTSwapError(39);
+            if (executor != from) revert TTSwapError(39);
             transferFromInter(token, from, to, amount);
+            success = true;
         } else {
             S_transferData memory _simplePermit = abi.decode(
                 detail,
@@ -161,13 +164,14 @@ library L_CurrencyLibrary {
                 }
             } else if (_simplePermit.transfertype == 3) {
                 // Permit2 TransferFrom: allowance is pre-approved on Permit2.
-                if (executor != from) revert  TTSwapError(39);
+                if (executor != from) revert TTSwapError(39);
                 IAllowanceTransfer(_permit2).transferFrom(
                     from,
                     to,
                     to_uint160(amount),
                     token
                 );
+                success = true;
             } else if (_simplePermit.transfertype == 4) {
                 // Permit2 Permit + TransferFrom: set allowance on Permit2 then move tokens.
                 S_Permit2 memory _permit = abi.decode(
@@ -197,6 +201,7 @@ library L_CurrencyLibrary {
                     to_uint160(amount),
                     token
                 );
+                success = true;
             } else if (_simplePermit.transfertype == 5) {
                 // Permit2 PermitTransferFrom: signature-based transfer without prior allowance.
                 S_Permit2 memory _permit = abi.decode(
@@ -219,10 +224,10 @@ library L_CurrencyLibrary {
                     from,
                     bytes.concat(_permit.r, _permit.s, bytes1(_permit.v))
                 );
-            } else {
-                revert TTSwapError(42);
+                success = true;
             }
         }
+        if (!success) revert TTSwapError(42);
     }
 
     function transferFrom(
@@ -233,7 +238,7 @@ library L_CurrencyLibrary {
         bytes calldata trandata
     ) internal {
         address to = address(this);
-        transferFrom(token, from, to, executor, uint128(amount), trandata);
+        transferFrom(token, from, to, executor, toUint128(amount), trandata);
     }
 
     function transferFromInter(
@@ -348,11 +353,7 @@ library L_CurrencyLibrary {
     }
 
     function to_uint160(uint256 amount) internal pure returns (uint160) {
-        if (amount != uint160(amount)) revert TTSwapError(46);
-return uint160(amount);
-    }
-
-    function to_uint256(address amount) internal pure returns (uint256 a) {
-        return uint256(uint160(amount));
+        if (amount != uint160(amount)) revert TTSwapError(52);
+        return uint160(amount);
     }
 }

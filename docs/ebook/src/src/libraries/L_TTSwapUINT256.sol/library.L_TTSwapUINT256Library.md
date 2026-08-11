@@ -1,8 +1,18 @@
 # L_TTSwapUINT256Library
+**Title:**
+L_TTSwapUINT256Library
+
 A library for operations on T_BalanceUINT256
 
 
 ## Functions
+### get64bit
+
+
+```solidity
+function get64bit(uint256 a) internal pure returns (uint64 b);
+```
+
 ### amount0
 
 Extracts the first 128-bit amount from a T_BalanceUINT256
@@ -73,7 +83,10 @@ Calculates amount0 based on a given amount1 and the ratio in balanceDelta
 
 
 ```solidity
-function getamount0fromamount1(uint256 balanceDelta, uint128 amount1delta) internal pure returns (uint128 _amount0);
+function getamount0fromamount1(uint256 balanceDelta, uint128 amount1delta)
+    internal
+    pure
+    returns (uint128 _amount0);
 ```
 **Parameters**
 
@@ -95,7 +108,10 @@ Calculates amount1 based on a given amount0 and the ratio in balanceDelta
 
 
 ```solidity
-function getamount1fromamount0(uint256 balanceDelta, uint128 amount0delta) internal pure returns (uint128 _amount1);
+function getamount1fromamount0(uint256 balanceDelta, uint128 amount0delta)
+    internal
+    pure
+    returns (uint128 _amount1);
 ```
 **Parameters**
 
@@ -110,4 +126,11 @@ function getamount1fromamount0(uint256 balanceDelta, uint128 amount0delta) inter
 |----|----|-----------|
 |`_amount1`|`uint128`|The calculated amount1|
 
+
+### checkUint256Valid
+
+
+```solidity
+function checkUint256Valid(uint256 a) internal pure;
+```
 

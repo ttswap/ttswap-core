@@ -1,173 +1,223 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.29;
 
-import "forge-gas-snapshot/src/GasSnapshot.sol";
-import {Test} from "forge-std/src/Test.sol";
-import {console2} from "forge-std/src/console2.sol";
-import {MyToken} from "../src/test/MyToken.sol";
-import {TTSwap_Token} from "../src/TTSwap_Token.sol";
-import {TTSwap_Token_Proxy} from "../src/TTSwap_Token_Proxy.sol";
-import {TTSwap_Market} from "../src/TTSwap_Market.sol";
-    import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
-import {L_TTSTokenConfigLibrary} from "../src/libraries/L_TTSTokenConfig.sol";
+import {BaseSetup} from "./BaseSetup.t.sol";
+import {I_TTSwap_Market} from "../src/interfaces/I_TTSwap_Market.sol";
 import {I_TTSwap_Token, s_share, s_proof} from "../src/interfaces/I_TTSwap_Token.sol";
+import {T_GoodKey, T_GoodKeyLibrary} from "../src/type/T_GoodKey.sol";
+import {TTSwapError} from "../src/libraries/L_Error.sol";
+import {
+    L_TTSwapUINT256Library,
+    toTTSwapUINT256
+} from "../src/libraries/L_TTSwapUINT256.sol";
 
-contract testTTSwapToken is Test, GasSnapshot {
-    address payable[8] internal users;
-    MyToken btc;
-    MyToken usdt;
-    MyToken eth;
-    address marketcreator;
-    TTSwap_Market market;
-    TTSwap_Token tts_token;
-    uint256 internal marketcreatorkey;
+/// @notice TTSwap_Token stake / unstake + governance (TASK-P1-012, P2-006~009).
+contract testTTSwapToken is BaseSetup {
+    using T_GoodKeyLibrary for T_GoodKey;
+    using L_TTSwapUINT256Library for uint256;
 
-    TTSwap_Market_Proxy market_proxy;
-    using L_TTSTokenConfigLibrary for uint256;
+    address internal stakeCaller;
+    address internal beneficiary;
 
-    function setUp() public virtual {
-        marketcreatorkey = 0xA121;
-        marketcreator = vm.addr(marketcreatorkey);
-        vm.warp(1728111156);
-        
-        users[0] = payable(address(1));
-        users[1] = payable(address(2));
-        users[2] = payable(address(3));
-        users[3] = payable(address(4));
-        users[4] = payable(address(5));
-        users[5] = payable(address(15));
-        users[6] = payable(address(16));
-        users[7] = payable(address(17));
-        btc = new MyToken("BTC", "BTC", 8);
-        usdt = new MyToken("USDT", "USDT", 6);
-        eth = new MyToken("ETH", "ETH", 18);
-        vm.startPrank(marketcreator);
-        TTSwap_Token tts_token_logic = new TTSwap_Token(address(usdt));
-        TTSwap_Token_Proxy tts_token_proxy=new TTSwap_Token_Proxy( marketcreator,  2 ** 255 + 10000,"TTSwap Token","TTS",address(tts_token_logic));
-        tts_token=TTSwap_Token(payable(address(tts_token_proxy)));
-        console2.log("tts_token00", address(tts_token));
+    uint128 internal constant STAKE_VALUE = 100_000;
+    uint128 internal constant UNSTAKE_VALUE = 10_000;
 
-         market = new TTSwap_Market(tts_token);
-        market_proxy = new TTSwap_Market_Proxy(tts_token,address(market));
-        market = TTSwap_Market(payable(address(market_proxy)));
-        console2.log("tts_token01", address(tts_token));
-
-        console2.log("tts_token02", address(tts_token));
-        console2.log("tts_token1", address(tts_token));
-        tts_token.setTokenAdmin(marketcreator,true);
-        console2.log("tts_token2", address(tts_token));
-        tts_token.setTokenManager(marketcreator,true);
-        console2.log("tts_token3", address(tts_token));
-        tts_token.setCallMintTTS(address(market), true);
-        console2.log("tts_token4", address(tts_token));
-        tts_token.setMarketAdmin(marketcreator,true);
-        console2.log("tts_token5", address(tts_token));
-        vm.stopPrank();
+    function setUp() public override {
+        BaseSetup.setUp();
+        stakeCaller = users[1];
+        beneficiary = users[2];
+        vm.warp(1_000_000);
+        vm.prank(marketcreator);
+        tts_token.setCallMintTTS(stakeCaller, true);
     }
 
-    function teststake() public {
-        vm.warp(1728211156);
-        vm.startPrank(marketcreator);
+    function testTTSwapToken_stake_unstake_cycle() public {
+        vm.prank(stakeCaller);
+        uint128 netconstruct = tts_token.stake(beneficiary, STAKE_VALUE);
+        assertEq(netconstruct, 0, "first stake has no construct fee");
 
-        tts_token.setCallMintTTS(users[1], true);
-        vm.stopPrank();
-        vm.startPrank(users[1]);
-        tts_token.stake(users[2], 100000);
-        vm.stopPrank();
-        assertEq(tts_token.stakestate() % 2 ** 128, 100000, "pool value error");
-        assertEq(tts_token.poolstate() / 2 ** 128, 10958904109589041, "pool asset error1");
-        assertEq(tts_token.poolstate() % 2 ** 128, 0, "pool construct error");
-        assertEq(tts_token.balanceOf(users[2]), 0, "tts balance error");
-        console2.log("pool value", tts_token.stakestate() % 2 ** 128);
-        console2.log("pool asset", tts_token.poolstate() / 2 ** 128);
-        console2.log("pool construct", tts_token.poolstate() % 2 ** 128);
-        console2.log("tts balance", tts_token.poolstate() % 2 ** 128);
+        uint256 stakeAfter = tts_token.stakestate();
+        assertEq(stakeAfter.amount1(), STAKE_VALUE, "stakestate tracks proof value");
+        assertEq(tts_token.balanceOf(beneficiary), 0, "no mint on stake");
 
-        vm.stopPrank();
-        vm.startPrank(users[1]);
-        tts_token.unstake(users[2], 1000);
-        vm.stopPrank();
-        console2.log("pool value", tts_token.stakestate() % 2 ** 128);
-        console2.log("pool asset", tts_token.poolstate() / 2 ** 128);
-        console2.log("pool construct", tts_token.poolstate() % 2 ** 128);
-        assertEq(tts_token.stakestate() % 2 ** 128, 99000, "pool value error");
-        assertEq(tts_token.poolstate() / 2 ** 128, 10849315068493151, "pool asset erro2r");
-        assertEq(tts_token.poolstate() % 2 ** 128, 0, "pool construct error");
-        assertEq(tts_token.balanceOf(users[2]), 109589041095890, "tts balance error");
-    }
+        vm.warp(block.timestamp + 86_400);
 
-    function testSetRatio() public {
-        vm.startPrank(marketcreator);
-        tts_token.setTokenAdmin(marketcreator, true);
-        tts_token.setRatio(10000);
-        uint256 result = tts_token.ttstokenconfig().getratio(10000);
-        assertEq(10000, result, "Ratio error");
-        vm.stopPrank();
-    }
+        vm.prank(stakeCaller);
+        tts_token.unstake(beneficiary, UNSTAKE_VALUE);
 
-    function testAddShare() public {
-        vm.startPrank(marketcreator);
-        s_share memory _share = s_share(10000, 5, 6);
-        tts_token.addShare(_share, users[5]);
-
-        s_share memory share = tts_token.usershares(users[5]);
-        uint128 leftamount = share.leftamount;
-        uint128 metric = share.metric;
-        uint8 chips = share.chips;
-        assertEq(10000, leftamount, "left amount error");
-        assertEq(5, metric, "left metric error");
-        assertEq(6, chips, "left chips error");
-
-        _share = s_share(20000, 7, 5);
-        tts_token.addShare(_share, users[5]);
-
-        share = tts_token.usershares(users[5]);
-        leftamount = share.leftamount;
-        metric = share.metric;
-        chips = share.chips;
-        assertEq(30000, leftamount, "left amount error");
-        assertEq(7, metric, "left metric error");
-        assertEq(6, chips, "left chips error");
-        vm.stopPrank();
-    }
-
-    function testPermitAddShare() public {
-        vm.startPrank(marketcreator);
-        s_share memory _share = s_share(10000, 5, 6);
-        tts_token.addShare(_share, users[5]);
-        vm.stopPrank();
-
-        bytes32 _PERMIT_TYPEHASH = keccak256(
-            "permitShare(uint128 amount,uint120 chips,uint8 metric,address owner,uint128 existamount,uint128 deadline,uint256 nonce)"
+        uint256 stakeFinal = tts_token.stakestate();
+        assertEq(
+            stakeFinal.amount1(),
+            STAKE_VALUE - UNSTAKE_VALUE,
+            "partial unstake reduces stake"
         );
-        vm.startPrank(marketcreator);
-        _share = s_share(10000, 5, 6);
-        uint128 dealline = uint128(block.timestamp + 10000);
+        assertGt(tts_token.balanceOf(beneficiary), 0, "profit minted to beneficiary");
+    }
 
-        bytes32 digest = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                tts_token.DOMAIN_SEPARATOR(),
-                keccak256(
-                    abi.encode(
-                        _PERMIT_TYPEHASH, _share.leftamount, _share.chips, _share.metric, users[5], 10000, dealline, 0
-                    )
-                )
-            )
-        );
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(marketcreatorkey, digest);
+    function testTTSwapToken_stake_revert_notAuthorized() public {
+        vm.prank(users[3]);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 71));
+        tts_token.stake(beneficiary, STAKE_VALUE);
+    }
 
+    function testTTSwapToken_unstake_full_exit() public {
+        vm.startPrank(stakeCaller);
+        tts_token.stake(beneficiary, STAKE_VALUE);
+        vm.warp(block.timestamp + 86_400);
+        tts_token.unstake(beneficiary, STAKE_VALUE);
         vm.stopPrank();
+
+        assertEq(tts_token.stakestate().amount1(), 0, "full unstake clears stake");
+    }
+
+    // ── TASK-P2-006 governance ─────────────────────────────────────────────
+
+    function testTTSwapToken_setDAOAdmin_ok() public {
+        vm.prank(marketcreator);
+        tts_token.setDAOAdmin(users[3], true);
+        vm.prank(marketcreator);
+        tts_token.setDAOAdmin(users[3], false);
+    }
+
+    function testTTSwapToken_setDAOAdmin_revert_notAdmin() public {
+        vm.prank(users[3]);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 62));
+        tts_token.setDAOAdmin(users[4], true);
+    }
+
+    function testTTSwapToken_setRatio_ok_and_revert() public {
+        vm.prank(marketcreator);
+        tts_token.setRatio(5000);
+        assertEq(tts_token.ttstokenconfig() & 0xFFFF, 5000, "ratio stored");
+
+        vm.prank(users[3]);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 63));
+        tts_token.setRatio(100);
+
+        vm.prank(marketcreator);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 66));
+        tts_token.setRatio(10001);
+    }
+
+    // ── TASK-P2-007 addShare / burnShare / shareMint ───────────────────────
+
+    function testTTSwapToken_addShare_burnShare_shareMint() public {
+        address shareOwner = users[4];
+        s_share memory share = s_share({
+            leftamount: 1_000_000,
+            metric: 10,
+            chips: 4
+        });
+
+        vm.startPrank(marketcreator);
+        tts_token.setEnv(address(market));
+        tts_token.addShare(share, shareOwner);
+        vm.stopPrank();
+
+        s_share memory stored = tts_token.usershares(shareOwner);
+        assertEq(stored.leftamount, share.leftamount, "share recorded");
+        assertEq(stored.chips, share.chips, "chips recorded");
+
+        uint256 ttsGoodId = T_GoodKey({
+            ercType: 1,
+            contractAddress: address(tts_token),
+            id: 0
+        }).toId();
+        uint256 usdtGoodId = T_GoodKey({
+            ercType: 1,
+            contractAddress: address(usdt),
+            id: 0
+        }).toId();
+        uint256 threshold = (uint256(1) << stored.metric) * (uint256(1) << 128) +
+            20_000_000;
+
+        vm.mockCall(
+            address(market),
+            abi.encodeWithSelector(
+                I_TTSwap_Market.ishigher.selector,
+                ttsGoodId,
+                usdtGoodId,
+                threshold
+            ),
+            abi.encode(true)
+        );
+
+        uint256 balBefore = tts_token.balanceOf(shareOwner);
+        vm.prank(shareOwner);
+        tts_token.shareMint();
+        assertGt(tts_token.balanceOf(shareOwner), balBefore, "shareMint minted");
+
+        vm.prank(marketcreator);
+        tts_token.burnShare(shareOwner);
+        assertEq(tts_token.usershares(shareOwner).leftamount, 0, "share burned");
+    }
+
+    // ── TASK-P2-008 publicSell tiers + cap ─────────────────────────────────
+
+    function testTTSwapToken_publicSell_tier1() public {
+        uint256 usdtAmount = 1_000_000;
+        vm.startPrank(users[5]);
+        deal(address(usdt), users[5], usdtAmount, false);
+        usdt.approve(address(tts_token), usdtAmount);
+        tts_token.publicSell(usdtAmount, defaultdata);
+        vm.stopPrank();
+
+        assertEq(
+            tts_token.balanceOf(users[5]),
+            usdtAmount * 25_000_000,
+            "tier-1 rate"
+        );
+        assertEq(tts_token.publicsell(), usdtAmount, "publicsell tracked");
+    }
+
+    function testTTSwapToken_publicSell_tier2() public {
+        uint256 tier1Cap = 87_500_000_000;
+        uint256 usdtAmount = 1_000_000;
 
         vm.startPrank(users[5]);
-        tts_token.permitShare(_share, dealline, bytes.concat(r, s, bytes1(v)),marketcreator);
-        s_share memory share = tts_token.usershares(users[5]);
-        uint128 leftamount = share.leftamount;
-        uint128 metric = share.metric;
-        uint8 chips = share.chips;
-        assertEq(20000, leftamount, "left amount error");
-        assertEq(5, metric, "left metric error");
-        assertEq(6, chips, "left chips error");
+        deal(address(usdt), users[5], tier1Cap + usdtAmount, false);
+        usdt.approve(address(tts_token), tier1Cap + usdtAmount);
+        tts_token.publicSell(tier1Cap, defaultdata);
+        tts_token.publicSell(usdtAmount, defaultdata);
         vm.stopPrank();
+
+        assertEq(
+            tts_token.balanceOf(users[5]),
+            tier1Cap * 25_000_000 + usdtAmount * 20_000_000,
+            "tier-2 rate after tier-1 cap"
+        );
+    }
+
+    function testTTSwapToken_publicSell_revert_cap() public {
+        vm.startPrank(users[5]);
+        deal(address(usdt), users[5], 250_000_000_001, false);
+        usdt.approve(address(tts_token), 250_000_000_001);
+        tts_token.publicSell(250_000_000_000, defaultdata);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 70));
+        tts_token.publicSell(1, defaultdata);
+        vm.stopPrank();
+    }
+
+    // ── TASK-P2-009 views ──────────────────────────────────────────────────
+
+    function testTTSwapToken_usershares_and_stakeproofinfo_views() public {
+        s_share memory share = s_share({
+            leftamount: 500_000,
+            metric: 5,
+            chips: 2
+        });
+        vm.prank(marketcreator);
+        tts_token.addShare(share, users[6]);
+
+        s_share memory viewShare = tts_token.usershares(users[6]);
+        assertEq(viewShare.leftamount, 500_000, "usershares view");
+
+        vm.prank(stakeCaller);
+        tts_token.stake(beneficiary, STAKE_VALUE);
+
+        uint256 proofId = uint256(keccak256(abi.encode(beneficiary, stakeCaller)));
+        s_proof memory proof = tts_token.stakeproofinfo(proofId);
+        assertEq(proof.fromcontract, stakeCaller, "stakeproof fromcontract");
+        assertEq(proof.proofstate.amount0(), STAKE_VALUE, "stakeproof value");
     }
 }

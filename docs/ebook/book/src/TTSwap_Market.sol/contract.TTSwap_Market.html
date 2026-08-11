@@ -1,0 +1,843 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>TTSwap_Market</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../../book.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="ttswap_market"><a class="header" href="#ttswap_market">TTSwap_Market</a></h1>
+<p><strong>Inherits:</strong>
+<a href="/src/interfaces/I_TTSwap_Market.sol/interface.I_TTSwap_Market.html">I_TTSwap_Market</a>, <a href="/src/interfaces/IMulticall_v4.sol/interface.IMulticall_v4.html">IMulticall_v4</a></p>
+<p><strong>Title:</strong>
+TTSwap_Market</p>
+<p><strong>Author:</strong>
+ttswap.exchange@gmail.com</p>
+<p>Core on-chain market: create goods, provide liquidity, swap, pay, and withdraw.</p>
+<p><strong>Mental model for integrators</strong></p>
+<ul>
+<li>A <strong>good</strong> = one token pool with its own virtual AMM state and fee config.</li>
+<li>A <strong>proof</strong> = one user's LP position in a good (id = hash of owner + good).</li>
+<li><strong>buyGood</strong> = exact-input swap (you specify how much you sell; min output is slippage guard).</li>
+<li><strong>payGood</strong> = exact-output swap or same-token transfer (you specify how much recipient gets).</li>
+<li><strong>Value good</strong> flag (config bit 255) marks pricing/reference tokens (e.g. stablecoin side).</li>
+</ul>
+<p><strong>Good quantity fields</strong> (see <code>L_GoodConfig</code> glossary):
+<code>currentState.amount0</code> = investQty; <code>currentState.amount1</code> = Q;
+<code>goodConfig.amount1()</code> = leverage virtualQty only; <code>investState.amount1</code> = V.</p>
+<p><strong>Meta-transactions</strong>
+Only <code>buyGood</code> and <code>payGood</code> verify EIP-712 when <code>msg.sender != _trader</code>.
+All other functions with a <code>signature</code> argument keep it for ABI compatibility only;
+they require <code>_trader == msg.sender</code> via <code>_checkTrader</code>.</p>
+<p><strong>Security modifiers</strong></p>
+<ul>
+<li><code>guardedEntry</code>: reentrancy lock (standalone 0→2, or 1→2 inside multicall).</li>
+<li><code>msgValue</code>: transient native-ETH budget for the whole call tree.</li>
+<li><code>multicallEntry</code>: arms lock level 1 so batched delegatecalls share one ETH budget.
+website  http://www.ttswap.io
+twitter  https://x.com/ttswapfinance
+telegram https://t.me/ttswapfinance
+discord  https://discord.gg/XygqnmQgX3</li>
+</ul>
+<h2 id="state-variables"><a class="header" href="#state-variables">State Variables</a></h2>
+<h3 id="implementation"><a class="header" href="#implementation">implementation</a></h3>
+<p>Reserved storage slot for <strong>proxy implementation pointer</strong> (UUPS / transparent proxy layout).
+Intentionally unused in logic-only builds; keeps layout aligned with deployed proxy. See audit M-06.</p>
+<pre><code class="language-solidity">address internal implementation
+</code></pre>
+<h3 id="tts_contract"><a class="header" href="#tts_contract">TTS_CONTRACT</a></h3>
+<p>TTS token contract — permissions, referral, stake/unstake hooks.</p>
+<pre><code class="language-solidity">I_TTSwap_Token internal immutable TTS_CONTRACT
+</code></pre>
+<h3 id="nonces"><a class="header" href="#nonces">nonces</a></h3>
+<p>Per-trader nonce consumed by EIP-712 signed <code>buyGood</code> / <code>payGood</code> (also manually bumpable via <code>cancelNonce</code>).</p>
+<pre><code class="language-solidity">mapping(address _trader =&gt; uint256 nonce) public nonces
+</code></pre>
+<h3 id="upgradeable"><a class="header" href="#upgradeable">upgradeable</a></h3>
+<p>Reserved flag for upgrade / admin flows in proxy deployments; placeholder in logic contract. See audit M-06.</p>
+<pre><code class="language-solidity">bool internal upgradeable
+</code></pre>
+<h3 id="goods"><a class="header" href="#goods">goods</a></h3>
+<p>All goods indexed by <code>T_GoodKey.toId()</code>.
+Each stores pool depth, LP totals, owner, fees, and per-recipient commission balances.</p>
+<pre><code class="language-solidity">mapping(uint256 goodid =&gt; S_GoodState) private goods
+</code></pre>
+<h3 id="proofs"><a class="header" href="#proofs">proofs</a></h3>
+<p>LP proofs indexed by <code>S_ProofKey.toId()</code> (hash of owner + good id).</p>
+<pre><code class="language-solidity">mapping(uint256 proofid =&gt; S_ProofState) private proofs
+</code></pre>
+<h3 id="executefee"><a class="header" href="#executefee">executeFee</a></h3>
+<p>Relayer execution fee denominator: fee in output-token units = poolPrice(executeFee).
+<code>50_000_000_000</code> is the fixed amount0 side; amount1 is derived per output good price.</p>
+<pre><code class="language-solidity">uint128 internal constant executeFee = 50_000_000_000
+</code></pre>
+<h3 id="version"><a class="header" href="#version">Version</a></h3>
+<p>EIP-712 domain version string.</p>
+<pre><code class="language-solidity">string internal constant Version = "2.0.0"
+</code></pre>
+<h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
+<h3 id="constructor"><a class="header" href="#constructor">constructor</a></h3>
+<pre><code class="language-solidity">constructor(I_TTSwap_Token _TTS_Contract) ;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_TTS_Contract</code></td><td><code>I_TTSwap_Token</code></td><td>Official TTSwap token (roles, referral, staking).</td></tr>
+</tbody></table>
+</div>
+<h3 id="onlymarketadmin"><a class="header" href="#onlymarketadmin">onlyMarketadmin</a></h3>
+<p>Requires <code>TTS_CONTRACT.userConfig(msg.sender).isMarketAdmin()</code>.</p>
+<pre><code class="language-solidity">modifier onlyMarketadmin() ;
+</code></pre>
+<h3 id="onlymarketor"><a class="header" href="#onlymarketor">onlyMarketor</a></h3>
+<p>Requires <code>TTS_CONTRACT.userConfig(msg.sender).isMarketManager()</code>.</p>
+<pre><code class="language-solidity">modifier onlyMarketor() ;
+</code></pre>
+<h3 id="msgvalue"><a class="header" href="#msgvalue">msgValue</a></h3>
+<p>Wraps native-ETH accounting (<code>L_Transient</code>) around the function body.
+Use on any entrypoint that may move native goods or receive <code>msg.value</code>.</p>
+<pre><code class="language-solidity">modifier msgValue() ;
+</code></pre>
+<h3 id="multicallentry"><a class="header" href="#multicallentry">multicallEntry</a></h3>
+<p>Multicall entry: arms lock level 1 so guarded subcalls can promote 1→2.</p>
+<pre><code class="language-solidity">modifier multicallEntry() ;
+</code></pre>
+<h3 id="guardedentry"><a class="header" href="#guardedentry">guardedEntry</a></h3>
+<p>Guarded entry: works standalone (lock 0→2) and inside multicall (lock 1→2).
+Reverts on reentrancy (lock == 2). Restores previous lock level on exit.</p>
+<pre><code class="language-solidity">modifier guardedEntry() ;
+</code></pre>
+<h3 id="_checktrader"><a class="header" href="#_checktrader">_checkTrader</a></h3>
+<p>Direct-call only: <code>_trader</code> must be <code>msg.sender</code> (no relayer on this path).</p>
+<pre><code class="language-solidity">function _checkTrader(address _trader) private view;
+</code></pre>
+<h3 id="_checkgoodactive"><a class="header" href="#_checkgoodactive">_checkGoodActive</a></h3>
+<p>Shared guard for swap / invest paths.</p>
+<p>Also enforces <strong>run-block</strong> anti-replay: one state-changing touch per good per <code>block.number % 4095</code>.</p>
+<pre><code class="language-solidity">function _checkGoodActive(S_GoodState storage g, uint256 freezeErr, uint256 emptyErr) private view;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>g</code></td><td><code>S_GoodState</code></td><td></td></tr>
+<tr><td><code>freezeErr</code></td><td><code>uint256</code></td><td>Error code when good is frozen (10 buy-side, 11 pay output, etc.).</td></tr>
+<tr><td><code>emptyErr</code></td><td><code>uint256</code></td><td>Error code when good not initialized (12 / 13).</td></tr>
+</tbody></table>
+</div>
+<h3 id="multicall"><a class="header" href="#multicall">multicall</a></h3>
+<p>Batch multiple market calls in one transaction (delegatecall into self).</p>
+<p>Must be <code>payable</code> with <code>msgValue</code> + <code>multicallEntry</code> so native ETH budget is set once
+at the outer boundary and not re-seeded on each subcall (see <code>L_Transient</code>).</p>
+<pre><code class="language-solidity">function multicall(bytes[] calldata data)
+    external
+    payable
+    msgValue
+    multicallEntry
+    returns (bytes[] memory results);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>data</code></td><td><code>bytes[]</code></td><td>The encoded function data for each of the calls to make to this contract</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>results</code></td><td><code>bytes[]</code></td><td>The results from each of the calls passed in via data</td></tr>
+</tbody></table>
+</div>
+<h3 id="initgood"><a class="header" href="#initgood">initGood</a></h3>
+<p>Create a new good (token pool) with a user-chosen initial price.</p>
+<p>Deposits <code>_initial.amount1</code> tokens and declares <code>_initial.amount0</code> as total pool value.
+Mints the first proof for <code>msg.sender</code> with 100% of initial shares.</p>
+<pre><code class="language-solidity">function initGood(
+    T_GoodKey memory _goodKey,
+    uint256 _initial,
+    bytes calldata _normaldata,
+    address _trader,
+    bytes calldata _signature
+) external payable override guardedEntry msgValue returns (bool);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_goodKey</code></td><td><code>T_GoodKey</code></td><td>Token identifier (ERC-20 or native sentinel <code>address(1)</code>).</td></tr>
+<tr><td><code>_initial</code></td><td><code>uint256</code></td><td>amount0 = declared value, amount1 = token quantity deposited.</td></tr>
+<tr><td><code>_normaldata</code></td><td><code>bytes</code></td><td>Encoded transfer path (approve / permit / Permit2) for ERC-20; empty for native with <code>msg.value</code>.</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>Must equal <code>msg.sender</code>.</td></tr>
+<tr><td><code>_signature</code></td><td><code>bytes</code></td><td>Unused (ABI placeholder).</td></tr>
+</tbody></table>
+</div>
+<h3 id="investgood"><a class="header" href="#investgood">investGood</a></h3>
+<p>Add single-token liquidity to an existing good without pairing a value good.</p>
+<p>The caller deposits only the target token; its credited value is derived from
+the current pool price and scaled by the leverage factor (<code>enpower</code>).
+Flow: isInvestBlocked (price guard) → transfer tokens in → compute virtual shares
+→ update good state → update/create proof → stake value to TTS.
+Reverts with TTSwapError(47) if the deposit price exceeds the current pool price,
+TTSwapError(38) if the resulting investment value is below the dust threshold.</p>
+<pre><code class="language-solidity">function investGood(
+    T_GoodKey memory _goodKey,
+    uint256 _invest,
+    bytes calldata _gooddata,
+    bytes calldata signature,
+    address _trader
+) external payable override guardedEntry msgValue returns (bool result);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_goodKey</code></td><td><code>T_GoodKey</code></td><td>Address of the ERC-20 token (good) to invest in.</td></tr>
+<tr><td><code>_invest</code></td><td><code>uint256</code></td><td>Packed uint256 — amount0: credited value per unit, amount1: token quantity to deposit.</td></tr>
+<tr><td><code>_gooddata</code></td><td><code>bytes</code></td><td>Encoded transfer authorisation (plain approve / EIP-2612 / Permit2).</td></tr>
+<tr><td><code>signature</code></td><td><code>bytes</code></td><td>Reserved for ABI compatibility; <strong>not verified</strong> here (C-01 scheme B). Do not rely on relayer semantics.</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>Must equal <code>msg.sender</code> (enforced by <code>_checkTrader</code>); receives the investment proof context in events.</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>result</code></td><td><code>bool</code></td><td>True on success.</td></tr>
+</tbody></table>
+</div>
+<h3 id="buygood"><a class="header" href="#buygood">buyGood</a></h3>
+<p>This function calculates the swap amount based on the AMM formula, deducts fees,
+updates reserves, and transfers tokens.</p>
+<p>Executes a swap (buy) between two goods.</p>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>
+<p>security: Protected by reentrancy guard.</p>
+</li>
+<li>
+<p>security: Verifies EIP-712 signature if the caller is a relayer.</p>
+</li>
+<li>
+<p>security: Checks slippage tolerance against gross AMM output (<code>_swapQuantity.amount1()</code>).</p>
+</li>
+<li>
+<p>security: Validates that the pool has sufficient liquidity and is not frozen.</p>
+</li>
+</ul>
+<pre><code class="language-solidity">function buyGood(
+    T_GoodKey memory _goodKey1,
+    T_GoodKey memory _goodKey2,
+    uint256 _swapQuantity,
+    address _recipient,
+    bytes calldata data,
+    address _trader,
+    bytes calldata signature,
+    uint256 external_info
+) external payable override guardedEntry msgValue returns (uint256 good1change, uint256 good2change);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_goodKey1</code></td><td><code>T_GoodKey</code></td><td>The address of the input good (selling).</td></tr>
+<tr><td><code>_goodKey2</code></td><td><code>T_GoodKey</code></td><td>The address of the output good (buying).</td></tr>
+<tr><td><code>_swapQuantity</code></td><td><code>uint256</code></td><td>The swap details: - amount0: The input quantity of _goodid1. - amount1: The minimum gross output quantity of _goodid2 before any relayer execution fee.</td></tr>
+<tr><td><code>_recipient</code></td><td><code>address</code></td><td>The address to receive the bought goods (if different from trader). Also used for referral tracking if different from trader.</td></tr>
+<tr><td><code>data</code></td><td><code>bytes</code></td><td>Additional data for the input token transfer (Permit/Transfer).</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>The address of the trader initiating the swap (must match signer if signature used).</td></tr>
+<tr><td><code>signature</code></td><td><code>bytes</code></td><td>The EIP-712 signature authorizing the trade (if msg.sender != _trader).</td></tr>
+<tr><td><code>external_info</code></td><td><code>uint256</code></td><td>External business metadata (e.g., payment order id or other extra info).</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>good1change</code></td><td><code>uint256</code></td><td>The state change of the input good: - amount0: Fee quantity deducted. - amount1: Actual input quantity swapped.</td></tr>
+<tr><td><code>good2change</code></td><td><code>uint256</code></td><td>The state change of the output good: - amount0: Fee quantity deducted. - amount1: Gross output quantity from the AMM before any relayer execution fee.</td></tr>
+</tbody></table>
+</div>
+<h3 id="paygood"><a class="header" href="#paygood">payGood</a></h3>
+<p>This function calculates the input amount needed to get a specific gross output amount (inverse swap).
+If <code>_goodid1</code> == <code>_goodid2</code>, it performs a direct transfer path with relayer fee deduction semantics.</p>
+<p>Executes a payment or swap using specific output quantity (Pay).</p>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>
+<p>security: Protected by reentrancy guard.</p>
+</li>
+<li>
+<p>security: Verifies EIP-712 signature if the caller is a relayer.</p>
+</li>
+<li>
+<p>security: Checks max input limit (<code>_swapQuantity.amount0()</code>).</p>
+</li>
+<li>
+<p>security: <code>external_info</code> is included in signature payload as business context metadata.</p>
+</li>
+</ul>
+<pre><code class="language-solidity">function payGood(
+    T_GoodKey memory _goodKey1,
+    T_GoodKey memory _goodKey2,
+    uint256 _swapQuantity,
+    address _recipient,
+    bytes calldata data,
+    address _trader,
+    bytes calldata signature,
+    uint256 external_info
+) external payable guardedEntry msgValue returns (uint256 good1change, uint256 good2change);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_goodKey1</code></td><td><code>T_GoodKey</code></td><td>The address of the input good (paying with).</td></tr>
+<tr><td><code>_goodKey2</code></td><td><code>T_GoodKey</code></td><td>The address of the output good (paying to).</td></tr>
+<tr><td><code>_swapQuantity</code></td><td><code>uint256</code></td><td>The swap details: - amount0: The maximum input quantity of _goodid1 (slippage protection). - amount1: The target gross output quantity of _goodid2 before any relayer execution fee.</td></tr>
+<tr><td><code>_recipient</code></td><td><code>address</code></td><td>The address to receive the payment (goods). In relayer mode, net delivery may be lower because execution fee is deducted from gross output.</td></tr>
+<tr><td><code>data</code></td><td><code>bytes</code></td><td>Additional data for the input token transfer (Permit/Transfer).</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>The address of the trader initiating the payment (must match signer).</td></tr>
+<tr><td><code>signature</code></td><td><code>bytes</code></td><td>The EIP-712 signature authorizing the payment (if msg.sender != _trader).</td></tr>
+<tr><td><code>external_info</code></td><td><code>uint256</code></td><td>amount0: external business metadata (e.g. payment order id). amount1: deadline; if non-zero and <code>block.timestamp</code> exceeds it, reverts <code>TTSwapError(53)</code>.</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>good1change</code></td><td><code>uint256</code></td><td>The state change of the input good: - amount0: Fee quantity deducted. - amount1: Actual input quantity used.</td></tr>
+<tr><td><code>good2change</code></td><td><code>uint256</code></td><td>The state change of the output good: - amount0: Fee quantity deducted. - amount1: Gross output quantity from the AMM / direct-pay path before any relayer execution fee.</td></tr>
+</tbody></table>
+</div>
+<h3 id="disinvestproof"><a class="header" href="#disinvestproof">disinvestProof</a></h3>
+<p>Withdraw LP shares: return principal + profit, split fees to gate/referral/platform.</p>
+<pre><code class="language-solidity">function disinvestProof(
+    uint256 _proofid,
+    uint128 _goodshares,
+    address _gate,
+    address _trader,
+    bytes calldata signature
+) external override guardedEntry returns (uint128);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_proofid</code></td><td><code>uint256</code></td><td>Proof id for <code>(msg.sender, good)</code>.</td></tr>
+<tr><td><code>_goodshares</code></td><td><code>uint128</code></td><td>Share amount to burn (partial withdraw allowed per <code>getDisinvestChips</code>).</td></tr>
+<tr><td><code>_gate</code></td><td><code>address</code></td><td>Gate address for operator/customer fee routing (zeroed if banned).</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>Must equal <code>msg.sender</code>.</td></tr>
+<tr><td><code>signature</code></td><td><code>bytes</code></td><td>Unused (ABI placeholder).</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint128</code></td><td>Profit credited to the user after fees (normal-good leg).</td></tr>
+</tbody></table>
+</div>
+<h3 id="refreshpromise"><a class="header" href="#refreshpromise">refreshPromise</a></h3>
+<p>Emits <code>e_getPromiseProof</code> for applied goods when the caller is the good owner and proof matches <code>msg.sender</code>.</p>
+<p><strong>C-01 / M-08</strong>: No EIP-712 and <strong>no relayer/meta-tx</strong>; only the proof owner can call (enforced via <code>S_ProofKey(msg.sender, ...)</code>).
+Integrators must not assume a signature or <code>_trader</code> parameter — caller MUST be <code>msg.sender</code>.</p>
+<pre><code class="language-solidity">function refreshPromise(uint256 _proofid) external;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_proofid</code></td><td><code>uint256</code></td><td>Proof id derived from <code>(msg.sender, currentgood, valuegood)</code>.</td></tr>
+</tbody></table>
+</div>
+<h3 id="ishigher"><a class="header" href="#ishigher">ishigher</a></h3>
+<p>This function:</p>
+<ul>
+<li>Compares the current trading iterations (states) of two goods</li>
+<li>Used to determine the trading order and eligibility for operations</li>
+<li>Essential for maintaining trading synchronization between goods</li>
+<li>Returns false if either good is not registered (state = 0)</li>
+</ul>
+<p>Compares the current trading states of two goods to determine if the first good is in a higher iteration</p>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>
+<p>security: This is a view function with no state modifications</p>
+</li>
+<li>
+<p>security: Returns false for unregistered goods to prevent invalid operations</p>
+</li>
+</ul>
+<pre><code class="language-solidity">function ishigher(uint256 goodid, uint256 valuegood, uint256 compareprice) external view returns (bool);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>goodid</code></td><td><code>uint256</code></td><td>First good id.</td></tr>
+<tr><td><code>valuegood</code></td><td><code>uint256</code></td><td>Second good id (reference / value side).</td></tr>
+<tr><td><code>compareprice</code></td><td><code>uint256</code></td><td>the price of use good2 for good1</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>bool</code></td><td>bool Returns true if good1's current state is higher than good2's, false otherwise</td></tr>
+</tbody></table>
+</div>
+<h3 id="getrecentgoodstate"><a class="header" href="#getrecentgoodstate">getRecentGoodState</a></h3>
+<p>This function is a view function that:</p>
+<ul>
+<li>Returns the current trading iteration (state) for both goods</li>
+<li>Useful for checking the latest trading status of a pair of goods</li>
+<li>Can be used to verify if goods are in sync for trading operations</li>
+</ul>
+<p>Retrieves the current state of two goods in a single call</p>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>
+<p>security: This is a view function with no state modifications</p>
+</li>
+<li>
+<p>security: Returns 0 if either good address is not registered</p>
+</li>
+</ul>
+<pre><code class="language-solidity">function getRecentGoodState(uint256 good1, uint256 good2)
+    external
+    view
+    returns (uint256 good1currentstate, uint256 good2currentstate);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>good1</code></td><td><code>uint256</code></td><td>The address of the first good to query</td></tr>
+<tr><td><code>good2</code></td><td><code>uint256</code></td><td>The address of the second good to query</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>good1currentstate</code></td><td><code>uint256</code></td><td><code>(V, Q)</code> for good1 — see <code>L_Good.getGoodState</code>.</td></tr>
+<tr><td><code>good2currentstate</code></td><td><code>uint256</code></td><td><code>(V, Q)</code> for good2.</td></tr>
+</tbody></table>
+</div>
+<h3 id="getproofstate"><a class="header" href="#getproofstate">getProofState</a></h3>
+<p>Retrieves the current state of a proof.</p>
+<pre><code class="language-solidity">function getProofState(uint256 proofid) external view returns (S_ProofState memory);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>proofid</code></td><td><code>uint256</code></td><td>Proof id (<code>keccak256(owner, goodId)</code>).</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>S_ProofState</code></td><td>proofstate Snapshot — see <code>S_ProofState</code> / <code>L_Proof</code> (position-level, not pool <code>virtualQty</code>).</td></tr>
+</tbody></table>
+</div>
+<h3 id="getgoodstate"><a class="header" href="#getgoodstate">getGoodState</a></h3>
+<p>Retrieves the current state of a good.</p>
+<pre><code class="language-solidity">function getGoodState(uint256 good) external view returns (S_GoodTmpState memory);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>good</code></td><td><code>uint256</code></td><td>Good id.</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>S_GoodTmpState</code></td><td>goodstate Snapshot: - goodConfig: fee flags + <code>virtualQty</code> in low 128 bits (<code>config.amount1()</code>). - currentState.amount0 = <code>investQty</code>; amount1 = <code>Q</code> (total virtual depth). - investState.amount0 = shares; amount1 = <code>V</code> (pool value).</td></tr>
+</tbody></table>
+</div>
+<h3 id="modifygoodbygoodowner"><a class="header" href="#modifygoodbygoodowner">modifyGoodByGoodOwner</a></h3>
+<p>Updates a good's configuration</p>
+<pre><code class="language-solidity">function modifyGoodByGoodOwner(uint256 _goodid, uint256 _goodConfig, address _trader, bytes calldata signature)
+    external
+    returns (bool);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_goodid</code></td><td><code>uint256</code></td><td>The ID of the good</td></tr>
+<tr><td><code>_goodConfig</code></td><td><code>uint256</code></td><td>The new configuration</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>Must equal <code>msg.sender</code> (enforced by <code>_checkTrader</code>).</td></tr>
+<tr><td><code>signature</code></td><td><code>bytes</code></td><td>Reserved for ABI compatibility; <strong>not verified</strong> here.</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>bool</code></td><td>Success status</td></tr>
+</tbody></table>
+</div>
+<h3 id="modifygoodbymanager"><a class="header" href="#modifygoodbymanager">modifyGoodByManager</a></h3>
+<p>Market manager patches manager-writable bits (fee split, safe lines, flags).</p>
+<pre><code class="language-solidity">function modifyGoodByManager(uint256 _goodid, uint256 _goodConfig, address _trader, bytes calldata signature)
+    external
+    onlyMarketor
+    returns (bool);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_goodid</code></td><td><code>uint256</code></td><td>The ID of the good</td></tr>
+<tr><td><code>_goodConfig</code></td><td><code>uint256</code></td><td>The new configuration</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>Must equal <code>msg.sender</code> (enforced by <code>_checkTrader</code>).</td></tr>
+<tr><td><code>signature</code></td><td><code>bytes</code></td><td>Reserved for ABI compatibility; <strong>not verified</strong> here.</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>bool</code></td><td>Success status</td></tr>
+</tbody></table>
+</div>
+<h3 id="modifygoodbyadmin"><a class="header" href="#modifygoodbyadmin">modifyGoodByAdmin</a></h3>
+<p>Market admin patches admin bits (value-good flag, ERC type).</p>
+<pre><code class="language-solidity">function modifyGoodByAdmin(uint256 _goodid, uint256 _goodConfig, address _trader, bytes calldata signature)
+    external
+    override
+    onlyMarketadmin
+    returns (bool);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_goodid</code></td><td><code>uint256</code></td><td>The ID of the good</td></tr>
+<tr><td><code>_goodConfig</code></td><td><code>uint256</code></td><td>The new configuration</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>Must equal <code>msg.sender</code> (enforced by <code>_checkTrader</code>).</td></tr>
+<tr><td><code>signature</code></td><td><code>bytes</code></td><td>Reserved for ABI compatibility; <strong>not verified</strong> here.</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>bool</code></td><td>Success status</td></tr>
+</tbody></table>
+</div>
+<h3 id="lockgood"><a class="header" href="#lockgood">lockGood</a></h3>
+<p>Locks a good when the caller is market manager or good owner.</p>
+<pre><code class="language-solidity">function lockGood(uint256 _goodid, address _trader, bytes calldata signature) external override;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_goodid</code></td><td><code>uint256</code></td><td>The good to lock.</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>Must equal <code>msg.sender</code> (enforced by <code>_checkTrader</code>).</td></tr>
+<tr><td><code>signature</code></td><td><code>bytes</code></td><td>Reserved for ABI compatibility; <strong>not verified</strong> here.</td></tr>
+</tbody></table>
+</div>
+<h3 id="changegoodowner"><a class="header" href="#changegoodowner">changeGoodOwner</a></h3>
+<p>Changes the owner of a good</p>
+<pre><code class="language-solidity">function changeGoodOwner(uint256 _goodid, address _to, address _trader, bytes calldata signature)
+    external
+    override
+    onlyMarketor;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_goodid</code></td><td><code>uint256</code></td><td>The ID of the good</td></tr>
+<tr><td><code>_to</code></td><td><code>address</code></td><td>The new owner's address</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>Must equal <code>msg.sender</code> (enforced by <code>_checkTrader</code>).</td></tr>
+<tr><td><code>signature</code></td><td><code>bytes</code></td><td>Reserved for ABI compatibility; <strong>not verified</strong> here.</td></tr>
+</tbody></table>
+</div>
+<h3 id="collectcommission"><a class="header" href="#collectcommission">collectCommission</a></h3>
+<p>Collects commission for specified goods</p>
+<p>Market admin collects platform slot (<code>recipient == address(0)</code> internally).</p>
+<pre><code class="language-solidity">function collectCommission(uint256[] calldata _goodid, address _trader, bytes calldata signature)
+    external
+    override
+    guardedEntry;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_goodid</code></td><td><code>uint256[]</code></td><td>Array of good IDs</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>Must equal <code>msg.sender</code> (enforced by <code>_checkTrader</code>).</td></tr>
+<tr><td><code>signature</code></td><td><code>bytes</code></td><td>Reserved for ABI compatibility; <strong>not verified</strong> here.</td></tr>
+</tbody></table>
+</div>
+<h3 id="querycommission"><a class="header" href="#querycommission">queryCommission</a></h3>
+<p>This function:</p>
+<ul>
+<li>Returns commission amounts for up to 100 goods in a single call</li>
+<li>Each amount represents the commission available for the recipient</li>
+<li>Returns 0 for goods where no commission is available</li>
+<li>Maintains gas efficiency by using a fixed array size</li>
+</ul>
+<p>Queries commission amounts for multiple goods for a specific recipient</p>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>
+<p>security: Reverts if more than 100 goods are queried</p>
+</li>
+<li>
+<p>security: View function, does not modify state</p>
+</li>
+</ul>
+<pre><code class="language-solidity">function queryCommission(uint256[] calldata _goodid, address _recipient) external view returns (uint256[] memory);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_goodid</code></td><td><code>uint256[]</code></td><td>Array of good addresses to query commission for</td></tr>
+<tr><td><code>_recipient</code></td><td><code>address</code></td><td>The address to check commission amounts for</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint256[]</code></td><td>feeamount Array of commission amounts corresponding to each good</td></tr>
+</tbody></table>
+</div>
+<h3 id="goodwelfare"><a class="header" href="#goodwelfare">goodWelfare</a></h3>
+<p>This function:</p>
+<ul>
+<li>Allows anyone to contribute additional funds to a good's fee pool</li>
+<li>Increases the good's feeQuantityState by the welfare amount</li>
+<li>Transfers tokens from the sender to the good</li>
+<li>Emits an event with the welfare contribution details</li>
+</ul>
+<p>Adds welfare funds to a good's fee pool</p>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>
+<p>security: Protected by noReentrant modifier</p>
+</li>
+<li>
+<p>security: Checks for overflow in feeQuantityState</p>
+</li>
+</ul>
+<pre><code class="language-solidity">function goodWelfare(
+    uint256 goodid,
+    uint128 welfare,
+    bytes calldata data,
+    address _trader,
+    bytes calldata signature
+) external payable guardedEntry msgValue;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>goodid</code></td><td><code>uint256</code></td><td>The address of the good to receive welfare</td></tr>
+<tr><td><code>welfare</code></td><td><code>uint128</code></td><td>The amount of tokens to add as welfare</td></tr>
+<tr><td><code>data</code></td><td><code>bytes</code></td><td>Additional data for token transfer</td></tr>
+<tr><td><code>_trader</code></td><td><code>address</code></td><td>Must equal <code>msg.sender</code> (enforced by <code>_checkTrader</code>).</td></tr>
+<tr><td><code>signature</code></td><td><code>bytes</code></td><td>Reserved for ABI compatibility; <strong>not verified</strong> here.</td></tr>
+</tbody></table>
+</div>
+<h3 id="domain_separator"><a class="header" href="#domain_separator">DOMAIN_SEPARATOR</a></h3>
+<p>Returns the EIP-712 domain separator used by relayed entrypoints.</p>
+<p>Always computed from the current execution context so proxy calls bind signatures
+to the proxy address instead of the implementation address.</p>
+<pre><code class="language-solidity">function DOMAIN_SEPARATOR() public view virtual returns (bytes32);
+</code></pre>
+<h3 id="computedomainseparator"><a class="header" href="#computedomainseparator">computeDomainSeparator</a></h3>
+<pre><code class="language-solidity">function computeDomainSeparator() internal view virtual returns (bytes32);
+</code></pre>
+<h3 id="cancelnonce"><a class="header" href="#cancelnonce">cancelNonce</a></h3>
+<p>Invalidate pending EIP-712 signatures by bumping the caller's nonce.</p>
+<pre><code class="language-solidity">function cancelNonce() external;
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../src/type/T_GoodKey.sol/library.T_GoodKeyLibrary.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../../src/TTSwap_Market_Proxy.sol/contract.TTSwap_Market_Proxy.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../src/type/T_GoodKey.sol/library.T_GoodKeyLibrary.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../../src/TTSwap_Market_Proxy.sol/contract.TTSwap_Market_Proxy.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../../solidity.min.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

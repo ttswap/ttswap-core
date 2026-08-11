@@ -1,12 +1,19 @@
 # L_CurrencyLibrary
-*This library allows for transferring and holding native tokens and ERC20 tokens*
+**Title:**
+L_CurrencyLibrary
+
+This library allows for transferring and holding native tokens and ERC20 tokens.
+
+Handles various transfer methods including native ETH, standard ERC20 transferFrom,
+ERC20 Permit, and Permit2 (TransferFrom, Permit, PermitTransferFrom).
+It abstracts away the complexity of different token standards and permit signatures.
 
 
 ## State Variables
-### defualtvalue
+### defaultvalue
 
 ```solidity
-bytes constant defualtvalue = bytes("");
+bytes constant defaultvalue = bytes("")
 ```
 
 
@@ -20,16 +27,44 @@ function balanceof(address token, address _sender) internal view returns (uint25
 
 ### transferFrom
 
+Transfers tokens from one address to another using various authorization methods.
+
+Supports native ETH, standard ERC20, and various Permit schemes via `detail`.
+
+**Notes:**
+- security: CRITICAL: If `token` is native ETH, `executor` MUST be `from`.
+
+- security: CRITICAL: If `detail` is provided, `transfertype` MUST be supported (2-5), otherwise it reverts.
+
 
 ```solidity
-function transferFrom(address token, address from, address to, uint256 amount, bytes calldata detail) internal;
+function transferFrom(
+    address token,
+    address from,
+    address to,
+    address executor,
+    uint256 amount,
+    bytes calldata detail
+) internal;
 ```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`token`|`address`|The address of the token to transfer (or address(1) for native ETH).|
+|`from`|`address`|The address to transfer tokens from.|
+|`to`|`address`|The address to transfer tokens to.|
+|`executor`|`address`|The address executing the transaction (usually msg.sender).|
+|`amount`|`uint256`|The amount of tokens to transfer.|
+|`detail`|`bytes`|Encoded `S_transferData` containing transfer type and signature data.|
+
 
 ### transferFrom
 
 
 ```solidity
-function transferFrom(address token, address from, uint256 amount, bytes calldata trandata) internal;
+function transferFrom(address token, address from, address executor, uint256 amount, bytes calldata trandata)
+    internal;
 ```
 
 ### transferFromInter
@@ -60,16 +95,9 @@ function isNative(address currency) internal pure returns (bool);
 function to_uint160(uint256 amount) internal pure returns (uint160);
 ```
 
-### to_uint256
-
-
-```solidity
-function to_uint256(address amount) internal pure returns (uint256 a);
-```
-
 ## Errors
 ### NativeETHTransferFailed
-Thrown when an ERC20 transfer fails
+Thrown when an ETH transfer fails.
 
 
 ```solidity
@@ -77,7 +105,7 @@ error NativeETHTransferFailed();
 ```
 
 ### ERC20TransferFailed
-Thrown when an ERC20 transfer fails
+Thrown when an ERC20 transfer fails (e.g. insufficient balance or allowance).
 
 
 ```solidity
@@ -85,11 +113,19 @@ error ERC20TransferFailed();
 ```
 
 ### ERC20PermitFailed
-Thrown when an ERC20Permit transfer fails
+Thrown when an ERC20 Permit operation fails.
 
 
 ```solidity
 error ERC20PermitFailed();
+```
+
+### UnsupportedTransferType
+Thrown when an unsupported transfer type is provided.
+
+
+```solidity
+error UnsupportedTransferType();
 ```
 
 ### ApproveFailed
@@ -125,6 +161,8 @@ struct S_Permit2 {
 ```
 
 ### S_transferData
+Structure to decode user-supplied transfer data.
+
 
 ```solidity
 struct S_transferData {
@@ -132,4 +170,11 @@ struct S_transferData {
     bytes sigdata;
 }
 ```
+
+**Properties**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`transfertype`|`uint8`|The type of transfer mechanism to use. 2: DAI-style Permit or EIP-2612 Permit 3: Permit2 TransferFrom (allowance already set) 4: Permit2 Permit + TransferFrom 5: Permit2 PermitTransferFrom (signature transfer)|
+|`sigdata`|`bytes`|The encoded signature data (S_Permit or S_Permit2).|
 

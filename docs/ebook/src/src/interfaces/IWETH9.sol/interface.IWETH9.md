@@ -2,6 +2,9 @@
 **Inherits:**
 [IERC20](/src/interfaces/IERC20.sol/interface.IERC20.md)
 
+**Title:**
+Interface for WETH9
+
 
 ## Functions
 ### deposit

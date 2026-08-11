@@ -7,7 +7,7 @@
 ### owner
 
 ```solidity
-address public owner;
+address public owner
 ```
 
 

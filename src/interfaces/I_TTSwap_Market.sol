@@ -1,409 +1,390 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.29;
 
-/// @title Market Management Interface
-/// @notice Defines the interface for managing market operations
+import {T_GoodKey} from "../type/T_GoodKey.sol";
+
+/// @title I_TTSwap_Market
+/// @notice Public API for the TTSwap on-chain market (v2.0.0).
+/// @dev **Core concepts**
+///      - **Good**: one token pool (`T_GoodKey` → `goodId`) with virtual AMM state and fee config.
+///      - **Proof**: one user's LP position in a good; id = `keccak256(owner, goodId)`.
+///      - **buyGood**: exact-input swap — specify input token qty + minimum gross output.
+///      - **payGood**: exact-output swap / same-token pay — specify max input + target output.
+///
+/// @dev **Good quantity fields** (see `L_GoodConfig` glossary):
+///      `currentState.amount0` = investQty; `currentState.amount1` = Q;
+///      `goodConfig.amount1()` = leverage virtualQty only; `investState.amount1` = V.
+///
+/// @dev **Packed return / state words** (`TTSwapUINT256`): high 128 bits = `amount0`, low 128 bits = `amount1`.
+///      Swap legs return `(fee, quantityOrValue)`; see `L_TTSwapUINT256.sol` for field semantics per context.
+///
+/// @dev **Meta-transactions**
+///      Only `buyGood` and `payGood` verify EIP-712 when `msg.sender != _trader`.
+///      Every other function that includes `bytes calldata signature` keeps it for ABI compatibility only;
+///      the implementation requires `_trader == msg.sender` via `_checkTrader`.
 interface I_TTSwap_Market {
-    /// @notice Emitted when a good's configuration is updated
-    /// @param _goodid The ID of the good
-    /// @param _goodConfig The new configuration
-    event e_updateGoodConfig(address _goodid, uint256 _goodConfig,address _trader);
+    // ─────────────────────────── Events ───────────────────────────
 
-    /// @notice Emitted when a good's configuration is modified by market admin
-    /// @param _goodid The ID of the good
-    /// @param _goodconfig The new configuration
-    event e_modifyGoodConfig(address _goodid, uint256 _goodconfig,address _trader);
-
-    /// @notice Emitted when a good's owner is changed
-    /// @param goodid The ID of the good
-    /// @param to The new owner's address
-    event e_changegoodowner(address goodid, address to,address _trader);
-
-    /// @notice Emitted when market commission is collected
-    /// @param _gooid Array of good IDs
-    /// @param _commisionamount Array of commission amounts
-    event e_collectcommission(address[] _gooid, uint256[] _commisionamount,address _trader);
-
-    /// @notice Emitted when welfare is delivered to investors
-    /// @param goodid The ID of the good
-    /// @param welfare The amount of welfare
-    event e_goodWelfare(address goodid, uint128 welfare,address _trader);
-
-    /// @notice Emitted when a meta good is created and initialized
-    /// @dev The decimal precision of _initial.amount0() defaults to 6
-    /// @param _proofNo The ID of the investment proof
-    /// @param _goodid A 256-bit value where the first 128 bits represent the good's ID and the last 128 bits represent the stake construct
-    /// @param _construct The stake construct of mint tts token
-    /// @param _goodConfig The configuration of the meta good (refer to the whitepaper for details)
-    /// @param _initial Market initialization parameters: amount0 is the value, amount1 is the quantity
-    event e_initMetaGood(
-        uint256 _proofNo,
-        address _goodid,
-        uint256 _construct,
+    /// @notice Good owner updated fee/power region of `goodConfig` (owner-writable bits).
+    event e_updateGoodConfig(
+        uint256 indexed _goodid,
         uint256 _goodConfig,
-        uint256 _initial
-    );
-
-    /// @notice Emitted when a good is created and initialized
-    /// @param _proofNo The ID of the investment proof
-    /// @param _goodid The ID of the good
-    /// @param _valuegoodNo The ID of the good
-    /// @param _goodConfig The configuration of the meta good (refer to the whitepaper for details)
-    /// @param _construct The stake construct of mint tts token
-    /// @param _normalinitial Normal good initialization parameters: amount0 is the quantity, amount1 is the value
-    /// @param _value Value good initialization parameters: amount0 is the investment fee, amount1 is the investment quantity
-    event e_initGood(
-        uint256 _proofNo,
-        address _goodid,
-        address _valuegoodNo,
-        uint256 _goodConfig,
-        uint256 _construct,
-        uint256 _normalinitial,
-        uint256 _value,
         address _trader
     );
 
-    /// @notice Emitted when a user buys a good
-    /// @param sellgood The ID of the good being sold
-    /// @param forgood The ID of the good being bought
-    /// @param swapvalue The trade value
-    /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
-    /// @param good2change The status of the bought good (amount0: fee, amount1: quantity)
+    /// @notice Market manager or admin updated `goodConfig` (manager/admin bit regions).
+    event e_modifyGoodConfig(
+        uint256 indexed _goodid,
+        uint256 _goodconfig,
+        address _trader
+    );
+
+    /// @notice Good ownership transferred by market manager.
+    /// @param goodid Good id.
+    /// @param to New owner.
+    event e_changegoodowner(uint256 goodid, address to, address _trader);
+
+    /// @notice Commission balances withdrawn for one or more goods.
+    /// @param _goodid Good ids processed (max 100 per call).
+    /// @param _commisionamount Token amount sent per good (parallel array).
+    event e_collectcommission(
+        uint256[] _goodid,
+        uint256[] _commisionamount,
+        address _trader
+    );
+
+    /// @notice Donor topped up pool reserves without minting shares (welfare).
+    event e_goodWelfare(uint256 indexed goodid, uint128 welfare, address _trader);
+
+    /// @notice Liquidity added to an existing good (`investGood`).
+    /// @param _proofNo Proof id for `(msg.sender, _goodid)`.
+    /// @param _goodid Target good id.
+    /// @param _construct TTS stake receipt from `TTS_CONTRACT.stake` (0 if good not promised).
+    /// @param _value Packed `(virtualInvestValue, actualInvestValue)` after leverage normalization.
+    /// @param _invest Packed `(investFeeQty, virtualInvestQty)` credited to the pool.
+    event e_investGood(
+        uint256 indexed _proofNo,
+        uint256 indexed _goodid,
+        uint256 _construct,
+        uint256 _value,
+        uint256 _invest,
+        address _trader
+    );
+
+    /// @notice New good pool created (`initGood`).
+    /// @param _proofNo Creator's initial proof id.
+    /// @param _goodid New good id.
+    /// @param _goodinfo Packed `(ercType << 160) | tokenAddress` from `T_GoodKey.composedata()`.
+    /// @param _good_id ERC-1155/6909 id field (0 for ERC-20 / native).
+    /// @param _normalinitial Packed init: amount0 = declared value, amount1 = deposited quantity.
+    event e_initGood(
+        uint256 indexed _proofNo,
+        uint256 indexed _goodid,
+        uint256 _goodinfo,
+        uint256 _good_id,
+        uint256 _normalinitial,
+        address _trader
+    );
+
+    /// @notice Exact-input swap completed (`buyGood`).
+    /// @param sellgood Input good id (tokens sold in).
+    /// @param forgood Output good id (tokens bought out).
+    /// @param swapvalue Input token quantity moved on the sell side (good1change.amount1).
+    /// @param good1change Packed `(sellFee, inputQty)` on the input good.
+    /// @param good2change Packed `(buyFee, grossOutputQty)` on the output good (before relayer fee).
+    /// @param external_info Opaque metadata; low 64 bits may encode deadline for meta-tx.
     event e_buyGood(
-        address indexed sellgood,
-        address indexed forgood,
+        uint256 indexed sellgood,
+        uint256 indexed forgood,
         uint256 swapvalue,
         uint256 good1change,
         uint256 good2change,
-        address _trader
+        address _trader,
+        uint256 external_info
     );
-    /// @notice Emitted when a user makes a payment using goods
-    /// @param sellgood The ID of the good being sold/used for payment
-    /// @param forgood The ID of the good being received
-    /// @param swapvalue The trade value
-    /// @param good1change The status of the sold good (amount0: fee, amount1: quantity)
-    /// @param good2change The status of the received good (amount0: fee, amount1: quantity)
-    /// @param _trader The address of the trader initiating the payment
-    /// @param data_hash The hash of the transaction data for verification
+
+    /// @notice Exact-output payment completed (`payGood`).
+    /// @param sellgood Input / pay-token good id.
+    /// @param forgood Output good id (0 when same-token direct pay path).
+    /// @param swapvalue Gross output quantity targeted on cross-good path.
+    /// @param good1change Packed input-side fee and quantities.
+    /// @param good2change Packed output-side fee and quantities.
+    /// @param _recipient Final token recipient.
+    /// @param external_info Business metadata; low 64 bits = deadline on signed pay path.
     event e_payGood(
-        address indexed sellgood,
-        address indexed forgood,
+        uint256 indexed sellgood,
+        uint256 indexed forgood,
         uint256 swapvalue,
         uint256 good1change,
         uint256 good2change,
         address _trader,
         address _recipient,
-        uint256 data_hash
+        uint256 external_info
     );
 
-
-    /// @notice Emitted when a user invests in a normal good
-    /// @param _proofNo The ID of the investment proof
-    /// @param _normalgoodid Packed data: first 128 bits for good's ID, last 128 bits for stake construct
-    /// @param _valueGoodNo The ID of the value good
-    /// @param _value Investment value (amount0: virtual invest value, amount1: actual invest value)
-    /// @param _invest Normal good investment details (amount0: actual fee, amount1: actual invest quantity)
-    /// @param _valueinvest Value good investment details (amount0: actual fee, amount1: actual invest quantity)
-    event e_investGood(
-        uint256 indexed _proofNo,
-        address _normalgoodid,
-        address _valueGoodNo,
-        uint256 _value,
-        uint256 _invest,
-        uint256 _valueinvest,
-        address _trader
-    );
-
-    /// @notice Emitted when a user disinvests from  good
-    /// @param _proofNo The ID of the investment proof
-    /// @param _normalGoodNo The ID of the normal good
-    /// @param _valueGoodNo The ID of the value good
-    /// @param _gate The gate of User
-    /// @param _value amount0: virtual disinvest value,amount1: actual disinvest value
-    /// @param _normalprofit amount0:normalgood profit,amount1:normalgood disvest virtual quantity
-    /// @param _normaldisvest The disinvestment details of the normal good (amount0: actual fee, amount1: actual disinvest quantity)
-    /// @param _valueprofit amount0:valuegood profit,amount1:valuegood disvest virtual quantity
-    /// @param _valuedisvest The disinvestment details of the value good (amount0: actual fee, amount1: actual disinvest quantity)
+    /// @notice LP shares burned and proceeds distributed (`disinvestProof`).
+    /// @param _proofNo Proof id.
+    /// @param _normalGoodNo Good id being exited.
+    /// @param _gate Gate address used for fee routing (may be zeroed if banned).
+    /// @param _value Packed disinvest value snapshot from proof ratios.
+    /// @param _normalprofit Packed `(profit, virtualDisinvestQty)`.
+    /// @param _normaldisvest Packed `(disinvestFee, actualDisinvestQty)`.
+    /// @param _TTSValue TTS unstaked on this withdrawal.
     event e_disinvestProof(
         uint256 indexed _proofNo,
-        address _normalGoodNo,
-        address _valueGoodNo,
+        uint256 _normalGoodNo,
         address _gate,
         uint256 _value,
         uint256 _normalprofit,
         uint256 _normaldisvest,
-        uint256 _valueprofit,
-        uint256 _valuedisvest,
+        uint256 _TTSValue,
         address _trader
     );
 
-    event e_getPromiseProof(
-        address _goodid,
-        uint256 _proofid
-    );
+    /// @notice Emitted when a promised-good owner signals a claimable proof (`refreshPromise`).
+    event e_getPromiseProof(uint256 indexed _goodid, uint256 _proofid);
 
-    /// @notice Initialize the first good in the market
-    /// @param _erc20address The contract address of the good
-    /// @param _initial Initial parameters for the good (amount0: value, amount1: quantity)
-    /// @param _goodconfig Configuration of the good
-    /// @param data Configuration of the good
-    /// @return Success status
-    function initMetaGood(
-        address _erc20address,
-        uint256 _initial,
-        uint256 _goodconfig,
-        bytes calldata data
-    ) external payable returns (bool);
+    // ─────────────────────────── Nonces ───────────────────────────
 
-    /// @notice Initialize a normal good in the market
-    /// @param _valuegood The ID of the value good used to measure the normal good's value
-    /// @param _initial Initial parameters (amount0: normal good quantity, amount1: value good quantity)
-    /// @param _erc20address The contract address of the good
-    /// @param _goodConfig Configuration of the good
-    /// @param data1 Configuration of the good
-    /// @param data2 Configuration of the good
-    /// @return Success status
+    /// @notice EIP-712 nonce for `_trader` on signed `buyGood` / `payGood`; increment via `cancelNonce`.
+    function nonces(address _trader) external view returns (uint256);
+
+    // ─────────────────────────── Lifecycle ───────────────────────────
+
+    /// @notice Create a new good (token pool) at a user-declared initial price.
+    /// @param _goodKey Token identifier (ERC-20 or native `address(1)`).
+    /// @param _initial amount0 = declared total value, amount1 = token quantity deposited.
+    /// @param _normaldata Transfer auth: empty + `msg.value` for native; approve/permit data for ERC-20.
+    /// @param _trader Must equal `msg.sender`.
+    /// @param _signature Unused (ABI placeholder).
     function initGood(
-        address _valuegood,
+        T_GoodKey memory _goodKey,
         uint256 _initial,
-        address _erc20address,
-        uint256 _goodConfig,
-        bytes calldata data1,
-        bytes calldata data2,
+        bytes memory _normaldata,
         address _trader,
-        bytes calldata signature
+        bytes calldata _signature
     ) external payable returns (bool);
 
-    /**
-     * @dev Buys a good
-     * @param _goodid1 The ID of the first good
-     * @param _goodid2 The ID of the second good
-     * @param _swapQuantity The amount of _goodid1 to swap
-     *        - amount0: The quantity of the input good
-     *        - amount1: The limit quantity of the output good
-     * @param _referal when side is buy, _referal is the referral address when side is sell, _referal is the address to receive the fee
-     * @return good1change amount0() good1tradefee,good1tradeamount
-     * @return good2change amount0() good1tradefee,good2tradeamount
-     */
+    /// @notice Add single-token liquidity to an existing good.
+    /// @dev Deposits `_invest.amount1` tokens; virtual shares scale by pool leverage (`getInvestPower`).
+    ///      Reverts: 10 frozen, 12 missing good, 18 overflow, 38 value dust, 46 run-block replay.
+    /// @param _goodKey Good to invest in.
+    /// @param _invest amount1 = token quantity to deposit (amount0 unused on input).
+    /// @param _gooddata Encoded transfer (approve / EIP-2612 / Permit2).
+    /// @param signature Unused (ABI placeholder).
+    /// @param _trader Must equal `msg.sender`.
+    function investGood(
+        T_GoodKey memory _goodKey,
+        uint256 _invest,
+        bytes calldata _gooddata,
+        bytes calldata signature,
+        address _trader
+    ) external payable returns (bool);
+
+    // ─────────────────────────── Trading ───────────────────────────
+
+    /// @notice Exact-input swap: sell `_goodKey1`, buy `_goodKey2`.
+    /// @dev Flow: `buyGoodInput` on good1 → `buyGoodOutput` on good2 → token transfers.
+    ///      When `msg.sender != _trader`, `signature` must be valid EIP-712 over the typed payload + `nonces[_trader]`.
+    /// @param _goodKey1 Input (sell) good.
+    /// @param _goodKey2 Output (buy) good.
+    /// @param _swapQuantity amount0 = exact input token qty; amount1 = min gross output (slippage, 0 = no check).
+    /// @param _referral Referral recipient when `!= _trader` and `!= 0` (registered via TTS token); else ignored.
+    /// @param data Input-token transfer authorization for the relayer path.
+    /// @param _trader Signer / economic actor.
+    /// @param signature EIP-712 signature; required when caller is a relayer.
+    /// @param external_info App metadata; low 64 bits = unix deadline (reverts 49 if expired).
+    /// @return good1change `(sellFee, exportedValue)` on input good.
+    /// @return good2change `(buyFee, netOutputQty)` on output good (relayer fee deducted off-chain transfer).
     function buyGood(
-        address _goodid1,
-        address _goodid2,
+        T_GoodKey memory _goodKey1,
+        T_GoodKey memory _goodKey2,
         uint256 _swapQuantity,
-        address _referal,
+        address _referral,
         bytes calldata data,
         address _trader,
-        bytes calldata signature
+        bytes calldata signature,
+        uint256 external_info
     ) external payable returns (uint256 good1change, uint256 good2change);
 
+    /// @notice Exact-output swap or same-token payment.
+    /// @dev Cross-good: `payGoodOutput` on good2 → `payGoodInput` on good1.
+    ///      Same good: direct transfer without AMM (good2 event field = 0).
+    /// @param _goodKey1 Pay-token / input good.
+    /// @param _goodKey2 Output good (may equal good1 for direct pay).
+    /// @param _swapQuantity amount0 = max input (slippage cap); amount1 = target gross output qty.
+    /// @param _recipient Must be non-zero; receives output tokens (net of relayer fee when applicable).
+    /// @param data Input-token transfer authorization.
+    /// @param _trader Signer / payer.
+    /// @param signature EIP-712 signature when `msg.sender != _trader`.
+    /// @param external_info App metadata; low 64 bits = deadline (reverts 53 if expired).
+    /// @return good1change Input-side packed change (fees + quantities).
+    /// @return good2change Output-side packed change.
     function payGood(
-        address _goodid1,
-        address _goodid2,
+        T_GoodKey memory _goodKey1,
+        T_GoodKey memory _goodKey2,
         uint256 _swapQuantity,
         address _recipient,
         bytes calldata data,
         address _trader,
         bytes calldata signature,
-        uint256 data_hash
+        uint256 external_info
     ) external payable returns (uint256 good1change, uint256 good2change);
 
-    /// @notice Invest in a normal good
-    /// @param _togood ID of the normal good to invest in
-    /// @param _valuegood ID of the value good
-    /// @param _quantity Quantity of normal good to invest
-    /// @return Success status
-    function investGood(
-        address _togood,
-        address _valuegood,
-        uint128 _quantity,
-        bytes calldata data1,
-        bytes calldata data2,
-        address _trader,
-        bytes calldata signature
-    ) external payable returns (bool);
-
-    /// @notice Disinvest from a normal good
-    /// @param _proofid ID of the investment proof
-    /// @param _goodQuantity Quantity to disinvest
-    /// @param _gate Address of the gate
-    /// @return reward1 status
-    /// @return reward2 status
+    /// @notice Withdraw LP shares (partial allowed per `getDisinvestChips`).
+    /// @param _proofid Proof id for `(msg.sender, good)`.
+    /// @param _goodQuantity Share amount to burn (not token amount).
+    /// @param _gate Gate address for operator/gate fee split.
+    /// @param _trader Must equal `msg.sender`.
+    /// @param signature Unused (ABI placeholder).
+    /// @return reward1 Profit credited to user after disinvest fee (normal-good leg).
     function disinvestProof(
         uint256 _proofid,
         uint128 _goodQuantity,
         address _gate,
         address _trader,
         bytes calldata signature
-    ) external returns (uint128 reward1, uint128 reward2);
+    ) external returns (uint128 reward1);
 
-    /// @notice Check if the price of a good is higher than a comparison price
-    /// @param goodid ID of the good to check
-    /// @param valuegood ID of the value good
-    /// @param compareprice Price to compare against
-    /// @return Whether the good's price is higher
+    // ─────────────────────────── Views ───────────────────────────
+
+    /// @notice Compare implied prices of two goods using `lowerprice` (512-bit safe).
+    /// @param goodid First good id.
+    /// @param valuegood Second good id (reference / value side).
+    /// @param compareprice Packed ratio threshold `(num, den)`.
+    /// @return True when goodid's price is higher than valuegood under the compare ratio.
     function ishigher(
-        address goodid,
-        address valuegood,
+        uint256 goodid,
+        uint256 valuegood,
         uint256 compareprice
     ) external view returns (bool);
 
-    function refreshPromise(uint256 _proofid) external   ;
+    /// @notice Owner-only signal for promised goods; emits `e_getPromiseProof` when eligible.
+    /// @dev No EIP-712, no relayer — `msg.sender` must own the proof.
+    function refreshPromise(uint256 _proofid) external;
 
-    /// @notice Retrieves the current state of a proof
-    /// @param proofid The ID of the proof to query
-    /// @return proofstate The current state of the proof,
-    ///  currentgood The current good associated with the proof
-    ///  valuegood The value good associated with the proof
-    ///  shares normal good shares, value good shares
-    ///  state Total value, Total actual value
-    ///  invest normal good virtual quantity, normal good actual quantity
-    ///  valueinvest value good virtual quantity, value good actual quantity
+    /// @notice Full on-chain proof snapshot for indexing / UI.
+    /// @return proofstate `S_ProofState` — see `L_Proof` for field meanings (position snapshots).
     function getProofState(
         uint256 proofid
     ) external view returns (S_ProofState memory);
 
-    /// @notice Retrieves the current state of a good
-    /// @param good The address of the good to query
-    /// @return goodstate The current state of the good,
-    ///  goodConfig Configuration of the good, check goodconfig.sol or whitepaper for details
-    ///  owner Creator of the good
-    ///  currentState Present investQuantity, CurrentQuantity
-    ///  investState Shares, value
+    /// @notice Lightweight good snapshot (no commission mappings).
     function getGoodState(
-        address good
+        uint256 good
     ) external view returns (S_GoodTmpState memory);
 
-    /// @notice Updates a good's configuration
-    /// @param _goodid The ID of the good
-    /// @param _goodConfig The new configuration
-    /// @return Success status
-    function updateGoodConfig(
-        address _goodid,
+    /// @notice Packed `(V, Q)` price snapshot for two goods in one call.
+    /// @return good1currentstate `(V, Q)` for good1 — see `L_Good.getGoodState`.
+    /// @return good2currentstate `(V, Q)` for good2.
+    function getRecentGoodState(
+        uint256 good1,
+        uint256 good2
+    )
+        external
+        view
+        returns (uint256 good1currentstate, uint256 good2currentstate);
+
+    /// @notice Accrued commission balances per good for `_recipient` (max 100 ids).
+    /// @dev `address(0)` recipient reads protocol/platform commission slot.
+    function queryCommission(
+        uint256[] calldata _goodid,
+        address _recipient
+    ) external view returns (uint256[] memory);
+
+    // ─────────────────────────── Admin / config ───────────────────────────
+
+    /// @notice Good owner patches owner-writable config bits (fees, power, chips).
+    function modifyGoodByGoodOwner(
+        uint256 _goodid,
         uint256 _goodConfig,
         address _trader,
         bytes calldata signature
     ) external returns (bool);
 
-    /// @notice Allows market admin to modify a good's attributes
-    /// @param _goodid The ID of the good
-    /// @param _goodConfig The new configuration
-    /// @return Success status
-    function modifyGoodConfig(
-        address _goodid,
+    /// @notice Market manager patches manager-writable bits (fee split, safe lines, flags).
+    function modifyGoodByManager(
+        uint256 _goodid,
         uint256 _goodConfig,
         address _trader,
         bytes calldata signature
     ) external returns (bool);
 
-    // @param _goodid The ID of the good
-    /// @param _goodConfig The new configuration
-    /// @return Success status
-    function modifyGoodCoreConfig(
-        address _goodid,
+    /// @notice Market admin patches admin bits (value-good flag, ERC type).
+    function modifyGoodByAdmin(
+        uint256 _goodid,
         uint256 _goodConfig,
         address _trader,
         bytes calldata signature
     ) external returns (bool);
 
+    /// @notice Freeze trading on a good (manager or good owner).
     function lockGood(
-        address _goodid,
+        uint256 _goodid,
         address _trader,
         bytes calldata signature
     ) external;
 
-    /// @notice Changes the owner of a good
-    /// @param _goodid The ID of the good
-    /// @param _to The new owner's address
+    /// @notice Transfer good ownership (market manager only).
     function changeGoodOwner(
-        address _goodid,
+        uint256 _goodid,
         address _to,
         address _trader,
         bytes calldata signature
     ) external;
 
-    /// @notice Collects commission for specified goods
-    /// @param _goodid Array of good IDs
+    /// @notice Pull accrued commission for up to 100 goods to `msg.sender`.
+    /// @dev Market admin collects platform slot (`recipient == address(0)` internally).
     function collectCommission(
-        address[] calldata _goodid,
+        uint256[] calldata _goodid,
         address _trader,
         bytes calldata signature
     ) external;
 
-    /**
-     * @dev Queries commission amounts for multiple goods for a specific recipient
-     * @param _goodid Array of good addresses to query commission for
-     * @param _recipient The address to check commission amounts for
-     * @return feeamount Array of commission amounts corresponding to each good
-     * @notice This function:
-     * - Returns commission amounts for up to 100 goods in a single call
-     * - Each amount represents the commission available for the recipient
-     * - Returns 0 for goods where no commission is available
-     * - Maintains gas efficiency by using a fixed array size
-     * @custom:security Reverts if more than 100 goods are queried
-     * @custom:security View function, does not modify state
-     */
-    function queryCommission(
-        address[] calldata _goodid,
-        address _recipient
-    ) external returns (uint256[] memory);
-
-    /// @notice Delivers welfare to investors
-    /// @param goodid The ID of the good
-    /// @param welfare The amount of welfare
+    /// @notice Donate tokens to a pool's depth without minting shares (LP welfare).
+    /// @param data1 Transfer authorization for the donated tokens.
     function goodWelfare(
-        address goodid,
+        uint256 goodid,
         uint128 welfare,
         bytes calldata data1,
         address _trader,
         bytes calldata signature
     ) external payable;
 
-    /**
-     * @notice Retrieves the current state of two goods in a single call
-     * @dev Retrieves the current state of two goods in a single call
-     * @param good1 The address of the first good to query
-     * @param good2 The address of the second good to query
-     * @return good1correntstate The current state of the first good, representing its latest trading iteration,amount0:good current value,amount1:good current quantity
-     * @return good2correntstate The current state of the second good, representing its latest trading iteration,amount0:good current value,amount1:good current quantity
-     */
-    function getRecentGoodState(
-        address good1,
-        address good2
-    )
-        external
-        view
-        returns (uint256 good1correntstate, uint256 good2correntstate);
+    /// @notice Invalidate pending signed `buyGood` / `payGood` intents by bumping caller nonce.
+    function cancelNonce() external;
 }
 
-/**
- * @dev Represents the state of a proof.
- * @notice Fields:
- * - `currentgood`: The current good associated with the proof
- * - `valuegood`: The value good associated with the proof
- * - `shares`: amount0 = normal good shares, amount1 = value good shares
- * - `state`: amount0 = total value, amount1 = total actual value
- * - `invest`: amount0 = normal good virtual quantity, amount1 = normal good actual quantity
- * - `valueinvest`: amount0 = value good virtual quantity, amount1 = value good actual quantity
- */
+// ─────────────────────────── Storage layouts ───────────────────────────
+
+/// @notice LP position snapshot returned by `getProofState`.
+/// @dev Packed fields use `TTSwapUINT256` encoding (amount0 high, amount1 low).
+///      Not the same as global `goodConfig.amount1()` / `currentState` — these are per-proof snapshots.
+/// @param currentgood Good id this proof is bound to.
+/// @param shares amount0 = LP shares; amount1 = TTS stake value linked to proof.
+/// @param state amount0 = virtual value; amount1 = actual value at proof ratios.
+/// @param invest amount0 = virtual qty (`Q` leg at invest); amount1 = actual qty deposited (`investQty` leg).
 struct S_ProofState {
-    address currentgood;
-    address valuegood;
+    uint256 currentgood;
     uint256 shares;
     uint256 state;
     uint256 invest;
-    uint256 valueinvest;
 }
 
-/**
- * @dev Struct representing the state of a good.
- * @notice Fields:
- * - `goodConfig`: amount0 = configuration settings, amount1 = total virtual quantity
- * - `owner`: Creator of the good
- * - `currentState`: Present invest quantity and current quantity
- * - `investState`: Shares and value aggregates
- */
+/// @notice Full good state in storage (includes mappings; not returned verbatim to callers).
+/// @param goodConfig High bits = fee config; low 128 bits (`amount1()`) = leverage `virtualQty` only.
+/// @param currentState amount0 = `investQty` (actual tokens); amount1 = `Q` (total virtual depth for AMM).
+/// @param investState amount0 = total LP shares; amount1 = `V` (pool value, `price ≈ V/Q`).
+/// @param commission Per-address accrued fee balances (1-unit sentinel after first collect).
 struct S_GoodState {
     uint256 goodConfig;
+    uint88 reserverd1; // commission config (reserved)
+    uint8 erctype;
+    address contractAddress;
+    uint96 reserved2;
     address owner;
+    uint256 id;
+    address hookAddress;
     uint256 currentState;
     uint256 investState;
     uint256 extendsState1;
@@ -423,14 +404,8 @@ struct S_GoodState {
     mapping(address => uint256) extendmapping5;
 }
 
-/**
- * @dev Struct representing a temporary state of a good.
- * @notice Fields mirror `S_GoodState` but store lightweight snapshots:
- * - `goodConfig`: amount0 = configuration settings, amount1 = total virtual quantity
- * - `owner`: Creator of the good
- * - `currentState`: Present invest quantity and current quantity
- * - `investState`: Shares and value aggregates
- */
+/// @notice Good snapshot returned by `getGoodState` (no mappings).
+/// @dev Read `goodConfig.amount1()` for leverage `virtualQty`; `investState.amount1()` for `V`.
 struct S_GoodTmpState {
     uint256 goodConfig;
     address owner;
@@ -438,15 +413,8 @@ struct S_GoodTmpState {
     uint256 investState;
 }
 
-/**
- * @dev Struct representing a key of a proof.
- * @notice Fields:
- * - `owner`: The owner of the proof
- * - `currentgood`: The current good associated with the proof
- * - `valuegood`: The value good associated with the proof
- */
+/// @notice Proof id derivation input: `proofId = keccak256(abi.encodePacked(owner, currentgood))` (64 bytes in memory).
 struct S_ProofKey {
     address owner;
-    address currentgood;
-    address valuegood;
+    uint256 currentgood;
 }

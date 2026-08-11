@@ -1,7 +1,7 @@
 # IERC20Permit
 
 
-*Interface for token permits for ERC-721*
+Interface for token permits for ERC-721
 
 
 ## Functions
