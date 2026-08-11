@@ -112,20 +112,6 @@ library L_GoodConfigLibrary {
             (config & ~owner_config_mask) | (owner_config & owner_config_mask);
     }
 
-    /// @notice Records that this good was used in the current block slot (`block.number % 4095`).
-    /// @dev Reverts `TTSwapError(46)` if the same good is touched twice in the same slot —
-    ///      mitigates same-block replay / flash-loan style sequencing on a single pool.
-    /// @dev Integrators: advance `block.number` or wait one block between dependent trades on the same good.
-    function updateRunBlockConfig(
-        uint256 config
-    ) internal view returns (uint256 a) {
-        uint256 run_time_config = block.number % 4095;
-        if (config.getRunBlockConfig() == run_time_config) {
-            revert TTSwapError(46);
-        }
-        return (config & ~run_time_config_mask) | (run_time_config << 185);
-    }
-
     /// @notice Checks if the good is configured as a value good.
     /// @param config The configuration value.
     /// @return a True if it's a value good, false otherwise.
@@ -315,7 +301,7 @@ library L_GoodConfigLibrary {
     }
 
     /// @notice Safety-line amount from bits 246-239: stored 0 → `amount`, else `stored × amount / 100`.
-    function getSafeLineLower(
+    function getSafeLineLower128(
         uint256 config,
         uint128 amount
     ) internal pure returns (uint128 a) {
@@ -333,17 +319,6 @@ library L_GoodConfigLibrary {
         unchecked {
             assembly {
                 a := shr(249, shl(52, config))
-            }
-        }
-    }
-
-    /// @notice Anti-replay time slot from bits 196-185.
-    function getRunBlockConfig(
-        uint256 config
-    ) internal pure returns (uint256 a) {
-        unchecked {
-            assembly {
-                a := shr(244, shl(59, config))
             }
         }
     }

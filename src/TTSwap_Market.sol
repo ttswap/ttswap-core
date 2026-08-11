@@ -159,8 +159,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         // Storage pointer avoids recomputing the mapping key hash twice
         if (g.goodConfig.isFreeze()) revert TTSwapError(freezeErr);
         if (g.currentState == 0) revert TTSwapError(emptyErr);
-        if (g.goodConfig.getRunBlockConfig() == block.number % 4095)
-            revert TTSwapError(46);
     }
     /// @notice Batch multiple market calls in one transaction (delegatecall into self).
     /// @dev Must be `payable` with `msgValue` + `multicallEntry` so native ETH budget is set once
@@ -281,13 +279,13 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         );
 
         // Retrieve current investment state of the normal good.
-        (normalInvest_.goodShares, normalInvest_.goodValues) = goods[
-            _goodKey.toId()
-        ].investState.amount01();
+        (normalInvest_.goodShares, normalInvest_.goodValues) = g
+            .investState
+            .amount01();
         (
             normalInvest_.goodInvestQuantity,
             normalInvest_.goodCurrentQuantity
-        ) = goods[_goodKey.toId()].currentState.amount01();
+        ) = g.currentState.amount01();
 
         // Process investment for normal good.
         // Calculates new shares and updates normal good's state.
@@ -304,7 +302,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
         // reset _invest to 0 & store the mint tts value
         _invest = 0;
-        if (g.goodConfig.isPromised()||g.goodConfig.isvaluegood()) _invest = investvalue;
+        if (g.goodConfig.isPromised() || g.goodConfig.isvaluegood())
+            _invest = investvalue;
         // Update the investment proof with the new shares and amounts.
         proofs[proofNo].updateInvest(
             _goodKey.toId(),
@@ -315,11 +314,15 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 (normalInvest_.investQuantity * 100) / enpower //real quantity
             )
         );
-        g.goodConfig = g.goodConfig.updateRunBlockConfig();
+        // Skip TTS.stake(0) for normal (non-value / non-promised) goods.
+        uint128 stakeValue = _invest.amount1();
+        uint128 netConstruct = stakeValue == 0
+            ? 0
+            : L_Proof.stake(TTS_CONTRACT, msg.sender, stakeValue);
         emit e_investGood(
             proofNo,
             _goodKey.toId(),
-            L_Proof.stake(TTS_CONTRACT, msg.sender, _invest.amount1()),
+            netConstruct,
             toTTSwapUINT256(normalInvest_.investValue, investvalue),
             toTTSwapUINT256(
                 normalInvest_.investFeeQuantity,
@@ -433,7 +436,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
 
         // Deliver output: trader gets full gross; relayer deducts executeFee to commission ledger.
         if (msg.sender == _trader) {
-            _goodKey2.safeTransfer(_trader, good2change.amount1());
+            _goodKey2.safeTransfer(_trader, good2change.amount1(), g2.getBalanceLimit());
         } else {
             uint128 feeQuantity = g2.getGoodState().getamount1fromamount0(
                 executeFee
@@ -443,12 +446,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             if (_recipient == address(0)) _recipient = _trader;
             _goodKey2.safeTransfer(
                 _recipient,
-                (good2change.amount1() - feeQuantity)
-            );
+                good2change.amount1() - feeQuantity
+            , g2.getBalanceLimit());
         }
 
-        // Mark output good as used this block slot (anti-replay).
-        g2.goodConfig = g2.goodConfig.updateRunBlockConfig();
+       
         emit e_buyGood(
             _goodKey1.toId(),
             _goodKey2.toId(),
@@ -508,8 +510,12 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         returns (uint256 good1change, uint256 good2change)
     {
         uint128 feeQuantity;
-        _checkGoodActive(goods[_goodKey1.toId()], 10, 12);
-        _checkGoodActive(goods[_goodKey2.toId()], 11, 13);
+        uint256 goodId1 = _goodKey1.toId();
+        uint256 goodId2 = _goodKey2.toId();
+        S_GoodState storage g1 = goods[goodId1];
+        S_GoodState storage g2 = goods[goodId2];
+        _checkGoodActive(g1, 10, 12);
+        _checkGoodActive(g2, 11, 13);
         if (_recipient == address(0)) revert TTSwapError(32);
         if (msg.sender != _trader)
             signature.verify(
@@ -524,8 +530,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                                 ),
                                 _trader,
                                 _recipient,
-                                _goodKey1.toId(),
-                                _goodKey2.toId(),
+                                goodId1,
+                                goodId2,
                                 _swapQuantity,
                                 external_info,
                                 keccak256(data),
@@ -541,19 +547,11 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             external_info.get64bit() != 0 &&
             block.timestamp > external_info.get64bit()
         ) revert TTSwapError(53);
-        // Output good slot is consumed first in pay flow (recipient always receives from good2).
-        goods[_goodKey2.toId()].goodConfig = goods[_goodKey2.toId()]
-            .goodConfig
-            .updateRunBlockConfig();
-        if (_goodKey1.toId() != _goodKey2.toId()) {
+        if (goodId1 != goodId2) {
             // Cross-good payment: fix output qty → derive input qty (inverse of buyGood order).
-            good2change = goods[_goodKey2.toId()].payGoodOutput(
-                _swapQuantity.amount1()
-            );
+            good2change = g2.payGoodOutput(_swapQuantity.amount1());
 
-            good1change = goods[_goodKey1.toId()].payGoodInput(
-                good2change.amount1()
-            );
+            good1change = g1.payGoodInput(good2change.amount1());
             // amount0 on swapQuantity = max input (slippage cap).
             if (
                 good1change.amount1() + good1change.amount0() >
@@ -567,23 +565,23 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             );
             // Transfer output tokens. In relayer mode, recipient receives gross output minus execution fee.
             if (msg.sender == _trader) {
-                _goodKey2.safeTransfer(_recipient, _swapQuantity.amount1());
+                _goodKey2.safeTransfer(_recipient, _swapQuantity.amount1(), g2.getBalanceLimit());
             } else {
                 // Commission logic for relayer.
-                feeQuantity = goods[_goodKey2.toId()]
-                    .getGoodState()
-                    .getamount1fromamount0(executeFee);
+                feeQuantity = g2.getGoodState().getamount1fromamount0(
+                    executeFee
+                );
                 if (feeQuantity > _swapQuantity.amount1())
                     revert TTSwapError(50);
-                goods[_goodKey2.toId()].commission[msg.sender] += feeQuantity;
+                g2.commission[msg.sender] += feeQuantity;
                 _goodKey2.safeTransfer(
                     _recipient,
                     _swapQuantity.amount1() - feeQuantity
-                );
+                , g2.getBalanceLimit());
             }
             emit e_payGood(
-                _goodKey1.toId(),
-                _goodKey2.toId(),
+                goodId1,
+                goodId2,
                 good2change.amount1(),
                 toTTSwapUINT256(good1change.amount0(), good1change.amount1()),
                 toTTSwapUINT256(
@@ -597,8 +595,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         } else {
             // Same-token path: no AMM — direct transfer of `_swapQuantity.amount1` to `_recipient`.
             good1change = toTTSwapUINT256(
-                goods[_goodKey1.toId()].currentState.amount1(),
-                goods[_goodKey1.toId()].investState.amount1()
+                g1.currentState.amount1(),
+                g1.investState.amount1()
             );
             if (msg.sender == _trader) {
                 _goodKey1.transferFrom(
@@ -607,7 +605,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                     _swapQuantity.amount1(),
                     data
                 );
-                _goodKey1.safeTransfer(_recipient, _swapQuantity.amount1());
+                _goodKey1.safeTransfer(_recipient, _swapQuantity.amount1(), g1.getBalanceLimit());
                 good2change = (good2change << 128);
             } else {
                 // Relayer commission calculation.
@@ -621,14 +619,14 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 if (feeQuantity > _swapQuantity.amount1())
                     revert TTSwapError(50);
                 good2change = _swapQuantity.amount1() - feeQuantity;
-                goods[_goodKey1.toId()].commission[msg.sender] += feeQuantity;
+                g1.commission[msg.sender] += feeQuantity;
                 if (good2change > _swapQuantity.amount0())
                     revert TTSwapError(55);
-                _goodKey1.safeTransfer(_recipient, good2change);
+                _goodKey1.safeTransfer(_recipient, good2change, g1.getBalanceLimit());
                 good2change = (good2change << 128) + feeQuantity;
             }
             emit e_payGood(
-                _goodKey1.toId(),
+                goodId1,
                 0,
                 good1change.getamount1fromamount0(_swapQuantity.amount1()),
                 _swapQuantity,
@@ -710,7 +708,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             goods[normalgood].commission[msg.sender] = 1;
             goods[normalgood].toGoodKey().safeTransfer(
                 msg.sender,
-                tranferamount - 1
+                tranferamount - 1,
+                goods[normalgood].getBalanceLimit()
             );
         }
         // Commission balances are kept with a 1-unit sentinel to avoid cold SSTORE.
@@ -967,7 +966,8 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 goods[_goodid[i]].commission[recipient] = 1;
                 goods[_goodid[i]].toGoodKey().safeTransfer(
                     msg.sender,
-                    commissionamount[i]
+                    commissionamount[i],
+                    goods[_goodid[i]].getBalanceLimit()
                 );
             }
             unchecked {

@@ -33,7 +33,6 @@ library T_GoodKeyLibrary {
     // address constant dai = 0xCaFBbAd55eb09efe7bec8408Cff9932Be7D9A7fA;
     // address constant _permit2 = 0xa50eb0d081E986c280efF32dae089939Ea07bd22;
     using T_GoodKeyLibrary for T_GoodKey;
-
     /// @notice Derives a unique market good ID from `T_GoodKey`.
     /// @dev Native / ERC-20: lower 160 bits of `contractAddress`.
     ///      ERC-1155 / ERC-6909: `keccak256(packed, id)` where
@@ -108,6 +107,10 @@ library T_GoodKeyLibrary {
     error ERC20PermitFailed();
     /// @notice Thrown when an unsupported transfer type is provided.
     error UnsupportedTransferType();
+    /// @notice Thrown when a safe transfer fails.
+    error SafeTransferFailed();
+    /// @notice Thrown when a safe transfer fails.
+    error SafelineLowerTransferFailed();
 
     error ApproveFailed();
 
@@ -130,6 +133,7 @@ library T_GoodKeyLibrary {
 
     /// @notice Transfers tokens from one address to another using various authorization methods.
     /// @dev Supports native ETH, standard ERC20, and various Permit schemes via `detail`.
+    ///      By default, safeLineUpper is bound to investQty, meaning that fake coins cannot be exchanged for other coins by increasing Q through the input leg. Cross-pool draining relies on admin to relax the safeLine.
     /// @param goodkey The address of the token to transfer (or address(1) for native ETH).
     /// @param from The address to transfer tokens from.
     /// @param to The address to transfer tokens to.
@@ -138,6 +142,7 @@ library T_GoodKeyLibrary {
     /// @param detail Encoded `S_transferData` containing transfer type and signature data.
     /// @custom:security CRITICAL: If `token` is native ETH, `executor` MUST be `from`.
     /// @custom:security CRITICAL: If `detail` is provided, `transfertype` MUST be supported (2-5), otherwise it reverts.
+
     function transferFrom(
         T_GoodKey memory goodkey,
         address from,
@@ -147,6 +152,7 @@ library T_GoodKeyLibrary {
         bytes calldata detail
     ) internal {
         bool success = false;
+        // uint256 beforeBalance = balanceof(goodkey, address(this));
         if (goodkey.ercType != 1) {
             revert UnsupportedTransferType();
         }
@@ -281,6 +287,8 @@ library T_GoodKeyLibrary {
             }
         }
         if (!success) revert TTSwapError(42);
+        // uint256 afterBalance = balanceof(goodkey, address(this));
+        // if(afterBalance-beforeBalance != amount && !goodkey.isNative()) revert TransferFromFailed();
     }
 
     function transferFrom(
@@ -344,13 +352,15 @@ library T_GoodKeyLibrary {
     function safeTransfer(
         T_GoodKey memory goodkey,
         address to,
-        uint256 amount
+        uint256 amount,
+        uint256 limitamount
     ) internal {
         // implementation from
         // https://github.com/transmissions11/solmate/blob/e8f96f25d48fe702117ce76c79228ca4f20206cb/src/utils/SafeTransferLib.sol
 
         bool success;
         address token = goodkey.contractAddress;
+        // uint256 beforeBalance = balanceof(goodkey, address(this));
         if (goodkey.isNative()) {
             assembly {
                 // Transfer the ETH and store if it succeeded or not.
@@ -392,6 +402,9 @@ library T_GoodKeyLibrary {
 
             if (!success) revert ERC20TransferFailed();
         }
+        uint256 afterBalance = balanceof(goodkey, address(this));
+        // if( beforeBalance-afterBalance != amount) revert SafeTransferFailed();
+        if( afterBalance<limitamount) revert SafelineLowerTransferFailed();
     }
 
     /// @notice Returns `contractAddress == address(1)` (native ETH sentinel, not a deployed contract).
