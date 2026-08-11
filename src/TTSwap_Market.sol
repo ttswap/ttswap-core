@@ -270,7 +270,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         // Calculate the power/leverage factor.
         // The power determines how much "virtual" liquidity is minted relative to the actual deposit.
         // It is capped by the lower power factor of the two goods in the pair.
-        uint128 enpower = g.getInvestPower();
+        uint128 enpower = g.goodConfig.getPower();
 
         // Transfer normal good tokens from investor to market.
         _goodKey.transferFrom(

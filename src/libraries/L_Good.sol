@@ -473,7 +473,6 @@ library L_Good {
         investResult_.investValue = _self.goodConfig.getInvestThreshold(
             _investValue
         );
-        _investValue = (_investValue * 100) / enpower;
 
         // Calculate the invest share based from investQuantity on the invest state
         // Mints shares proportional to the new virtual quantity vs the total existing virtual quantity.
@@ -585,11 +584,11 @@ library L_Good {
         // Uses proof-time value ratios to preserve value accounting across virtual/actual quantities.
         // amount0 :total value of proof in terms of the normal good,amount1 :total actual value of proof in terms of the normal good
         disinvestvalue = toTTSwapUINT256(
-            toTTSwapUINT256(proofState0, proofInvest0).getamount0fromamount1(
-                normalGoodResult1_.virtualDisinvestQuantity
+            toTTSwapUINT256(proofState0, proofShares0).getamount0fromamount1(
+                _params._goodshares
             ),
-            toTTSwapUINT256(proofState1, proofInvest0).getamount0fromamount1(
-                normalGoodResult1_.virtualDisinvestQuantity
+            toTTSwapUINT256(proofState1, proofShares0).getamount0fromamount1(
+                _params._goodshares
             )
         );
 
@@ -597,10 +596,20 @@ library L_Good {
         // Check limits on how much value can be withdrawn at once to prevent manipulation.
         if (
             disinvestvalue.amount0() >
-            _self.goodConfig.getDisinvestChips(_self.investState.amount1()) ||
-            disinvestvalue.amount0() < 10000
+            _self.goodConfig.getDisinvestChips(_self.investState.amount1())
         ) {
             revert TTSwapError(26);
+        }
+        if (disinvestvalue.amount1() < 1_000_000_000_000) {
+            normalGoodResult1_ = S_GoodDisinvestReturn(
+                0,
+                0,
+                _params._goodshares, //divest shares
+                proofInvest0, // Virtual quantity to divest (normal good)
+                proofInvest1, // Actual quantity to divest (normal good)
+                proofMintTTSValue // Mint TTS value to divest (normal good)
+            );
+            disinvestvalue = toTTSwapUINT256(proofState0, proofState1);
         }
         if (
             normalGoodResult1_.virtualDisinvestQuantity >
@@ -759,28 +768,6 @@ library L_Good {
             _self.commission[_sender] += (liqidFee +
                 customerFee +
                 _divestQuantity);
-        }
-    }
-
-    /// @notice Dynamic leverage cap based on pool utilization.
-    /// @dev `config.amount1()` = leverage `virtualQty` only.
-    ///      `currentState.amount1 - virtualQty` ≈ actual token depth; compared to `currentState.amount0` (`investQty`).
-    function getInvestPower(
-        S_GoodState storage _self
-    ) internal view returns (uint128 limitpower_) {
-        // Cache goodConfig: saves 1 SLOAD vs calling getPower() + amount1() separately
-        uint256 config = _self.goodConfig;
-        uint128 maxpower = config.getPower();
-        uint128 virtual_quantity = config.amount1(); // leverage virtualQty (excludes actual investQty)
-        uint128 current_quantity = _self.currentState.amount1() -
-            virtual_quantity; // ≈ actual depth in Q
-        uint128 invest_quantity = _self.currentState.amount0(); // investQty
-        if (current_quantity < invest_quantity) {
-            limitpower_ = ((current_quantity * maxpower) / invest_quantity);
-            limitpower_ = limitpower_ < 100 ? 100 : limitpower_;
-        } else {
-            limitpower_ = ((invest_quantity * maxpower) / current_quantity);
-            limitpower_ = limitpower_ < 100 ? 100 : limitpower_;
         }
     }
 }
