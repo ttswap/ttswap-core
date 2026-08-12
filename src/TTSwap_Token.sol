@@ -67,6 +67,9 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     uint128 internal constant STAKE_MINT_FLOOR = 1_000_000_000_000;
     /// @dev Daily drip divisor: `leftamount / (50 * 365)`.
     uint128 internal constant STAKE_MINT_DAYS_DIVISOR = 18_250;
+    /// @dev Conservative cap for `shareMint` price-gate metric (RT-14).
+    ///      Economic max is ~94 at `2**109/5e5` pool price; start at 60 and raise via upgrade later.
+    uint120 internal constant MAX_SHARE_MINT_METRIC = 60;
 
     constructor(address _usdt) ERC20("TTSwap Token", "TTS", 12) {
         usdt = _usdt;
@@ -308,20 +311,30 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     function _addShare(s_share memory _share, address owner) internal {
         if (_share.chips == 0) revert TTSwapError(73);
         if (_share.leftamount == 0) revert TTSwapError(74);
-        if (_share.metric > 120) revert TTSwapError(75);
+        // Initial metric must itself be mintable, and the full chips schedule
+        // (metrics metric .. metric+chips-1) must stay within the economic cap.
+        if (
+            _share.metric > MAX_SHARE_MINT_METRIC ||
+            uint256(_share.metric) + uint256(_share.chips) >
+            uint256(MAX_SHARE_MINT_METRIC) + 1
+        ) revert TTSwapError(75);
         if (left_share < _share.leftamount) revert TTSwapError(67);
         left_share -= _share.leftamount;
         if (shares[owner].leftamount == 0) {
             shares[owner] = _share;
         } else {
             s_share memory newpart = shares[owner];
-            newpart.leftamount += _share.leftamount;
-            newpart.chips = newpart.chips >= _share.chips
+            uint8 newChips = newpart.chips >= _share.chips
                 ? newpart.chips
                 : _share.chips;
-            newpart.metric = newpart.metric >= _share.metric
-                ? newpart.metric
-                : _share.metric;
+            // Raising chips must not push the remaining unlock schedule past the cap.
+            if (
+                uint256(newpart.metric) + uint256(newChips) >
+                uint256(MAX_SHARE_MINT_METRIC) + 1
+            ) revert TTSwapError(75);
+            newpart.leftamount += _share.leftamount;
+            newpart.chips = newChips;
+            // Keep existing metric — merging must not raise the unlock bar (RT-14b).
             shares[owner] = newpart;
         }
         emit e_addShare(owner, _share.leftamount, _share.metric, _share.chips);
@@ -352,6 +365,10 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function shareMint() external override onlymain {
+        uint120 metric = shares[msg.sender].metric;
+        // Reject metrics that can never clear the price gate (also avoids 2** overflow).
+        if (metric > MAX_SHARE_MINT_METRIC) revert TTSwapError(68);
+
         uint256 ttsgoodid= T_GoodKey({
             ercType: 1,
             contractAddress: address(this),
@@ -368,14 +385,14 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
             !I_TTSwap_Market(marketcontract).ishigher(
                 ttsgoodid,
                 usdtgoodid,
-                2 ** shares[msg.sender].metric * 2 ** 128 + 20_000_000
+                2 ** metric * 2 ** 128 + 20_000_000
             )
         ) revert TTSwapError(68);
         if (shares[msg.sender].leftamount == 0) revert TTSwapError(69);
         uint128 mintamount = shares[msg.sender].leftamount /
             shares[msg.sender].chips;
         shares[msg.sender].leftamount -= mintamount;
-        shares[msg.sender].metric += 1;
+        shares[msg.sender].metric = metric + 1;
         _mint(msg.sender, mintamount);
         emit e_shareMint(mintamount, msg.sender);
     }

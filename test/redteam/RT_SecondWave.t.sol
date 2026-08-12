@@ -332,22 +332,17 @@ contract RT_SecondWave is BaseSetup {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // RT-14a: shareMint metric is unbounded; at metric >= 128 the price-check
-    // argument `2**metric * 2**128` overflows -> that share's remaining
-    // leftamount is frozen forever.
-    // RT-14b: addShare merge takes max(metric): a dust share with metric=120
-    // silently poisons a large share (8 mints from permanent freeze).
-    // Bonus: with no TTS good initialized, lowerprice((0,0),...) == false, so
-    // the shareMint price gate is vacuously open.
+    // RT-14 mitigated:
+    // - addShare rejects metric / chips schedules past MAX_SHARE_MINT_METRIC (60).
+    // - merge keeps existing metric (cannot poison upward).
     // ─────────────────────────────────────────────────────────────────────────
 
     function test_RT14_shareMint_metric_freezes_leftamount() public {
         vm.prank(marketcreator);
         tts_token.setEnv(address(market_proxy));
 
-        // List a TTS good at the maximum price the market admits (V=2^109, Q=5e5).
         vm.startPrank(marketcreator);
-        tts_token.mint(marketcreator, 1e8); // DAO admin mint
+        tts_token.mint(marketcreator, 1e8);
         tts_token.approve(address(market), type(uint256).max);
         T_GoodKey memory ttsKey = T_GoodKey({
             ercType: 1,
@@ -357,44 +352,46 @@ contract RT_SecondWave is BaseSetup {
         market.initGood(ttsKey, toTTSwapUINT256(MAX_INIT_VALUE, MIN_INIT_QTY), defaultdata, marketcreator, defaultdata);
         vm.stopPrank();
 
-        // Control: low metric mints fine at this (max) price.
+        // Control: low metric still mints.
         vm.prank(marketcreator);
         tts_token.addShare(s_share({leftamount: 1e6, metric: 10, chips: 10}), victim);
         vm.prank(victim);
         tts_token.shareMint();
         assertGt(tts_token.balanceOf(victim), 0, "control: low metric mints");
 
-        // Attacker's share at metric 94: one mint left before the price gate
-        // closes FOREVER. At metric 95 the required TTS price exceeds the
-        // maximum expressible pool price (2^109 / 5e5) -> 68 forever.
+        // Unschedulable under cap 60: metric=60, chips=10 rejected at addShare.
         vm.prank(marketcreator);
-        tts_token.addShare(s_share({leftamount: 1e6, metric: 94, chips: 10}), attacker);
-        vm.prank(attacker);
-        tts_token.shareMint(); // metric 94 -> 95
-        assertGt(tts_token.balanceOf(attacker), 0);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 75));
+        tts_token.addShare(s_share({leftamount: 1e6, metric: 60, chips: 10}), attacker);
 
+        // Last mintable tranche: metric=60, chips=1.
+        vm.prank(marketcreator);
+        tts_token.addShare(s_share({leftamount: 1e6, metric: 60, chips: 1}), attacker);
         vm.prank(attacker);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 68));
         tts_token.shareMint();
-
-        (uint128 left,,) = _shareOf(attacker);
-        assertGt(left, 0, "unminted allocation frozen forever");
-        emit log_named_uint("RT14a: leftamount frozen at metric=95 (max price can't satisfy gate)", left);
+        assertEq(tts_token.balanceOf(attacker), 1e6, "full tranche minted at metric 60");
+        (uint128 left, uint120 metricAfter,) = _shareOf(attacker);
+        assertEq(left, 0, "no frozen leftover");
+        assertEq(metricAfter, 61, "metric advanced past last mintable");
+        emit log("RT14a blocked: unschedulable high-metric share rejected; chips=1 at 60 clears fully");
     }
 
     function test_RT14_addShare_merge_metric_poisoning() public {
         vm.startPrank(marketcreator);
         tts_token.addShare(s_share({leftamount: 1e6, metric: 1, chips: 10}), victim);
-        // Dust share with max metric merges UP the victim's metric.
+        // Over-cap dust rejected; in-cap higher metric still cannot raise victim's metric.
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 75));
         tts_token.addShare(s_share({leftamount: 1, metric: 120, chips: 1}), victim);
+
+        tts_token.addShare(s_share({leftamount: 1, metric: 50, chips: 1}), victim);
         vm.stopPrank();
 
         (, uint120 metric, uint8 chips) = _shareOf(victim);
-        assertEq(metric, 120, "metric poisoned to 120");
+        assertEq(metric, 1, "merge keeps existing metric (no upward poison)");
         assertEq(chips, 10, "chips kept max");
-        // metric 120 > 95 -> no expressible pool price can ever satisfy the
-        // shareMint gate again (see RT14a). One dust share = instant freeze.
-        emit log("RT14b: dust merge at metric=120 -> victim share can never mint again");
+        (uint128 left,,) = _shareOf(victim);
+        assertEq(left, 1e6 + 1, "dust amount still merged");
+        emit log("RT14b blocked: merge cannot raise metric; over-cap metric reverts 75");
     }
 
     function _shareOf(
