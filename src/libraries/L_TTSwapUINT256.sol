@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.29;
 
+/// @dev Max V/Q (and related) leg size so AMM `2*a*b` fits in `uint256` under unchecked mul.
+uint256 constant MAX_GOOD_STATE_LEG = 2 ** 109;
+/// @dev Minimum packed `amount1` accepted by `checkUint256Valid` (dust floor).
+uint256 constant MIN_GOOD_STATE_AMOUNT1 = 10_000;
+
 /// @title TTSwap Packed Balance Type (`TTSwapUINT256`)
 /// @notice Protocol-wide packed pair: one `uint256` holds two `uint128` limbs.
 /// @dev Layout: `amount0` in the high 128 bits, `amount1` in the low 128 bits.
@@ -335,8 +340,8 @@ library L_TTSwapUINT256Library {
             );
     }
 
-    function checkUint256Valid(uint256 a) internal pure  {
-        if ( a.amount1() < 10000 || a.amount1() > 2 ** 109) revert TTSwapUINT256NotValid();
-        if ( a.amount1() < 10000 || a.amount1() > 2 ** 109) revert TTSwapUINT256NotValid();
+    function checkUint256Valid(uint256 a) internal pure {
+        if (a.amount1() < MIN_GOOD_STATE_AMOUNT1 || a.amount1() > MAX_GOOD_STATE_LEG)
+            revert TTSwapUINT256NotValid();
     }
 }
