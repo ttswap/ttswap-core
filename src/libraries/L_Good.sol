@@ -12,9 +12,10 @@ import {
     toUint128,
     add,
     sub,
-    addsub
+    addsub,
+    MAX_GOOD_STATE_LEG
 } from "./L_TTSwapUINT256.sol";
-
+uint128 constant MIN_INVEST_VALUE = 1_000_000_000_000;
 /**
  * @title L_Good Library
  * @author ttswap.exchange@gmail.com
@@ -474,6 +475,20 @@ library L_Good {
             investResult_.goodShares,
             investResult_.goodInvestQuantity
         ).getamount0fromamount1(_invest);
+
+        // Q / investQty legs after this deposit (fee credited to both legs).
+        uint256 addInvestQty = uint256(_invest) +
+            uint256(investResult_.investFeeQuantity);
+        uint256 addQ = uint256(investResult_.investQuantity) +
+            uint256(investResult_.investFeeQuantity);
+        if (
+            uint256(investResult_.goodInvestQuantity) + addInvestQty >
+            MAX_GOOD_STATE_LEG ||
+            uint256(investResult_.goodCurrentQuantity) + addQ >
+            MAX_GOOD_STATE_LEG
+        ) revert TTSwapError(18);
+        if (investResult_.investShare == 0) revert TTSwapError(56);
+        if (investResult_.investValue < MIN_INVEST_VALUE) revert TTSwapError(38);
 
         // currentState: investQty += actual (+fee on amount0 leg); Q += virtual total (+fee on amount1 leg).
         _self.currentState = add(
