@@ -146,10 +146,6 @@ contract C01_MulticallProduction is BaseSetup {
         vm.stopPrank();
     }
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.prank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-    }
 
     function _encodeBuyGood(
         T_GoodKey memory keyIn,
@@ -299,13 +295,18 @@ contract C01_MulticallProduction is BaseSetup {
         _initBtcGoodOn(vulnerable, users[2], BTC_INIT_VALUE, BTC_INIT_QTY);
         _initUsdtGoodOn(vulnerable, users[3], USDT_INIT_QTY, USDT_INIT_VALUE);
         vm.startPrank(marketcreator);
-        vulnerable.modifyGoodByAdmin(vulnNativeId, (1 << 255), marketcreator, defaultdata);
+        vulnerable.modifyGoodByAdmin(
+            vulnNativeId,
+            vulnerable.getGoodState(vulnNativeId).goodConfig | (1 << 255),
+            marketcreator,
+            defaultdata
+        );
         uint256 cfg = vulnerable.getGoodState(vulnNativeId).goodConfig;
         cfg =
             (cfg & ~SAFE_LINE_MASK) |
             (uint256(255) << TestConfigConstants.SAFE_LINE_UPPER_SHIFT) |
             (uint256(1) << TestConfigConstants.SAFE_LINE_LOWER_SHIFT);
-        vulnerable.modifyGoodByManager(vulnNativeId, cfg, marketcreator, defaultdata);
+        vulnerable.modifyGoodByAdmin(vulnNativeId, cfg, marketcreator, defaultdata);
         vm.stopPrank();
 
         vm.deal(trader, 10 * ETH_PER_SWAP);

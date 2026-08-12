@@ -106,11 +106,6 @@ contract testBuyGoodMetaTx is BaseSetup {
     }
 
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
 
     function _initUsdtGood(

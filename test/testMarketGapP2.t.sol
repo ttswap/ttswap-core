@@ -47,11 +47,6 @@ contract testMarketGapP2 is BaseSetup {
         _markAsValueGood(usdtGoodId);
     }
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _signBuyGood(
         address trader,

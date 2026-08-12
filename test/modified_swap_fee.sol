@@ -85,11 +85,6 @@ contract testSwapWithFee is BaseSetup {
         _relaxSafeLine(goodId);
     }
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _approveIn(T_GoodKey memory keyIn, uint128 amountIn) internal {
         address token = keyIn.contractAddress;

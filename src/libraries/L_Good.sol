@@ -125,14 +125,12 @@ library L_Good {
     /// @param get Accumulated output (value on input leg, quantity on output leg).
     /// @param current_quantity Pool virtual quantity at the current simulation step.
     /// @param current_value Pool total value (V) at the current simulation step.
-    /// @param config Cached `goodConfig` to avoid repeated SLOADs in the loop.
     struct S_SwapTemp {
         uint128 swap_fee;
         uint128 remain;
         uint128 get;
         uint128 current_quantity;
         uint128 current_value;
-        uint256 config;
     }
 
     /// @notice Input leg of `buyGood`: user sells tokens **into** this pool (exact-input swap, side A).
@@ -147,14 +145,15 @@ library L_Good {
         S_GoodState storage _self,
         uint128 _swapParam
     ) internal returns (uint256) {
+        uint256 cfg = _self.goodConfig;
+        (uint128 investQty, uint128 q0) = _self.currentState.amount01();
         // --- Phase 1: snapshot pool & charge sell fee on the user's deposit ---
         S_SwapTemp memory swapTemp = S_SwapTemp({
-            swap_fee: _self.goodConfig.getSellFee(_swapParam),
+            swap_fee: cfg.getSellFee(_swapParam),
             remain: _swapParam,
             get: 0,
-            current_quantity: _self.currentState.amount1(),
-            current_value: _self.investState.amount1(),
-            config: _self.goodConfig
+            current_quantity: q0,
+            current_value: _self.investState.amount1()
         });
         // `remain` = net tokens that actually enter the curve (after sell fee stays in pool later).
         swapTemp.remain = swapTemp.remain - swapTemp.swap_fee;
@@ -162,11 +161,9 @@ library L_Good {
         if (swapTemp.current_quantity < 10000) revert TTSwapError(56);
 
         // --- Phase 2: walk the bonding curve in ≤1% depth chunks ---
-        // Each chunk adds Δq to the pool and exports value ΔV to the counterparty good.
         // Formula (deposit / sell-in):  ΔV = 2·V·Δq / (2·Q + Δq)
-        // Intuition: adding tokens deepens the pool; the marginal value exported rises as Q grows.
+        // Unchecked mul/div: uint128 legs; protocol caps near 2**109 so 2·a·b fits uint256.
         while (swapTemp.remain > 0) {
-            // Cap each step at 1% of current Q to stay numerically stable on large trades.
             if (swapTemp.remain >= swapTemp.current_quantity / 100) {
                 _swapParam = swapTemp.current_quantity / 100;
                 swapTemp.remain -= _swapParam;
@@ -174,34 +171,32 @@ library L_Good {
                 _swapParam = swapTemp.remain;
                 swapTemp.remain = 0;
             }
-            value = uint128(
-                (2 * uint256(_swapParam) * uint256(swapTemp.current_value)) /
+            unchecked {
+                value = uint128(
                     (2 *
-                        uint256(swapTemp.current_quantity) +
-                        uint256(_swapParam))
-            );
-            swapTemp.get += value; // cumulative value exported to the output good
-            swapTemp.current_quantity += _swapParam; // simulate post-trade Q
+                        uint256(_swapParam) *
+                        uint256(swapTemp.current_value)) /
+                        (2 *
+                            uint256(swapTemp.current_quantity) +
+                            uint256(_swapParam))
+                );
+            }
+            swapTemp.get += value;
+            swapTemp.current_quantity += _swapParam;
         }
 
         // --- Phase 3: safe-line upper — baseline = investQty + virtualQty (actual + leverage virtual) ---
         if (
             swapTemp.current_quantity >
-            _self.goodConfig.getSafeLineUpper(
-                _self.currentState.amount0() + _self.goodConfig.amount1()
-            )
+            cfg.getSafeLineUpper(investQty + cfg.amount1())
         ) {
             revert TTSwapError(55);
         }
 
         // --- Phase 4: persist state — raise virtual Q, credit sell fee to both amount0/amount1 legs ---
         _self.currentState = toTTSwapUINT256(
-            _self.currentState.amount0(),
-            swapTemp.current_quantity
-        );
-        _self.currentState = add(
-            _self.currentState,
-            toTTSwapUINT256(swapTemp.swap_fee, swapTemp.swap_fee)
+            investQty + swapTemp.swap_fee,
+            swapTemp.current_quantity + swapTemp.swap_fee
         );
 
         return toTTSwapUINT256(swapTemp.swap_fee, swapTemp.get);
@@ -216,19 +211,19 @@ library L_Good {
         S_GoodState storage _self,
         uint128 _swapParam
     ) internal returns (uint256) {
+        uint256 cfg = _self.goodConfig;
+        (uint128 investQty, uint128 qBefore) = _self.currentState.amount01();
         S_SwapTemp memory swapTemp = S_SwapTemp({
             swap_fee: 0,
-            remain: _swapParam, // value budget still to consume
-            get: 0, // accumulated gross token quantity before buy fee
-            current_quantity: _self.currentState.amount1(),
-            current_value: _self.investState.amount1(),
-            config: _self.goodConfig
+            remain: _swapParam,
+            get: 0,
+            current_quantity: qBefore,
+            current_value: _self.investState.amount1()
         });
         uint128 quantity;
 
         // --- Phase 2: consume value in ≤1% of V chunks, withdraw tokens ---
         // Formula (withdraw / buy-out):  Δq = 2·Q·ΔV / (2·V + ΔV)
-        // Intuition: paying value into the pool (virtually) lets the trader remove tokens; Q falls.
         while (swapTemp.remain > 0) {
             if (swapTemp.current_quantity < 10000) revert TTSwapError(56);
             if (swapTemp.remain >= swapTemp.current_value / 100) {
@@ -238,10 +233,16 @@ library L_Good {
                 _swapParam = swapTemp.remain;
                 swapTemp.remain = 0;
             }
-            quantity = uint128(
-                (2 * uint256(_swapParam) * uint256(swapTemp.current_quantity)) /
-                    (2 * uint256(swapTemp.current_value) + uint256(_swapParam))
-            );
+            unchecked {
+                quantity = uint128(
+                    (2 *
+                        uint256(_swapParam) *
+                        uint256(swapTemp.current_quantity)) /
+                        (2 *
+                            uint256(swapTemp.current_value) +
+                            uint256(_swapParam))
+                );
+            }
             swapTemp.get += quantity;
             swapTemp.current_quantity -= quantity;
         }
@@ -249,24 +250,18 @@ library L_Good {
         // --- Phase 3: safe-line lower guard (pool must retain minimum depth) ---
         if (
             swapTemp.current_quantity <
-            _self.goodConfig.getSafeLineLower(
-                _self.currentState.amount0() + _self.goodConfig.amount1()
-            )
+            cfg.getSafeLineLower128(investQty + cfg.amount1())
         ) {
             revert TTSwapError(56);
         }
 
         // --- Phase 4: buy fee on total outflow, then persist reduced Q + fee credit ---
-        quantity = _self.currentState.amount1() - swapTemp.current_quantity; // gross tokens leaving
-        swapTemp.swap_fee = _self.goodConfig.getBuyFee(quantity);
+        quantity = qBefore - swapTemp.current_quantity; // gross tokens leaving
+        swapTemp.swap_fee = cfg.getBuyFee(quantity);
         quantity = quantity - swapTemp.swap_fee; // net to user
         _self.currentState = toTTSwapUINT256(
-            _self.currentState.amount0(),
-            swapTemp.current_quantity
-        );
-        _self.currentState = add(
-            _self.currentState,
-            toTTSwapUINT256(swapTemp.swap_fee, swapTemp.swap_fee)
+            investQty + swapTemp.swap_fee,
+            swapTemp.current_quantity + swapTemp.swap_fee
         );
 
         return toTTSwapUINT256(swapTemp.swap_fee, quantity);
@@ -281,21 +276,21 @@ library L_Good {
         S_GoodState storage _self,
         uint128 _swapParam
     ) internal returns (uint256) {
-        // --- Phase 1: gross-up desired output by buy fee (fee is taken from pool depth, not from user qty) ---
+        uint256 cfg = _self.goodConfig;
+        (uint128 investQty, uint128 q0) = _self.currentState.amount01();
+        // --- Phase 1: gross-up desired output by buy fee ---
         S_SwapTemp memory swapTemp = S_SwapTemp({
-            swap_fee: _self.goodConfig.getBuyFee(_swapParam),
+            swap_fee: cfg.getBuyFee(_swapParam),
             remain: _swapParam,
-            get: 0, // cumulative value that must be imported from the pay token good
-            current_quantity: _self.currentState.amount1(),
-            current_value: _self.investState.amount1(),
-            config: _self.goodConfig
+            get: 0,
+            current_quantity: q0,
+            current_value: _self.investState.amount1()
         });
-        // `remain` = total token quantity to pull from pool curve (output + buy fee).
         swapTemp.remain = swapTemp.remain + swapTemp.swap_fee;
         uint128 value;
 
-        // --- Phase 2: remove tokens in ≤1% Q chunks, accumulate required value ---
-        // Formula (exact-out withdraw):  ΔV = 2·V·Δq / (2·Q − Δq)   [denominator minus: tokens leave pool]
+        // --- Phase 2: remove tokens in ≤1% Q chunks ---
+        // Formula (exact-out withdraw):  ΔV = 2·V·Δq / (2·Q − Δq)
         while (swapTemp.remain > 0) {
             if (swapTemp.current_quantity < 10000) revert TTSwapError(56);
             if (swapTemp.remain >= swapTemp.current_quantity / 100) {
@@ -305,12 +300,16 @@ library L_Good {
                 _swapParam = swapTemp.remain;
                 swapTemp.remain = 0;
             }
-            value = uint128(
-                (2 * uint256(_swapParam) * uint256(swapTemp.current_value)) /
+            unchecked {
+                value = uint128(
                     (2 *
-                        uint256(swapTemp.current_quantity) -
-                        uint256(_swapParam))
-            );
+                        uint256(_swapParam) *
+                        uint256(swapTemp.current_value)) /
+                        (2 *
+                            uint256(swapTemp.current_quantity) -
+                            uint256(_swapParam))
+                );
+            }
             value += 1;
             swapTemp.get += value;
             swapTemp.current_quantity -= _swapParam;
@@ -319,21 +318,15 @@ library L_Good {
         // --- Phase 3: safe-line lower guard ---
         if (
             swapTemp.current_quantity <
-            _self.goodConfig.getSafeLineLower(
-                _self.currentState.amount0() + _self.goodConfig.amount1()
-            )
+            cfg.getSafeLineLower128(investQty + cfg.amount1())
         ) {
             revert TTSwapError(56);
         }
 
         // --- Phase 4: persist shallower pool; buy fee credited to state; return value budget for input leg ---
         _self.currentState = toTTSwapUINT256(
-            _self.currentState.amount0(),
-            swapTemp.current_quantity
-        );
-        _self.currentState = add(
-            _self.currentState,
-            toTTSwapUINT256(swapTemp.swap_fee, swapTemp.swap_fee)
+            investQty + swapTemp.swap_fee,
+            swapTemp.current_quantity + swapTemp.swap_fee
         );
 
         return toTTSwapUINT256(swapTemp.swap_fee, swapTemp.get);
@@ -348,19 +341,20 @@ library L_Good {
         S_GoodState storage _self,
         uint128 _swapParam
     ) internal returns (uint256) {
+        uint256 cfg = _self.goodConfig;
+        (uint128 investQty, uint128 qBefore) = _self.currentState.amount01();
         S_SwapTemp memory swapTemp = S_SwapTemp({
             swap_fee: 0,
-            remain: _swapParam, // value budget still to absorb
-            get: 0, // accumulated net token quantity deposited into curve (before sell fee)
-            current_quantity: _self.currentState.amount1(),
-            current_value: _self.investState.amount1(),
-            config: _self.goodConfig
+            remain: _swapParam,
+            get: 0,
+            current_quantity: qBefore,
+            current_value: _self.investState.amount1()
         });
         uint128 quantity;
         if (swapTemp.current_value < 10000) revert TTSwapError(56);
 
-        // --- Phase 2: import value in ≤1% of V chunks, add tokens to pool ---
-        // Formula (value-driven deposit):  Δq = 2·Q·ΔV / (2·V − ΔV)   [denominator minus: value enters, Q rises]
+        // --- Phase 2: import value in ≤1% of V chunks ---
+        // Formula (value-driven deposit):  Δq = 2·Q·ΔV / (2·V − ΔV)
         while (swapTemp.remain > 0) {
             if (swapTemp.remain >= swapTemp.current_value / 100) {
                 _swapParam = swapTemp.current_value / 100;
@@ -369,10 +363,16 @@ library L_Good {
                 _swapParam = swapTemp.remain;
                 swapTemp.remain = 0;
             }
-            quantity = uint128(
-                (2 * uint256(_swapParam) * uint256(swapTemp.current_quantity)) /
-                    (2 * uint256(swapTemp.current_value) - uint256(_swapParam))
-            );
+            unchecked {
+                quantity = uint128(
+                    (2 *
+                        uint256(_swapParam) *
+                        uint256(swapTemp.current_quantity)) /
+                        (2 *
+                            uint256(swapTemp.current_value) -
+                            uint256(_swapParam))
+                );
+            }
             quantity += 1;
             swapTemp.get += quantity;
             swapTemp.current_quantity += quantity;
@@ -381,23 +381,17 @@ library L_Good {
         // --- Phase 3: safe-line upper guard ---
         if (
             swapTemp.current_quantity >
-            _self.goodConfig.getSafeLineUpper(
-                _self.currentState.amount0() + _self.goodConfig.amount1()
-            )
+            cfg.getSafeLineUpper(investQty + cfg.amount1())
         ) {
             revert TTSwapError(55);
         }
 
         // --- Phase 4: sell fee on net tokens added; persist deeper pool ---
-        quantity = swapTemp.current_quantity - _self.currentState.amount1(); // net deposit into pool
-        swapTemp.swap_fee = _self.goodConfig.getSellFee(quantity);
+        quantity = swapTemp.current_quantity - qBefore; // net deposit into pool
+        swapTemp.swap_fee = cfg.getSellFee(quantity);
         _self.currentState = toTTSwapUINT256(
-            _self.currentState.amount0(),
-            swapTemp.current_quantity
-        );
-        _self.currentState = add(
-            _self.currentState,
-            toTTSwapUINT256(swapTemp.swap_fee, swapTemp.swap_fee)
+            investQty + swapTemp.swap_fee,
+            swapTemp.current_quantity + swapTemp.swap_fee
         );
 
         // `quantity` return is gross input (net + sell fee) — market adds amount0+amount1 for max-input check.
@@ -473,7 +467,6 @@ library L_Good {
         investResult_.investValue = _self.goodConfig.getInvestThreshold(
             _investValue
         );
-        _investValue = (_investValue * 100) / enpower;
 
         // Calculate the invest share based from investQuantity on the invest state
         // Mints shares proportional to the new virtual quantity vs the total existing virtual quantity.
@@ -585,22 +578,30 @@ library L_Good {
         // Uses proof-time value ratios to preserve value accounting across virtual/actual quantities.
         // amount0 :total value of proof in terms of the normal good,amount1 :total actual value of proof in terms of the normal good
         disinvestvalue = toTTSwapUINT256(
-            toTTSwapUINT256(proofState0, proofInvest0).getamount0fromamount1(
-                normalGoodResult1_.virtualDisinvestQuantity
+            toTTSwapUINT256(proofState0, proofShares0).getamount0fromamount1(
+                _params._goodshares
             ),
-            toTTSwapUINT256(proofState1, proofInvest0).getamount0fromamount1(
-                normalGoodResult1_.virtualDisinvestQuantity
+            toTTSwapUINT256(proofState1, proofShares0).getamount0fromamount1(
+                _params._goodshares
             )
         );
 
         // ensure the divested value and quantity are within valid ranges.
         // Check limits on how much value can be withdrawn at once to prevent manipulation.
-        if (
-            disinvestvalue.amount0() >
-            _self.goodConfig.getDisinvestChips(_self.investState.amount1()) ||
-            disinvestvalue.amount0() < 10000
-        ) {
+        if (disinvestvalue.amount0() >
+            _self.goodConfig.getDisinvestChips(_self.investState.amount1())) {
             revert TTSwapError(26);
+        }
+        if (disinvestvalue.amount1() < 1_000_000_000_000) {
+            normalGoodResult1_ = S_GoodDisinvestReturn(
+                0,
+                0,
+                _params._goodshares, //divest shares
+                proofInvest0, // Virtual quantity to divest (normal good)
+                proofInvest1, // Actual quantity to divest (normal good)
+                proofMintTTSValue // Mint TTS value to divest (normal good)
+            );
+            disinvestvalue = toTTSwapUINT256(proofState0, proofState1);
         }
         if (
             normalGoodResult1_.virtualDisinvestQuantity >
@@ -703,84 +704,63 @@ library L_Good {
         address _sender
     ) private {
         uint256 _goodconfig = _self.goodConfig;
-        // Calculate platform fee and deduct it from the profit
+        mapping(address => uint256) storage commission = _self.commission;
+        // Platform fee always taken from gross profit first.
         uint128 marketfee = _goodconfig.getPlatformFee128(_profit);
         _profit -= marketfee;
-
-        // Calculate individual fees based on market configuration
         uint128 liqidFee = _goodconfig.getLiquidFee(_profit);
-        uint128 sellerFee = _goodconfig.getOperatorFee(_profit);
-        uint128 gaterFee = _goodconfig.getGateFee(_profit);
-        uint128 referFee = _goodconfig.getReferFee(_profit);
-        uint128 customerFee = _goodconfig.getCustomerFee(_profit);
 
         if (_referral == address(0)) {
-            // No referrer path:
-            // - sender receives LP share + divested principal
-            // - gate receives operator + customer portions (if gate exists)
-            // - remaining + platform fee accrues to protocol (address(0))
-            // If no referrer, distribute fees differently
+            // No referrer: only compute fees needed for this branch.
             if (_gater == address(0)) {
-                _self.commission[address(0)] += (_profit -
-                    liqidFee +
-                    marketfee);
-                _self.commission[_sender] += (liqidFee + _divestQuantity);
+                commission[address(0)] += (_profit - liqidFee + marketfee);
+                commission[_sender] += (liqidFee + _divestQuantity);
             } else {
-                _self.commission[_sender] += (liqidFee + _divestQuantity);
-                _self.commission[_gater] += sellerFee + customerFee;
-                _self.commission[address(0)] += (_profit +
+                uint128 sellerFee = _goodconfig.getOperatorFee(_profit);
+                uint128 customerFee = _goodconfig.getCustomerFee(_profit);
+                commission[_sender] += (liqidFee + _divestQuantity);
+                commission[_gater] += sellerFee + customerFee;
+                commission[address(0)] += (_profit +
                     marketfee -
                     liqidFee -
                     sellerFee -
                     customerFee);
             }
         } else {
-            // Referrer path:
-            // - operator fee goes to owner (or protocol if owner is zero)
-            // - gate fee goes to gate (or protocol if gate is zero)
-            // - referral fee always to referrer
-            // - sender receives LP share + customer fee + divested principal
-            // If referrer exists, distribute fees according to roles
-            if (_self.owner != address(0)) {
-                _self.commission[_self.owner] += sellerFee;
+            // Referrer path: full fee split.
+            uint128 sellerFee = _goodconfig.getOperatorFee(_profit);
+            uint128 gaterFee = _goodconfig.getGateFee(_profit);
+            uint128 referFee = _goodconfig.getReferFee(_profit);
+            uint128 customerFee = _goodconfig.getCustomerFee(_profit);
+            address owner = _self.owner;
+
+            if (owner != address(0)) {
+                commission[owner] += sellerFee;
             } else {
                 marketfee += sellerFee;
             }
 
             if (_gater != address(0)) {
-                _self.commission[_gater] += gaterFee;
+                commission[_gater] += gaterFee;
             } else {
                 marketfee += gaterFee;
             }
 
-            _self.commission[_referral] += referFee;
-
-            _self.commission[address(0)] += marketfee;
-            _self.commission[_sender] += (liqidFee +
-                customerFee +
-                _divestQuantity);
+            commission[_referral] += referFee;
+            commission[address(0)] += marketfee;
+            commission[_sender] += (liqidFee + customerFee + _divestQuantity);
         }
     }
 
-    /// @notice Dynamic leverage cap based on pool utilization.
-    /// @dev `config.amount1()` = leverage `virtualQty` only.
-    ///      `currentState.amount1 - virtualQty` ≈ actual token depth; compared to `currentState.amount0` (`investQty`).
-    function getInvestPower(
+    function getBalanceLimit(
         S_GoodState storage _self
-    ) internal view returns (uint128 limitpower_) {
-        // Cache goodConfig: saves 1 SLOAD vs calling getPower() + amount1() separately
-        uint256 config = _self.goodConfig;
-        uint128 maxpower = config.getPower();
-        uint128 virtual_quantity = config.amount1(); // leverage virtualQty (excludes actual investQty)
-        uint128 current_quantity = _self.currentState.amount1() -
-            virtual_quantity; // ≈ actual depth in Q
-        uint128 invest_quantity = _self.currentState.amount0(); // investQty
-        if (current_quantity < invest_quantity) {
-            limitpower_ = ((current_quantity * maxpower) / invest_quantity);
-            limitpower_ = limitpower_ < 100 ? 100 : limitpower_;
-        } else {
-            limitpower_ = ((invest_quantity * maxpower) / current_quantity);
-            limitpower_ = limitpower_ < 100 ? 100 : limitpower_;
-        }
+    ) internal view returns (uint256) {
+        uint256 cfg = _self.goodConfig;
+        return
+            uint256(
+                cfg.getSafeLineLower128(
+                    _self.currentState.amount1() - cfg.amount1()
+                )
+            );
     }
 }

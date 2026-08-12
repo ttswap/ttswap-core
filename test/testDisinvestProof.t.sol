@@ -149,11 +149,6 @@ contract testDisinvestProof is BaseSetup {
         vm.stopPrank();
     }
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _freezeGood(uint256 goodId) internal {
         vm.startPrank(marketcreator);
@@ -579,11 +574,6 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
     }
 
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _partialShares(uint256 proofId) internal view returns (uint128) {
         return _partialDisinvestShares(proofId);

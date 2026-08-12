@@ -234,7 +234,7 @@ contract testModifyGood is BaseSetup {
     function test_modifyGoodByAdmin_setValueGood() public {
         vm.startPrank(marketcreator);
         uint256 before_ = _currentConfig();
-        uint256 patch = (1 << 255);
+        uint256 patch = before_ | (1 << 255);
 
         bool ok = market.modifyGoodByAdmin(
             btcGoodId,
@@ -255,7 +255,8 @@ contract testModifyGood is BaseSetup {
     function test_modifyGoodByAdmin_setErcType() public {
         vm.startPrank(marketcreator);
         uint256 before_ = _currentConfig();
-        uint256 patch = _pack(3, 247);
+        // isreserved1 lives at bits 238-237 (admin-only); preserve other admin bits.
+        uint256 patch = (before_ & ~uint256(3 << 237)) | _pack(3, 237);
 
         market.modifyGoodByAdmin(btcGoodId, patch, marketcreator, defaultdata);
 
@@ -326,7 +327,7 @@ contract testModifyGood is BaseSetup {
 
         vm.startPrank(marketcreator);
         vm.recordLogs();
-        market.modifyGoodByAdmin(btcGoodId, (1 << 255), marketcreator, defaultdata);
+        market.modifyGoodByAdmin(btcGoodId, _currentConfig() | (1 << 255), marketcreator, defaultdata);
         Vm.Log[] memory adminLogs = vm.getRecordedLogs();
         assertEq(adminLogs[adminLogs.length - 1].topics[0], modifyTopic);
         vm.stopPrank();
@@ -336,7 +337,7 @@ contract testModifyGood is BaseSetup {
         uint256 base = _currentConfig();
 
         vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(btcGoodId, (1 << 255), marketcreator, defaultdata);
+        market.modifyGoodByAdmin(btcGoodId, _currentConfig() | (1 << 255), marketcreator, defaultdata);
         uint256 afterAdmin = _currentConfig();
         vm.stopPrank();
 

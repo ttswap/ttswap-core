@@ -232,12 +232,14 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     /// @inheritdoc I_TTSwap_Token
     function setReferral(address user, address referral) external override {
+        uint256 callerCfg = userConfig[msg.sender];
+        uint256 userCfg = userConfig[user];
         if (
-            userConfig[msg.sender].isCallMintTTS() &&
-            userConfig[user].referral() == address(0) &&
+            callerCfg.isCallMintTTS() &&
+            userCfg.referral() == address(0) &&
             user != referral
         ) {
-            userConfig[user] = userConfig[user].setReferral(referral);
+            userConfig[user] = userCfg.setReferral(referral);
             emit e_addreferral(user, referral);
         }
     }
@@ -432,25 +434,31 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     ) external override returns (uint128 netconstruct) {
         if (!userConfig[msg.sender].isCallMintTTS()) revert TTSwapError(71);
         _stakeFee();
-        uint256 restakeid = uint256(keccak256(abi.encode(_staker, msg.sender)));
+        uint256 restakeid;
+        assembly {
+            mstore(0x00, _staker)
+            mstore(0x20, caller())
+            restakeid := keccak256(0x00, 0x40)
+        }
+        (uint128 pool0, uint128 pool1) = poolstate.amount01();
+        (uint128 stake0, uint128 stake1) = stakestate.amount01();
         // netconstruct represents the proportional construct fee minted into the pool.
         // If poolstate.amount1() is zero, no construct fee can be derived yet.
-        netconstruct = poolstate.amount1() == 0
-            ? 0
-            : mulDiv(poolstate.amount0(), proofvalue, stakestate.amount1());
+        netconstruct = pool1 == 0 ? 0 : mulDiv(pool0, proofvalue, stake1);
         // Pool accounting:
         // poolstate.amount0() tracks total pool value, amount1() tracks total construct fee.
         // stakestate.amount1() tracks total proof value staked (shares denominator).
-        poolstate = add(poolstate, toTTSwapUINT256(netconstruct, netconstruct));
-        stakestate = add(stakestate, toTTSwapUINT256(0, proofvalue));
-        stakeproof[restakeid].fromcontract = msg.sender;
-        stakeproof[restakeid].proofstate = add(
-            stakeproof[restakeid].proofstate,
+        poolstate = toTTSwapUINT256(pool0 + netconstruct, pool1 + netconstruct);
+        stakestate = toTTSwapUINT256(stake0, stake1 + proofvalue);
+        s_proof storage sp = stakeproof[restakeid];
+        sp.fromcontract = msg.sender;
+        sp.proofstate = add(
+            sp.proofstate,
             toTTSwapUINT256(proofvalue, netconstruct)
         );
         emit e_stakeinfo(
             _staker,
-            stakeproof[restakeid].proofstate,
+            sp.proofstate,
             toTTSwapUINT256(0, netconstruct),
             stakestate,
             poolstate
@@ -475,24 +483,34 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         _stakeFee();
         uint128 profit;
         uint128 construct;
-        uint256 restakeid = uint256(keccak256(abi.encode(_staker, msg.sender)));
+        uint256 restakeid;
+        assembly {
+            mstore(0x00, _staker)
+            mstore(0x20, caller())
+            restakeid := keccak256(0x00, 0x40)
+        }
+        s_proof storage sp = stakeproof[restakeid];
+        (uint128 proof0, uint128 proof1) = sp.proofstate.amount01();
         // Clamp to the user's remaining proof value, then compute the matching construct amount.
-        if (proofvalue >= stakeproof[restakeid].proofstate.amount0()) {
-            proofvalue = stakeproof[restakeid].proofstate.amount0();
-            construct = stakeproof[restakeid].proofstate.amount1();
+        if (proofvalue >= proof0) {
+            proofvalue = proof0;
+            construct = proof1;
             delete stakeproof[restakeid];
         } else {
-            construct = stakeproof[restakeid].proofstate.getamount1fromamount0(
-                proofvalue
-            );
-            stakeproof[restakeid].proofstate = sub(
-                stakeproof[restakeid].proofstate,
+            construct = sp.proofstate.getamount1fromamount0(proofvalue);
+            sp.proofstate = sub(
+                sp.proofstate,
                 toTTSwapUINT256(proofvalue, construct)
             );
         }
+        (uint128 pool0, uint128 stake1) = (
+            poolstate.amount0(),
+            stakestate.amount1()
+        );
         // Profit is the user's share of pool growth, derived from current pool ratio.
-        profit = toTTSwapUINT256(poolstate.amount0(), stakestate.amount1())
-            .getamount0fromamount1(proofvalue);
+        profit = toTTSwapUINT256(pool0, stake1).getamount0fromamount1(
+            proofvalue
+        );
         stakestate = sub(stakestate, toTTSwapUINT256(0, proofvalue));
         poolstate = sub(poolstate, toTTSwapUINT256(profit, construct));
         // Net profit excludes the construct portion that was already accounted for.
@@ -500,7 +518,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         if (profit > 0) _mint(_staker, profit);
         emit e_stakeinfo(
             _staker,
-            stakeproof[restakeid].proofstate,
+            sp.proofstate,
             toTTSwapUINT256(construct, profit),
             stakestate,
             poolstate
@@ -511,21 +529,20 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      * @dev Internal function to handle staking fees
      */
     function _stakeFee() internal {
+        // Hot path: only read amount0 (last fee timestamp) until the daily window opens.
         if (stakestate.amount0() + 86400 < block.timestamp) {
-            stakestate =  toTTSwapUINT256(uint128(block.timestamp), stakestate.amount1());
+            uint128 nowTs = uint128(block.timestamp);
+            stakestate = toTTSwapUINT256(nowTs, stakestate.amount1());
             uint128 leftamount = 200_000_000_000_000_000_000 > totalSupply
                 ? uint128(200_000_000_000_000_000_000 - totalSupply)
                 : 0;
-            uint128 mintamount = leftamount < 1000000000000 
-                ? 1000000000000
-                : leftamount / 18250; //leftamount /50 /365
-            poolstate = add(
-                poolstate,
-                toTTSwapUINT256(ttstokenconfig.getratio(mintamount), 0)
-            );
-            emit e_updatepool(
-                toTTSwapUINT256(stakestate.amount0(), poolstate.amount0())
-            );
+            uint128 mintamount = leftamount < 1_000_000_000_000
+                ? 1_000_000_000_000
+                : leftamount / 18250; // leftamount / 50 / 365
+            uint128 addVal = ttstokenconfig.getratio(mintamount);
+            (uint128 pool0, uint128 pool1) = poolstate.amount01();
+            poolstate = toTTSwapUINT256(pool0 + addVal, pool1);
+            emit e_updatepool(toTTSwapUINT256(nowTs, pool0 + addVal));
         }
     }
     // burn

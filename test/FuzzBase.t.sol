@@ -82,11 +82,6 @@ abstract contract FuzzBase is BaseSetup {
         vm.stopPrank();
     }
 
-    function _markAsValueGood(uint256 goodId) internal {
-        vm.startPrank(marketcreator);
-        market.modifyGoodByAdmin(goodId, (1 << 255), marketcreator, defaultdata);
-        vm.stopPrank();
-    }
 
     function _decodeTTSwapError(bytes memory reason) internal pure returns (uint256 code) {
         if (reason.length < 36) return type(uint256).max;
