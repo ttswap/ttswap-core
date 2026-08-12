@@ -21,15 +21,16 @@ import {
     toTTSwapUINT256
 } from "../src/libraries/L_TTSwapUINT256.sol";
 
+import {L_CurrencyLibrary,_permit2} from "../src/libraries/L_Currency.sol";
+
 /// @notice v2.0 `initGood` with plain approve / EIP-2612 / Permit2 transfer paths.
 contract testPermitInitGood is BaseSetup {
     using T_GoodKeyLibrary for T_GoodKey;
     using L_TTSwapUINT256Library for uint256;
     using L_ProofIdLibrary for S_ProofKey;
 
-    /// @dev Canonical Permit2 address used by `T_GoodKeyLibrary._permit2`.
-    address internal constant PERMIT2 =
-        0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    /// @dev Must match `T_GoodKeyLibrary._permit2` (testnet / Hoodi deploy).
+    address internal constant PERMIT2 = _permit2;
 
     bytes32 internal constant PERMIT_TYPEHASH =
         keccak256(

@@ -73,9 +73,13 @@ library L_Transient {
     /// @notice Deducts `amount` from the transient ETH budget before a native good transfer.
     /// @dev Reverts `TTSwapError(30)` when the budget is insufficient.
     function decreaseValue(uint256 amount) internal {
-        if (amount > getValue()) revert TTSwapError(30);
+        uint256 value;
         assembly {
-            tstore(VALUE_SLOT, sub(tload(VALUE_SLOT), amount))
+            value := tload(VALUE_SLOT)
+        }
+        if (amount > value) revert TTSwapError(30);
+        assembly {
+            tstore(VALUE_SLOT, sub(value, amount))
         }
     }
 
