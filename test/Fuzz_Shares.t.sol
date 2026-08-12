@@ -15,9 +15,15 @@ contract Fuzz_Shares is FuzzBase {
         uint120 metric,
         uint8 chips
     ) public {
+        // Keep in sync with TTSwap_Token.MAX_SHARE_MINT_METRIC
+        uint120 maxMintMetric = 60;
         amount = uint128(bound(amount, 1, tts_token.left_share() / 1000));
-        metric = uint120(bound(metric, 0, 120));
         chips = uint8(bound(chips, 1, 20));
+        // last unlock metric = metric + chips - 1 <= maxMintMetric
+        uint120 maxMetric = uint120(maxMintMetric - (uint256(chips) - 1));
+        metric = uint120(bound(metric, 0, maxMetric));
+        // Fresh recipient each run so merge-path schedule checks cannot fire.
+        address owner = address(uint160(uint256(keccak256(abi.encode(amount, metric, chips)))));
 
         uint128 leftBefore = tts_token.left_share();
         s_share memory share = s_share({
@@ -27,12 +33,13 @@ contract Fuzz_Shares is FuzzBase {
         });
 
         vm.prank(marketcreator);
-        tts_token.addShare(share, users[4]);
+        tts_token.addShare(share, owner);
 
         assertEq(tts_token.left_share(), leftBefore - amount, "left_share");
-        s_share memory stored = tts_token.usershares(users[4]);
+        s_share memory stored = tts_token.usershares(owner);
         assertEq(stored.leftamount, amount, "user share");
         assertEq(stored.chips, chips, "chips");
+        assertEq(stored.metric, metric, "metric");
     }
 
     function testFuzz_BurnShare_restoresLeft(address owner, uint128 amount) public {
