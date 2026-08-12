@@ -6,13 +6,23 @@ libs = ["lib", "dependencies"]
 ffi = true
 optimizer = true
 via-ir = true
-optimizer_runs = 100
+optimizer_runs = 1_000
 solc = "0.8.29"
 evm_version = "cancun"
 no_style = true
 deny_warnings = false
 fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}]
 
+# Gas compile profiles (inherit default; only override runs).
+# gas100: smaller deploy; gas1e4: runtime-biased (preferred for gas benches); gas1e5: max runtime.
+[profile.gas100]
+optimizer_runs = 100
+
+[profile.gas1e4]
+optimizer_runs = 10_000
+
+[profile.gas1e5]
+optimizer_runs = 100_000
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 

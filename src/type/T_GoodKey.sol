@@ -24,19 +24,22 @@ struct T_GoodKey {
     uint256 id;
 }
 
+// mainnet
+// address constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+// address constant _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+//testnet
+address constant dai = 0xCaFBbAd55eb09efe7bec8408Cff9932Be7D9A7fA;
+address constant _permit2 = 0xa50eb0d081E986c280efF32dae089939Ea07bd22;
+
+/// @notice Derives a unique market good ID from `T_GoodKey`.
+/// @dev Native / ERC-20: lower 160 bits of `contractAddress`.
+///      ERC-1155 / ERC-6909: `keccak256(packed, id)` where
+///      `packed = (ercType << 160) | uint160(contractAddress)` (one 32-byte word).
+
 /// @title T_GoodKeyLibrary
 /// @notice Token transfers, balance reads, and id derivation for `T_GoodKey`.
 library T_GoodKeyLibrary {
-    address constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-    address constant _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-    //testnet
-    // address constant dai = 0xCaFBbAd55eb09efe7bec8408Cff9932Be7D9A7fA;
-    // address constant _permit2 = 0xa50eb0d081E986c280efF32dae089939Ea07bd22;
     using T_GoodKeyLibrary for T_GoodKey;
-    /// @notice Derives a unique market good ID from `T_GoodKey`.
-    /// @dev Native / ERC-20: lower 160 bits of `contractAddress`.
-    ///      ERC-1155 / ERC-6909: `keccak256(packed, id)` where
-    ///      `packed = (ercType << 160) | uint160(contractAddress)` (one 32-byte word).
     function toId(
         T_GoodKey memory goodkey
     ) internal pure returns (uint256 goodid) {
@@ -404,7 +407,7 @@ library T_GoodKeyLibrary {
         }
         uint256 afterBalance = balanceof(goodkey, address(this));
         // if( beforeBalance-afterBalance != amount) revert SafeTransferFailed();
-        if( afterBalance<limitamount) revert SafelineLowerTransferFailed();
+        if (afterBalance < limitamount) revert SafelineLowerTransferFailed();
     }
 
     /// @notice Returns `contractAddress == address(1)` (native ETH sentinel, not a deployed contract).
