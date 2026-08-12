@@ -58,6 +58,16 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
             "permitShare(uint128 amount,uint120 chips,uint8 metric,address owner,uint128 existamount,uint128 deadline,uint256 nonce)"
         );
     string internal constant Version = "2.0.0";
+
+    /// @dev Minimum seconds between stake-fee drip ticks (1 day).
+    uint256 internal constant STAKE_FEE_INTERVAL = 86_400;
+    /// @dev Hard supply cap used when computing remaining stake drip mint.
+    uint256 internal constant TTS_SUPPLY_CAP = 200_000_000_000_000_000_000;
+    /// @dev Floor mint when remaining-to-cap is below this (1e12 raw units).
+    uint128 internal constant STAKE_MINT_FLOOR = 1_000_000_000_000;
+    /// @dev Daily drip divisor: `leftamount / (50 * 365)`.
+    uint128 internal constant STAKE_MINT_DAYS_DIVISOR = 18_250;
+
     constructor(address _usdt) ERC20("TTSwap Token", "TTS", 12) {
         usdt = _usdt;
     }
@@ -530,15 +540,15 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
      */
     function _stakeFee() internal {
         // Hot path: only read amount0 (last fee timestamp) until the daily window opens.
-        if (stakestate.amount0() + 86400 < block.timestamp) {
+        if (stakestate.amount0() + STAKE_FEE_INTERVAL < block.timestamp) {
             uint128 nowTs = uint128(block.timestamp);
             stakestate = toTTSwapUINT256(nowTs, stakestate.amount1());
-            uint128 leftamount = 200_000_000_000_000_000_000 > totalSupply
-                ? uint128(200_000_000_000_000_000_000 - totalSupply)
+            uint128 leftamount = TTS_SUPPLY_CAP > totalSupply
+                ? uint128(TTS_SUPPLY_CAP - totalSupply)
                 : 0;
-            uint128 mintamount = leftamount < 1_000_000_000_000
-                ? 1_000_000_000_000
-                : leftamount / 18250; // leftamount / 50 / 365
+            uint128 mintamount = leftamount < STAKE_MINT_FLOOR
+                ? STAKE_MINT_FLOOR
+                : leftamount / STAKE_MINT_DAYS_DIVISOR;
             uint128 addVal = ttstokenconfig.getratio(mintamount);
             (uint128 pool0, uint128 pool1) = poolstate.amount01();
             poolstate = toTTSwapUINT256(pool0 + addVal, pool1);

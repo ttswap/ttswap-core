@@ -23,7 +23,8 @@ import {
     L_TTSwapUINT256Library,
     toTTSwapUINT256,
     add,
-    lowerprice
+    lowerprice,
+    MAX_GOOD_STATE_LEG
 } from "./libraries/L_TTSwapUINT256.sol";
 
 import {I_TTSwap_Token} from "./interfaces/I_TTSwap_Token.sol";
@@ -91,6 +92,13 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @dev Relayer execution fee denominator: fee in output-token units = poolPrice(executeFee).
     ///      `50_000_000_000` is the fixed amount0 side; amount1 is derived per output good price.
     uint128 internal constant executeFee = 50_000_000_000; // 5×10^10
+
+    /// @dev Minimum init quantity — blocks dust pools / absurd self-pricing.
+    uint128 internal constant MIN_INIT_QUANTITY = 500_000;
+    /// @dev Minimum init value (protocol value units).
+    uint128 internal constant MIN_INIT_VALUE = 500_000_000_000_000;
+    /// @dev Minimum credited invest value after fees.
+    uint128 internal constant MIN_INVEST_VALUE = 1_000_000_000_000;
 
     /// @notice EIP-712 domain version string.
     string internal constant Version = "2.0.0";
@@ -217,8 +225,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         _checkTrader(_trader);
         (uint128 initVal, uint128 initQty) = _initial.amount01();
         // Minimum init size prevents dust pools and absurd self-pricing.
-        if (initQty < 500000 || initQty > 2 ** 109) revert TTSwapError(36);
-        if (initVal > 2 ** 109 || initVal < 500_000_000_000_000)
+        if (initQty < MIN_INIT_QUANTITY || initQty > MAX_GOOD_STATE_LEG)
+            revert TTSwapError(36);
+        if (initVal > MAX_GOOD_STATE_LEG || initVal < MIN_INIT_VALUE)
             revert TTSwapError(35);
         uint256 goodId = _goodKey.toId();
         if (goods[goodId].owner != address(0)) revert TTSwapError(5);
@@ -300,9 +309,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         // Process investment for normal good.
         // Calculates new shares and updates normal good's state.
         g.investGood(investQty, normalInvest_, enpower);
-        if (g.currentState.amount1() + investQty > 2 ** 109)
+        if (g.currentState.amount1() + investQty > MAX_GOOD_STATE_LEG)
             revert TTSwapError(18);
-        if (normalInvest_.investValue < 1000000000000) revert TTSwapError(38);
+        if (normalInvest_.investValue < MIN_INVEST_VALUE) revert TTSwapError(38);
 
         // Generate/Get proof ID.
         uint256 proofNo = S_ProofKey(msg.sender, goodId).toId();
@@ -1059,7 +1068,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         S_GoodState storage g = goods[goodid];
         if (g.owner == address(0)) revert TTSwapError(12);
         (uint128 cur0, uint128 cur1) = g.currentState.amount01();
-        if (cur0 + welfare > 2 ** 109 || cur1 + welfare > 2 ** 109) {
+        if (
+            cur0 + welfare > MAX_GOOD_STATE_LEG ||
+            cur1 + welfare > MAX_GOOD_STATE_LEG
+        ) {
             revert TTSwapError(18);
         }
         // Welfare is a direct pool top-up:
