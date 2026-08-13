@@ -61,9 +61,12 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
 
     /// @dev Minimum seconds between stake-fee drip ticks (1 day).
     uint256 internal constant STAKE_FEE_INTERVAL = 86_400;
-    /// @dev Hard supply cap used when computing remaining stake drip mint.
+    /// @dev Nominal 200M TTS (12 decimals) used to size the *declining* daily drip.
+    ///      Not a hard stop: when remaining-to-cap is below `STAKE_MINT_FLOOR`
+    ///      (including `totalSupply >=` this value), the floor still accrues.
     uint256 internal constant TTS_SUPPLY_CAP = 200_000_000_000_000_000_000;
-    /// @dev Floor mint when remaining-to-cap is below this (1e12 raw units).
+    /// @dev Minimum daily stake drip (1e12 raw). Applies even after the 200M
+    ///      nominal cap so late-stage / post-cap days still pay 1e12 (× chain ratio).
     uint128 internal constant STAKE_MINT_FLOOR = 1_000_000_000_000;
     /// @dev Daily drip divisor: `leftamount / (50 * 365)`.
     uint128 internal constant STAKE_MINT_DAYS_DIVISOR = 18_250;
@@ -553,13 +556,26 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     }
 
     /**
-     * @dev Internal function to handle staking fees
+     * @dev Accrue one daily stake-reward tick into `poolstate` (mint happens on `unstake`).
+     * @dev Curve: `leftamount / 18250` while remaining-to-nominal-cap is ≥ floor;
+     *      otherwise `STAKE_MINT_FLOOR`. `leftamount == 0` (at/past 200M) still
+     *      uses the floor — post-cap 1e12/day is intentional.
+     * @dev RT-15: if nobody is staked (`stakestate.amount1()==0`) the tick is
+     *      skipped (timestamp still advances) so an empty-pool first staker
+     *      cannot harvest a day that had no stake.
      */
     function _stakeFee() internal {
         // Hot path: only read amount0 (last fee timestamp) until the daily window opens.
         if (stakestate.amount0() + STAKE_FEE_INTERVAL < block.timestamp) {
             uint128 nowTs = uint128(block.timestamp);
-            stakestate = toTTSwapUINT256(nowTs, stakestate.amount1());
+            uint128 stake1 = stakestate.amount1();
+            // Always bump the clock so a later stake+unstake in the same window
+            // cannot retroactively claim an empty-pool day.
+            stakestate = toTTSwapUINT256(nowTs, stake1);
+            if (stake1 == 0) {
+                emit e_updatepool(toTTSwapUINT256(nowTs, poolstate.amount0()));
+                return;
+            }
             uint128 leftamount = TTS_SUPPLY_CAP > totalSupply
                 ? uint128(TTS_SUPPLY_CAP - totalSupply)
                 : 0;

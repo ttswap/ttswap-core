@@ -40,7 +40,8 @@ contract testTTSwapToken is BaseSetup {
         assertEq(stakeAfter.amount1(), STAKE_VALUE, "stakestate tracks proof value");
         assertEq(tts_token.balanceOf(beneficiary), 0, "no mint on stake");
 
-        vm.warp(block.timestamp + 86_400);
+        // Strict gate is lastFeeTs + 86400 < now; first stake already set lastFeeTs = now.
+        vm.warp(block.timestamp + 86_401);
 
         vm.prank(stakeCaller);
         tts_token.unstake(beneficiary, UNSTAKE_VALUE);
