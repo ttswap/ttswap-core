@@ -80,7 +80,7 @@ contract C04_ProxyBrick is BaseSetup {
         vm.roll(block.number + 1);
         market.investGood(
             key,
-            toTTSwapUINT256(0, uint128(20_000_000)),
+            _packInvest(usdtGoodId, uint128(20_000_000)),
             defaultdata,
             defaultdata,
             lp

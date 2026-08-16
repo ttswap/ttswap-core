@@ -11,7 +11,11 @@ import {TTSwap_Market} from "../src/TTSwap_Market.sol";
     import {TTSwap_Market_Proxy} from "../src/TTSwap_Market_Proxy.sol";
 import {TestConfigConstants} from "./TestConfigConstants.sol";
 import {L_GoodConfigLibrary} from "../src/libraries/L_GoodConfig.sol";
-import {L_TTSwapUINT256Library} from "../src/libraries/L_TTSwapUINT256.sol";
+import {S_GoodTmpState} from "../src/interfaces/I_TTSwap_Market.sol";
+import {
+    L_TTSwapUINT256Library,
+    toTTSwapUINT256
+} from "../src/libraries/L_TTSwapUINT256.sol";
 
 contract BaseSetup is Test, GasSnapshot {
     using L_GoodConfigLibrary for uint256;
@@ -78,6 +82,32 @@ contract BaseSetup is Test, GasSnapshot {
     /// Naming: `{action}_{pair_or_good}_{variant}` e.g. `buy_erc20_by_erc20_first`, `invest_erc20_normal_owner_first`.
     function _snapMarket(string memory name) internal {
         snapLastCall(name);
+    }
+
+    /// @dev Credited V `investGood` will book for `qty` (fee, leverage, investThreshold).
+    function _quotedInvestValue(
+        uint256 goodId,
+        uint128 qty
+    ) internal view returns (uint128) {
+        S_GoodTmpState memory s = market.getGoodState(goodId);
+        uint256 cfg = s.goodConfig;
+        uint128 enpower = cfg.getPower();
+        uint128 fee = cfg.getInvestFee(qty);
+        uint128 net = qty - fee;
+        uint128 virtQty = uint128((uint256(net) * uint256(enpower)) / 100);
+        uint128 val = toTTSwapUINT256(
+            s.investState.amount1(),
+            s.currentState.amount1()
+        ).getamount0fromamount1(virtQty);
+        return cfg.getInvestThreshold(val);
+    }
+
+    /// @dev Pack `_invest` so the ±1% quote check passes at current spot.
+    function _packInvest(
+        uint256 goodId,
+        uint128 qty
+    ) internal view returns (uint256) {
+        return toTTSwapUINT256(_quotedInvestValue(goodId, qty), qty);
     }
 
     /// @dev Withdraw at most 20% of proof shares (matches default getDisinvestChips divisor=20, factor=4).

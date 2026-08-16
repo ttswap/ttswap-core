@@ -162,7 +162,7 @@ contract testDisinvestProof is BaseSetup {
         btc.approve(address(market), qty);
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, qty),
+            _packInvest(btcGoodId, qty),
             defaultdata,
             defaultdata,
             trader
@@ -174,7 +174,7 @@ contract testDisinvestProof is BaseSetup {
         usdt.approve(address(market), qty);
         market.investGood(
             _usdtKey(),
-            toTTSwapUINT256(0, qty),
+            _packInvest(usdtGoodId, qty),
             defaultdata,
             defaultdata,
             trader
@@ -185,7 +185,7 @@ contract testDisinvestProof is BaseSetup {
         _warpToFreshRunSlot();
         market.investGood{value: qty}(
             _nativeKey(),
-            toTTSwapUINT256(0, qty),
+            _packInvest(nativeNormalGoodId, qty),
             defaultdata,
             defaultdata,
             trader
@@ -585,7 +585,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
         _warpToFreshRunSlot();
         market.investGood{value: NATIVE_INVEST}(
             _nativeKey(),
-            toTTSwapUINT256(0, NATIVE_INVEST),
+            _packInvest(nativeValueGoodId, NATIVE_INVEST),
             defaultdata,
             defaultdata,
             marketcreator
@@ -613,7 +613,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
         _warpToFreshRunSlot();
         market.investGood{value: NATIVE_INVEST}(
             _nativeKey(),
-            toTTSwapUINT256(0, NATIVE_INVEST),
+            _packInvest(nativeValueGoodId, NATIVE_INVEST),
             defaultdata,
             defaultdata,
             users[2]

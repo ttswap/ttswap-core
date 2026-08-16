@@ -129,7 +129,7 @@ contract testCollectCommission is BaseSetup {
         btc.approve(address(market), qty);
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, qty),
+            _packInvest(btcGoodId, qty),
             defaultdata,
             defaultdata,
             trader
@@ -141,7 +141,7 @@ contract testCollectCommission is BaseSetup {
         usdt.approve(address(market), qty);
         market.investGood(
             _usdtKey(),
-            toTTSwapUINT256(0, qty),
+            _packInvest(usdtGoodId, qty),
             defaultdata,
             defaultdata,
             trader
