@@ -201,6 +201,7 @@ contract testInvestGood is BaseSetup {
         uint128 value,
         uint128 qty
     ) internal returns (bool) {
+        if (value == 0) value = _quotedInvestValue(btcGoodId, qty);
         btc.approve(address(market), qty);
         return market.investGood(
             _btcKey(),
@@ -216,6 +217,7 @@ contract testInvestGood is BaseSetup {
         uint128 value,
         uint128 qty
     ) internal returns (bool) {
+        if (value == 0) value = _quotedInvestValue(usdtGoodId, qty);
         usdt.approve(address(market), qty);
         return market.investGood(
             _usdtKey(),
@@ -231,6 +233,7 @@ contract testInvestGood is BaseSetup {
         uint128 value,
         uint128 qty
     ) internal returns (bool) {
+        if (value == 0) value = _quotedInvestValue(nativeNormalGoodId, qty);
         return market.investGood{value: qty}(
             _nativeKey(),
             toTTSwapUINT256(value, qty),
@@ -239,8 +242,6 @@ contract testInvestGood is BaseSetup {
             trader
         );
     }
-
-    // ── ERC20 normal good (BTC) ────────────────────────────────────────────
 
     function testInvestERC20NormalGood_owner_poolPrice() public {
         vm.startPrank(users[1]);
@@ -353,17 +354,13 @@ contract testInvestGood is BaseSetup {
         vm.startPrank(users[1]);
         _warpToFreshRunSlot();
         btc.approve(address(market), BTC_INVEST);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 47));
         market.investGood(
             _btcKey(),
             toTTSwapUINT256(uint128(64000 * 10 ** 12), BTC_INVEST),
             defaultdata,
             defaultdata,
             users[1]
-        );
-        assertGt(
-            market.getGoodState(btcGoodId).currentState.amount1(),
-            BTC_INIT_QTY,
-            "high explicit price invest allowed in v2"
         );
         vm.stopPrank();
     }
@@ -376,7 +373,7 @@ contract testInvestGood is BaseSetup {
         _warpToFreshRunSlot();
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(BTC_INIT_VALUE, BTC_INVEST),
+            _packInvest(btcGoodId, BTC_INVEST),
             defaultdata,
             defaultdata,
             users[4]
@@ -393,7 +390,7 @@ contract testInvestGood is BaseSetup {
         vm.startPrank(users[1]);
         _warpToFreshRunSlot();
         btc.approve(address(market), 1);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 38));
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 47));
         market.investGood(
             _btcKey(),
             toTTSwapUINT256(0, 1),
@@ -604,14 +601,14 @@ contract testInvestGood is BaseSetup {
         _warpToFreshRunSlot();
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, BTC_INVEST),
+            _packInvest(btcGoodId, BTC_INVEST),
             defaultdata,
             defaultdata,
             users[1]
         );
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, BTC_INVEST),
+            _packInvest(btcGoodId, BTC_INVEST),
             defaultdata,
             defaultdata,
             users[1]
@@ -640,6 +637,56 @@ contract testInvestGood is BaseSetup {
             }
         }
         assertTrue(found, "e_investGood emitted");
+        vm.stopPrank();
+    }
+
+    function testInvestGood_revert_zeroQuote() public {
+        vm.startPrank(users[1]);
+        _warpToFreshRunSlot();
+        btc.approve(address(market), BTC_INVEST);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 47));
+        market.investGood(
+            _btcKey(),
+            toTTSwapUINT256(0, BTC_INVEST),
+            defaultdata,
+            defaultdata,
+            users[1]
+        );
+        vm.stopPrank();
+    }
+
+    function testInvestGood_revert_quoteOffByMoreThan1pct() public {
+        uint128 fair = _quotedInvestValue(btcGoodId, BTC_INVEST);
+        uint128 bad = fair + fair / 50; // +2%
+        vm.startPrank(users[1]);
+        _warpToFreshRunSlot();
+        btc.approve(address(market), BTC_INVEST);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 47));
+        market.investGood(
+            _btcKey(),
+            toTTSwapUINT256(bad, BTC_INVEST),
+            defaultdata,
+            defaultdata,
+            users[1]
+        );
+        vm.stopPrank();
+    }
+
+    function testInvestGood_quoteWithin1pct_ok() public {
+        uint128 fair = _quotedInvestValue(btcGoodId, BTC_INVEST);
+        uint128 tight = fair + fair / 200; // +0.5%
+        vm.startPrank(users[1]);
+        _warpToFreshRunSlot();
+        btc.approve(address(market), BTC_INVEST);
+        assertTrue(
+            market.investGood(
+                _btcKey(),
+                toTTSwapUINT256(tight, BTC_INVEST),
+                defaultdata,
+                defaultdata,
+                users[1]
+            )
+        );
         vm.stopPrank();
     }
 
@@ -743,6 +790,7 @@ contract testInvestNativeETHValueGood is BaseSetup {
         uint128 value,
         uint128 qty
     ) internal returns (bool) {
+        if (value == 0) value = _quotedInvestValue(nativeValueGoodId, qty);
         return market.investGood{value: qty}(
             _nativeKey(),
             toTTSwapUINT256(value, qty),

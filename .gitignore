@@ -25,3 +25,35 @@ src/artifacts
 
 # Soldeer
 /dependencies
+
+.agents
+.cursor
+.deploy
+.secrets
+.settings
+.vscode
+.deploy
+.deps 
+.gas-bench
+.solhint.json
+.states
+artifacts
+audit
+broadcast
+coverage
+deployslog
+bin
+releases
+script
+soljson*
+.deploys/
+.gas-snapshot.bak
+.gas-snapshot.before-phase2
+aa.txt
+image.png
+skills-lock.json
+soldeer.lock
+
+
+src/libraries/L_Account.sol
+src/TTSwap_Market_Private.sol

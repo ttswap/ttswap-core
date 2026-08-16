@@ -225,7 +225,7 @@ contract testMarketGapP2 is BaseSetup {
         _warpToFreshRunSlot();
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, 10 ** 8),
+            _packInvest(btcGoodId, 10 ** 8),
             defaultdata,
             defaultdata,
             users[1]
@@ -252,7 +252,7 @@ contract testMarketGapP2 is BaseSetup {
         _warpToFreshRunSlot();
         market.investGood(
             _usdtKey(),
-            toTTSwapUINT256(0, 1000 * 10 ** 6),
+            _packInvest(usdtGoodId, 1000 * 10 ** 6),
             defaultdata,
             defaultdata,
             users[1]

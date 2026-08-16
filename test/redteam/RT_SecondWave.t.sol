@@ -116,7 +116,7 @@ contract RT_SecondWave is BaseSetup {
         // investGood on USDT is equally blocked.
         vm.prank(victim);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
-        market.investGood(_usdtKey(), toTTSwapUINT256(0, 1e6), defaultdata, defaultdata, victim);
+        market.investGood(_usdtKey(), _packInvest(usdtGoodId, 1e6), defaultdata, defaultdata, victim);
     }
 
     function test_RT09_multicall_whole_market_censorship_one_tx() public {
@@ -187,7 +187,7 @@ contract RT_SecondWave is BaseSetup {
         vm.startPrank(victim);
         eth.approve(address(market), type(uint256).max);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 56));
-        market.investGood(key, toTTSwapUINT256(0, 1e6), defaultdata, defaultdata, victim);
+        market.investGood(key, _packInvest(goodId, 1e6), defaultdata, defaultdata, victim);
         vm.stopPrank();
 
         assertEq(eth.balanceOf(victim), victimBalBefore, "victim keeps tokens after 0-share reject");
@@ -213,7 +213,7 @@ contract RT_SecondWave is BaseSetup {
         deal(address(eth), victim, 1e6, false);
         vm.startPrank(victim);
         eth.approve(address(market), type(uint256).max);
-        market.investGood(_ethKey(), toTTSwapUINT256(0, 1e6), defaultdata, defaultdata, victim);
+        market.investGood(_ethKey(), _packInvest(skinnyId, 1e6), defaultdata, defaultdata, victim);
         vm.stopPrank();
 
         // Control: without one-sided flow, an LP exit works fine.
@@ -324,7 +324,7 @@ contract RT_SecondWave is BaseSetup {
         vm.startPrank(victim);
         usdt.approve(address(market), type(uint256).max);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
-        market.investGood(_usdtKey(), toTTSwapUINT256(0, 1e8), defaultdata, defaultdata, victim);
+        market.investGood(_usdtKey(), _packInvest(usdtGoodId, 1e8), defaultdata, defaultdata, victim);
         vm.stopPrank();
         emit log("RT13: untouched good bricked for the whole block N%4095==0");
     }

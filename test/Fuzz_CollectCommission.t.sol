@@ -19,7 +19,7 @@ contract Fuzz_CollectCommission is FuzzBase {
         _warp();
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, uint128(1 * 10 ** 8)),
+            _packInvest(btcGoodId, uint128(1 * 10 ** 8)),
             defaultdata,
             defaultdata,
             FUZZ_USER

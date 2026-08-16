@@ -350,7 +350,7 @@ contract testInitGoodWithPrice is BaseSetup {
 
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, investQty),
+            _packInvest(goodId, investQty),
             defaultdata,
             defaultdata,
             users[1]
@@ -372,7 +372,7 @@ contract testInitGoodWithPrice is BaseSetup {
         _warpToFreshRunSlot();
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, investQty),
+            _packInvest(goodId, investQty),
             defaultdata,
             defaultdata,
             users[1]
@@ -397,17 +397,13 @@ contract testInitGoodWithPrice is BaseSetup {
         _warpToFreshRunSlot();
 
         uint128 higherPrice = uint128(64000 * 10 ** 12);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 47));
         market.investGood(
             _btcKey(),
             toTTSwapUINT256(higherPrice, BTC_QTY),
             defaultdata,
             defaultdata,
             users[1]
-        );
-        assertGt(
-            market.getGoodState(goodId).currentState.amount1(),
-            BTC_QTY,
-            "high-price invest allowed in v2"
         );
         vm.stopPrank();
     }
@@ -424,7 +420,7 @@ contract testInitGoodWithPrice is BaseSetup {
 
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, BTC_QTY),
+            _packInvest(goodId, BTC_QTY),
             defaultdata,
             defaultdata,
             users[2]
@@ -448,7 +444,7 @@ contract testInitGoodWithPrice is BaseSetup {
 
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(BTC_VALUE, BTC_QTY),
+            _packInvest(goodId, BTC_QTY),
             defaultdata,
             defaultdata,
             users[2]
@@ -470,7 +466,7 @@ contract testInitGoodWithPrice is BaseSetup {
 
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(BTC_VALUE, BTC_QTY),
+            _packInvest(goodId, BTC_QTY),
             defaultdata,
             defaultdata,
             users[1]
@@ -493,7 +489,7 @@ contract testInitGoodWithPrice is BaseSetup {
 
         market.investGood(
             T_GoodKey({ercType: 1, contractAddress: address(usdt), id: 0}),
-            toTTSwapUINT256(0, investQty),
+            _packInvest(metaGoodId, investQty),
             defaultdata,
             defaultdata,
             users[1]

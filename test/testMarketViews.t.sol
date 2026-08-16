@@ -141,7 +141,7 @@ contract testMarketViews is BaseSetup {
         btc.approve(address(market), BTC_INVEST);
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, BTC_INVEST),
+            _packInvest(btcGoodId, BTC_INVEST),
             defaultdata,
             defaultdata,
             users[1]
