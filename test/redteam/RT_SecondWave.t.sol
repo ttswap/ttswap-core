@@ -116,7 +116,7 @@ contract RT_SecondWave is BaseSetup {
         // investGood on USDT is equally blocked.
         vm.prank(victim);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
-        market.investGood(_usdtKey(), toTTSwapUINT256(0, 1e6), defaultdata, defaultdata, victim);
+        market.investGood(_usdtKey(), _packInvest(usdtGoodId, 1e6), defaultdata, defaultdata, victim);
     }
 
     function test_RT09_multicall_whole_market_censorship_one_tx() public {
@@ -162,10 +162,10 @@ contract RT_SecondWave is BaseSetup {
 
     // ─────────────────────────────────────────────────────────────────────────
     // RT-10: investGood mints 0 shares while accepting the deposit.
-    // investQty is inflated via goodWelfare (no run-block, no shares minted),
-    // so share mint = S * D / I rounds to 0 while the value check (38) still
-    // passes on a high-V/Q good. Victim position is permanently bricked:
-    // disinvestProof(>0) reverts 41, disinvestProof(0) reverts 26.
+    // RT-10 was: welfare inflates investQty so share mint floors to 0 while
+    // tokens are still pulled — permanent lock. Mitigated: L_Good.investGood
+    // now reverts TTSwapError(56) when investShare == 0 (before state/token
+    // accounting commits beyond the outer call's revert).
     // ─────────────────────────────────────────────────────────────────────────
 
     function test_RT10_investGood_zero_share_deposit_lock() public {
@@ -175,54 +175,25 @@ contract RT_SecondWave is BaseSetup {
         deal(address(eth), attacker, 1e15, false);
         deal(address(eth), victim, 1e6, false);
 
-        // Attacker inflates investQty 1000x via welfare donation (front-run slot).
+        // Attacker inflates investQty 1000x via welfare donation.
         vm.startPrank(attacker);
         eth.approve(address(market), type(uint256).max);
         market.goodWelfare(goodId, 5e11, defaultdata, attacker, defaultdata);
         vm.stopPrank();
 
-        // Victim invests 1e6 tokens. Value check passes (pool price is astronomic),
-        // but minted shares floor to 0.
+        uint256 victimBalBefore = eth.balanceOf(victim);
+
+        // Victim invest would mint 0 shares — must revert 56; deposit not taken.
         vm.startPrank(victim);
         eth.approve(address(market), type(uint256).max);
-        market.investGood(key, toTTSwapUINT256(0, 1e6), defaultdata, defaultdata, victim);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 56));
+        market.investGood(key, _packInvest(goodId, 1e6), defaultdata, defaultdata, victim);
         vm.stopPrank();
 
+        assertEq(eth.balanceOf(victim), victimBalBefore, "victim keeps tokens after 0-share reject");
         uint256 proofId = S_ProofKey(victim, goodId).toId();
-        uint128 shares = market.getProofState(proofId).shares.amount0();
-        assertEq(shares, 0, "victim minted 0 shares");
-        assertEq(eth.balanceOf(victim), 0, "victim deposit was taken");
-
-        // Victim can never exit: any share amount reverts.
-        vm.prank(victim);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 41));
-        market.disinvestProof(proofId, 1, address(0), victim, defaultdata);
-
-        // The bricked deposit is now part of investQty, claimable pro-rata by
-        // existing shareholders (here: the attacker, sole LP).
-        uint256 attackerBefore = eth.balanceOf(attacker);
-        uint256 attackerProof = S_ProofKey(attacker, goodId).toId();
-        uint128 attackerShares = market.getProofState(attackerProof).shares.amount0();
-        // Attacker exits what's exitable (chips cap shrinks with V each call;
-        // raw calls, ignore late reverts - we only care about the net number).
-        for (uint256 i = 0; i < 10; i++) {
-            vm.prank(attacker);
-            (bool ok, ) = address(market).call(
-                abi.encodeCall(
-                    market.disinvestProof,
-                    (attackerProof, attackerShares / 10, address(0), attacker, defaultdata)
-                )
-            );
-            if (!ok) break;
-        }
-        uint256 attackerOut = eth.balanceOf(attacker) - attackerBefore;
-        emit log_named_uint("RT10 attacker in (seed+welfare)", uint256(5e5 + 5e11));
-        emit log_named_uint("RT10 attacker out (disinvest)", attackerOut);
-        emit log_named_uint("RT10 victim locked deposit", 1e6);
-        // Honest accounting: platform/split fees on the phantom donation-profit
-        // make full extraction net-negative for the attacker -> this is a
-        // fund-lock / griefing weapon, not a theft. Victim funds are stuck forever.
-        assertGt(eth.balanceOf(address(market)), 0, "victim tokens remain trapped in market");
+        assertEq(market.getProofState(proofId).shares.amount0(), 0, "no victim proof shares");
+        emit log_named_uint("RT10 blocked: zero-share invest reverts 56", 56);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -242,7 +213,7 @@ contract RT_SecondWave is BaseSetup {
         deal(address(eth), victim, 1e6, false);
         vm.startPrank(victim);
         eth.approve(address(market), type(uint256).max);
-        market.investGood(_ethKey(), toTTSwapUINT256(0, 1e6), defaultdata, defaultdata, victim);
+        market.investGood(_ethKey(), _packInvest(skinnyId, 1e6), defaultdata, defaultdata, victim);
         vm.stopPrank();
 
         // Control: without one-sided flow, an LP exit works fine.
@@ -313,18 +284,16 @@ contract RT_SecondWave is BaseSetup {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // RT-12: _stakeFee floor of 1e12 mints staking rewards FOREVER, even after
-    // totalSupply reaches the advertised 2e20 cap. Hard cap is fictional.
+    // RT-12 is specified behavior: daily drip uses STAKE_MINT_FLOOR (1e12)
+    // whenever remaining-to-200M is below the floor, including after cap.
     // ─────────────────────────────────────────────────────────────────────────
 
-    function test_RT12_post_cap_perpetual_inflation() public {
+    function test_RT12_post_cap_floor_drip_is_intentional() public {
         uint256 CAP = 200_000_000_000_000_000_000;
         vm.prank(marketcreator); // DAO admin
         tts_token.mint(marketcreator, CAP);
         assertEq(tts_token.totalSupply(), CAP, "at advertised cap");
 
-        // Attacker (granted callMintTTS, same precondition class as RT-04)
-        // stakes once, then harvests the floor-drip daily.
         vm.prank(marketcreator);
         tts_token.setCallMintTTS(attacker, true);
         vm.prank(attacker);
@@ -335,9 +304,9 @@ contract RT_SecondWave is BaseSetup {
         tts_token.unstake(attacker, 1e18);
 
         uint256 minted = tts_token.balanceOf(attacker);
-        emit log_named_uint("RT12 minted past cap in one day", minted);
-        assertGt(tts_token.totalSupply(), CAP, "hard cap exceeded via stake drip");
-        assertEq(minted, 1e12, "floor drip = 1e12/day at ratio 10000");
+        emit log_named_uint("RT12 post-cap floor drip (raw)", minted);
+        assertGt(tts_token.totalSupply(), CAP, "floor drip may exceed 200M");
+        assertEq(minted, 1e12, "1e12/day floor at ratio 10000");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -355,7 +324,7 @@ contract RT_SecondWave is BaseSetup {
         vm.startPrank(victim);
         usdt.approve(address(market), type(uint256).max);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
-        market.investGood(_usdtKey(), toTTSwapUINT256(0, 1e8), defaultdata, defaultdata, victim);
+        market.investGood(_usdtKey(), _packInvest(usdtGoodId, 1e8), defaultdata, defaultdata, victim);
         vm.stopPrank();
         emit log("RT13: untouched good bricked for the whole block N%4095==0");
     }

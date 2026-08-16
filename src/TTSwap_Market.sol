@@ -97,8 +97,6 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     uint128 internal constant MIN_INIT_QUANTITY = 500_000;
     /// @dev Minimum init value (protocol value units).
     uint128 internal constant MIN_INIT_VALUE = 500_000_000_000_000;
-    /// @dev Minimum credited invest value after fees.
-    uint128 internal constant MIN_INVEST_VALUE = 1_000_000_000_000;
 
     /// @notice EIP-712 domain version string.
     string internal constant Version = "2.0.0";
@@ -265,12 +263,13 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     /// @notice Add single-token liquidity to an existing good without pairing a value good.
     /// @dev The caller deposits only the target token; its credited value is derived from
     ///      the current pool price and scaled by the leverage factor (`enpower`).
-    ///      Flow: isInvestBlocked (price guard) → transfer tokens in → compute virtual shares
+    ///      Flow: quote check → transfer tokens in → compute virtual shares
     ///      → update good state → update/create proof → stake value to TTS.
-    ///      Reverts with TTSwapError(47) if the deposit price exceeds the current pool price,
-    ///      TTSwapError(38) if the resulting investment value is below the dust threshold.
+    ///      Reverts with TTSwapError(47) if `_invest.amount0 == 0` or credited V is
+    ///      more than 1% away from that quote (RT-17 sandwich guard).
+    ///      Reverts with TTSwapError(38) if the resulting investment value is below dust.
     /// @param _goodKey  Address of the ERC-20 token (good) to invest in.
-    /// @param _invest  Packed uint256 — amount0: credited value per unit, amount1: token quantity to deposit.
+    /// @param _invest  Packed uint256 — amount0: expected credited V (±1%), amount1: token quantity.
     /// @param _gooddata  Encoded transfer authorisation (plain approve / EIP-2612 / Permit2).
     /// @param signature Reserved for ABI compatibility; **not verified** here (C-01 scheme B). Do not rely on relayer semantics.
     /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`); receives the investment proof context in events.
@@ -292,10 +291,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         // Cache config: power + promised/value flags share one SLOAD.
         uint256 cfg = g.goodConfig;
         uint128 enpower = cfg.getPower();
-        (, uint128 investQty) = _invest.amount01();
-
-        // Transfer normal good tokens from investor to market.
-        _goodKey.transferFrom(msg.sender, msg.sender, investQty, _gooddata);
+        (uint128 quotedValue, uint128 investQty) = _invest.amount01();
 
         // Retrieve current investment state of the normal good.
         (normalInvest_.goodShares, normalInvest_.goodValues) = g
@@ -306,12 +302,30 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             normalInvest_.goodCurrentQuantity
         ) = g.currentState.amount01();
 
+        // Cap check before pull/mint: even 1× deposit must fit (leverage only adds more).
+        // Runs before min-invest (38) / quote (47) so a full pool reverts 18.
+        if (
+            uint256(normalInvest_.goodCurrentQuantity) + uint256(investQty) >
+            MAX_GOOD_STATE_LEG
+        ) revert TTSwapError(18);
+        if (quotedValue == 0) revert TTSwapError(47);
+
+        // Transfer normal good tokens from investor to market.
+        _goodKey.transferFrom(msg.sender, msg.sender, investQty, _gooddata);
+
         // Process investment for normal good.
         // Calculates new shares and updates normal good's state.
+        // Min invest value (38) and share!=0 (56) enforced inside L_Good.investGood.
         g.investGood(investQty, normalInvest_, enpower);
-        if (g.currentState.amount1() + investQty > MAX_GOOD_STATE_LEG)
-            revert TTSwapError(18);
-        if (normalInvest_.investValue < MIN_INVEST_VALUE) revert TTSwapError(38);
+
+        // RT-17: credited V must stay within 1% of the caller's quote.
+        {
+            uint256 credited = normalInvest_.investValue;
+            uint256 diff = credited > quotedValue
+                ? credited - quotedValue
+                : quotedValue - credited;
+            if (diff * 100 > uint256(quotedValue)) revert TTSwapError(47);
+        }
 
         // Generate/Get proof ID.
         uint256 proofNo = S_ProofKey(msg.sender, goodId).toId();

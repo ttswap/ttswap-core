@@ -110,7 +110,7 @@ contract testPowerWithoutFee is BaseSetup {
         _warpToFreshRunSlot();
         market.investGood{value: qty}(
             _nativeKey(),
-            toTTSwapUINT256(0, qty),
+            _packInvest(nativeValueGoodId, qty),
             defaultdata,
             defaultdata,
             trader

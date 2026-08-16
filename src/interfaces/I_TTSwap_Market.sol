@@ -167,9 +167,10 @@ interface I_TTSwap_Market {
 
     /// @notice Add single-token liquidity to an existing good.
     /// @dev Deposits `_invest.amount1` tokens; virtual shares scale by pool leverage (`getInvestPower`).
-    ///      Reverts: 10 frozen, 12 missing good, 18 overflow, 38 value dust, 46 run-block replay.
+    ///      Reverts: 10 frozen, 12 missing good, 18 overflow, 38 value dust, 47 quote mismatch
+    ///      (`amount0 == 0` or credited V more than 1% away from `amount0`).
     /// @param _goodKey Good to invest in.
-    /// @param _invest amount1 = token quantity to deposit (amount0 unused on input).
+    /// @param _invest amount0 = expected credited V (±1%); amount1 = token quantity to deposit.
     /// @param _gooddata Encoded transfer (approve / EIP-2612 / Permit2).
     /// @param signature Unused (ABI placeholder).
     /// @param _trader Must equal `msg.sender`.

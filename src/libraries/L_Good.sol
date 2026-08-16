@@ -12,9 +12,10 @@ import {
     toUint128,
     add,
     sub,
-    addsub
+    addsub,
+    MAX_GOOD_STATE_LEG
 } from "./L_TTSwapUINT256.sol";
-
+uint128 constant MIN_INVEST_VALUE = 1_000_000_000_000;
 /**
  * @title L_Good Library
  * @author ttswap.exchange@gmail.com
@@ -433,9 +434,10 @@ library L_Good {
     /// @notice Mint LP shares and deepen the pool when a user deposits `_invest` tokens.
     /// @dev Steps:
     ///      1. Charge invest fee → reduce actual deposit.
-    ///      2. Scale deposit by `enpower` (leverage) to virtual quantity.
-    ///      3. Price virtual quantity at current pool ratio → `investValue`.
-    ///      4. Mint shares proportional to virtual deposit vs existing shares.
+    ///      2. Scale net deposit by `enpower` (leverage) to virtual quantity for Q.
+    ///      3. Price that virtual quantity at current `V/Q` → `investValue`.
+    ///      4. Mint shares from actual net deposit vs existing `investQty` (not Q).
+    ///         Same actual amount → same shares, so yield stays uniform.
     ///      5. Update `currentState`, `investState`, and config virtual-quantity tracker.
     /// @param enpower Leverage factor in percent (100 = 1x, 200 = 2x virtual liquidity).
     function investGood(
@@ -474,6 +476,21 @@ library L_Good {
             investResult_.goodShares,
             investResult_.goodInvestQuantity
         ).getamount0fromamount1(_invest);
+
+        // Q / investQty legs after this deposit (fee credited to both legs).
+        uint256 addInvestQty = uint256(_invest) +
+            uint256(investResult_.investFeeQuantity);
+        uint256 addQ = uint256(investResult_.investQuantity) +
+            uint256(investResult_.investFeeQuantity);
+        if (
+            uint256(investResult_.goodInvestQuantity) + addInvestQty >
+            MAX_GOOD_STATE_LEG ||
+            uint256(investResult_.goodCurrentQuantity) + addQ >
+            MAX_GOOD_STATE_LEG
+        ) revert TTSwapError(18);
+        if (investResult_.investShare == 0) revert TTSwapError(56);
+        if (investResult_.investValue < MIN_INVEST_VALUE)
+            revert TTSwapError(38);
 
         // currentState: investQty += actual (+fee on amount0 leg); Q += virtual total (+fee on amount1 leg).
         _self.currentState = add(
@@ -588,8 +605,10 @@ library L_Good {
 
         // ensure the divested value and quantity are within valid ranges.
         // Check limits on how much value can be withdrawn at once to prevent manipulation.
-        if (disinvestvalue.amount0() >
-            _self.goodConfig.getDisinvestChips(_self.investState.amount1())) {
+        if (
+            disinvestvalue.amount0() >
+            _self.goodConfig.getDisinvestChips(_self.investState.amount1())
+        ) {
             revert TTSwapError(26);
         }
         if (disinvestvalue.amount1() < 1_000_000_000_000) {
@@ -654,6 +673,16 @@ library L_Good {
             normalGoodResult1_.virtualDisinvestQuantity -
                 normalGoodResult1_.actualDisinvestQuantity
         );
+
+        // Same convention as swap: Q vs [lower, upper] of book depth (investQty + virtualQty).
+        // Must run after virtualQty is reduced — otherwise leveraged exits revert 55.
+        uint256 cfgAfter = _self.goodConfig;
+        uint128 qAfter = _self.currentState.amount1();
+        uint128 bookDepth = _self.currentState.amount0() + cfgAfter.amount1();
+        if (qAfter > cfgAfter.getSafeLineUpper(bookDepth)) revert TTSwapError(55);
+        if (qAfter < cfgAfter.getSafeLineLower128(bookDepth)) {
+            revert TTSwapError(55);
+        }
 
         // Calculate final profit and fee for main good
         // Net profit = Gross withdrawn value - Initial invested virtual quantity.

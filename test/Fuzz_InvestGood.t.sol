@@ -27,7 +27,7 @@ contract Fuzz_InvestGood is FuzzBase {
         uint256 proofId = _proofId(FUZZ_USER, btcGoodId);
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, investQty),
+            _packInvest(btcGoodId, investQty),
             defaultdata,
             defaultdata,
             FUZZ_USER
@@ -50,7 +50,7 @@ contract Fuzz_InvestGood is FuzzBase {
         uint256 proofId = _proofId(FUZZ_USER, usdtGoodId);
         market.investGood(
             _usdtKey(),
-            toTTSwapUINT256(0, investQty),
+            _packInvest(usdtGoodId, investQty),
             defaultdata,
             defaultdata,
             FUZZ_USER
@@ -69,7 +69,7 @@ contract Fuzz_InvestGood is FuzzBase {
         _warp();
         market.investGood(
             _btcKey(),
-            toTTSwapUINT256(0, investQty),
+            _packInvest(btcGoodId, investQty),
             defaultdata,
             defaultdata,
             FUZZ_USER
@@ -86,7 +86,7 @@ contract Fuzz_InvestGood is FuzzBase {
         _warp();
         market.investGood(
             _usdtKey(),
-            toTTSwapUINT256(0, investQty),
+            _packInvest(usdtGoodId, investQty),
             defaultdata,
             defaultdata,
             FUZZ_USER

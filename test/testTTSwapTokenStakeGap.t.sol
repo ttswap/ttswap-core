@@ -85,4 +85,20 @@ contract testTTSwapTokenStakeGap is BaseSetup {
         vm.stopPrank();
         assertGt(tts_token.totalSupply(), supplyBefore, "profit minted after daily fee");
     }
+
+    function testStakeFee_emptyPoolIdle_doesNotAccrueToFirstStaker() public {
+        uint128 poolBefore = tts_token.poolstate().amount0();
+        assertEq(tts_token.stakestate().amount1(), 0, "no stake yet");
+        vm.warp(block.timestamp + 86_401);
+        vm.prank(stakeCaller);
+        tts_token.stake(beneficiary, STAKE_VALUE);
+        assertEq(
+            tts_token.poolstate().amount0(),
+            poolBefore,
+            "idle empty-pool day must not credit pool"
+        );
+        vm.prank(stakeCaller);
+        tts_token.unstake(beneficiary, STAKE_VALUE);
+        assertEq(tts_token.balanceOf(beneficiary), 0, "first staker gets no idle drip");
+    }
 }
