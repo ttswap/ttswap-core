@@ -73,6 +73,7 @@ contract testPowerWithoutFee is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_PowerWithoutFee.t_75");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -85,6 +86,7 @@ contract testPowerWithoutFee is BaseSetup {
         cfg = (cfg & ~(uint256(0x1f) << LIMIT_POWER_SHIFT)) |
             (field << LIMIT_POWER_SHIFT);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        _snapMarket("market_modifyGoodByManager_PowerWithoutFee.t_87");
         vm.stopPrank();
     }
 
@@ -93,6 +95,7 @@ contract testPowerWithoutFee is BaseSetup {
         uint256 cfg = market.getGoodState(goodId).goodConfig;
         cfg = (cfg & ~(uint256(0x1f) << POWER_SHIFT)) | (field << POWER_SHIFT);
         market.modifyGoodByGoodOwner(goodId, cfg, owner, defaultdata);
+        _snapMarket("market_modifyGoodByGoodOwner_PowerWithoutFee.t_95");
         vm.stopPrank();
     }
 
@@ -102,6 +105,7 @@ contract testPowerWithoutFee is BaseSetup {
         cfg = (cfg & ~(uint256(0x3f) << INVEST_FEE_SHIFT)) |
             (field << INVEST_FEE_SHIFT);
         market.modifyGoodByGoodOwner(goodId, cfg, owner, defaultdata);
+        _snapMarket("market_modifyGoodByGoodOwner_PowerWithoutFee.t_104");
         vm.stopPrank();
     }
 
@@ -115,6 +119,7 @@ contract testPowerWithoutFee is BaseSetup {
             defaultdata,
             trader
         );
+        _snapMarket("market_investGood_PowerWithoutFee.t_117");
     }
 
     function _disinvest(address trader, uint128 shares) internal {
@@ -125,6 +130,7 @@ contract testPowerWithoutFee is BaseSetup {
             trader,
             defaultdata
         );
+        _snapMarket("market_disinvestProof_PowerWithoutFee.t_127");
     }
 
     // ── invest with leverage ───────────────────────────────────────────────

@@ -34,6 +34,7 @@ contract Fuzz_Shares is FuzzBase {
 
         vm.prank(marketcreator);
         tts_token.addShare(share, owner);
+        _snapToken("tts_token_addShare_Fuzz_Shares.t_36");
 
         assertEq(tts_token.left_share(), leftBefore - amount, "left_share");
         s_share memory stored = tts_token.usershares(owner);
@@ -49,8 +50,10 @@ contract Fuzz_Shares is FuzzBase {
         s_share memory share = s_share({leftamount: amount, metric: 5, chips: 2});
         vm.startPrank(marketcreator);
         tts_token.addShare(share, owner);
+        _snapToken("tts_token_addShare_Fuzz_Shares.t_51");
         uint128 leftMid = tts_token.left_share();
         tts_token.burnShare(owner);
+        _snapToken("tts_token_burnShare_Fuzz_Shares.t_53");
         vm.stopPrank();
 
         assertEq(tts_token.left_share(), leftMid + amount, "restored");

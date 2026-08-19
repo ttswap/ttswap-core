@@ -75,6 +75,7 @@ contract RT_MultiTxCrossGood is BaseSetup {
         deal(key.contractAddress, owner, 100 * uint256(qty), false);
         MyToken(payable(key.contractAddress)).approve(address(market), type(uint256).max);
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_RT_MultiTxCrossGood.t_77");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -94,6 +95,7 @@ contract RT_MultiTxCrossGood is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_RT_MultiTxCrossGood.t_96");
         vm.stopPrank();
     }
 
@@ -110,6 +112,7 @@ contract RT_MultiTxCrossGood is BaseSetup {
             attacker,
             defaultdata
         );
+        _snapMarket("market_initGood_RT_MultiTxCrossGood.t_112");
         vm.stopPrank();
         scamGoodId = _scamKey().toId();
         _relaxSafeLine(scamGoodId);

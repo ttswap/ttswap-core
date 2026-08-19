@@ -47,6 +47,7 @@ contract BaseSetup is Test, GasSnapshot {
         vm.startPrank(marketcreator);
         uint256 cfg = market.getGoodState(goodId).goodConfig | (1 << 255);
         market.modifyGoodByAdmin(goodId, cfg, marketcreator, defaultdata);
+        _snapMarket("modifyGoodByAdmin_markValue");
         vm.stopPrank();
     }
 
@@ -75,13 +76,17 @@ contract BaseSetup is Test, GasSnapshot {
             (uint256(255) << TestConfigConstants.SAFE_LINE_UPPER_SHIFT) |
             (uint256(1) << TestConfigConstants.SAFE_LINE_LOWER_SHIFT);
         market.modifyGoodByAdmin(goodId, cfg, marketcreator, defaultdata);
+        _snapMarket("modifyGoodByAdmin_relaxSafeLine");
         vm.stopPrank();
     }
 
-    /// @dev Record gas of the immediately preceding external call to `market` (vm.lastCallGas).
-    /// Naming: `{action}_{pair_or_good}_{variant}` e.g. `buy_erc20_by_erc20_first`, `invest_erc20_normal_owner_first`.
+    /// @dev Record gas of the immediately preceding external call (Market or Token).
     function _snapMarket(string memory name) internal {
-        snapLastCall(name);
+        vm.snapshotGasLastCall(name);
+    }
+
+    function _snapToken(string memory name) internal {
+        vm.snapshotGasLastCall(name);
     }
 
     /// @dev Credited V `investGood` will book for `qty` (fee, leverage, investThreshold).

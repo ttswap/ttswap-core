@@ -40,11 +40,16 @@ contract addbanlist is BaseSetup {
     function testaddbanlist() public {
         vm.startPrank(marketcreator);
         tts_token.setTokenAdmin(marketcreator,true);
+        _snapToken("tts_token_setTokenAdmin_addbanlist.t_42");
         tts_token.setTokenManager(marketcreator,true);
+        _snapToken("tts_token_setTokenManager_addbanlist.t_43");
         tts_token.setCallMintTTS(marketcreator, true);
+        _snapToken("tts_token_setCallMintTTS_addbanlist.t_44");
         tts_token.setBan(users[4], true);
+        _snapToken("tts_token_setBan_addbanlist.t_45");
         assertEq(tts_token.userConfig(users[4]).isBan(), true, "banlist error");
         tts_token.setBan(users[4], false);
+        _snapToken("tts_token_setBan_addbanlist.t_47");
         assertEq(tts_token.userConfig(users[4]).isBan(), false, "banlist error");
         vm.stopPrank();
     }

@@ -72,6 +72,7 @@ contract RT_FourthWave is BaseSetup {
         deal(key.contractAddress, owner, 100 * uint256(qty), false);
         MyToken(payable(key.contractAddress)).approve(address(market), type(uint256).max);
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_RT_FourthWave.t_74");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -91,6 +92,7 @@ contract RT_FourthWave is BaseSetup {
     function test_RT20_initGood_self_price_unlocks_shareMint() public {
         vm.prank(marketcreator);
         tts_token.setEnv(address(market));
+        _snapToken("tts_token_setEnv_RT_FourthWave.t_93");
 
         // metric = MAX_SHARE_MINT_METRIC (60). RT-14's cap does not save this path:
         // 2^60/2e7 ≈ 5.8e10, while V=2^109 / Q=5e5 ≈ 1.3e27.
@@ -101,18 +103,22 @@ contract RT_FourthWave is BaseSetup {
         });
         vm.prank(marketcreator);
         tts_token.addShare(share, attacker);
+        _snapToken("tts_token_addShare_RT_FourthWave.t_103");
 
         vm.prank(attacker);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 68));
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_RT_FourthWave.t_107");
 
         vm.prank(marketcreator);
         tts_token.mint(attacker, MIN_INIT_QTY);
+        _snapToken("tts_token_mint_RT_FourthWave.t_110");
 
         uint256 ttsBefore = tts_token.balanceOf(attacker);
 
         vm.startPrank(attacker);
         tts_token.approve(address(market), type(uint256).max);
+        _snapToken("tts_token_approve_RT_FourthWave.t_115");
         market.initGood(
             _ttsKey(),
             toTTSwapUINT256(MAX_INIT_VALUE, MIN_INIT_QTY),
@@ -120,7 +126,9 @@ contract RT_FourthWave is BaseSetup {
             attacker,
             defaultdata
         );
+        _snapMarket("market_initGood_RT_FourthWave.t_122");
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_RT_FourthWave.t_123");
         vm.stopPrank();
 
         uint256 minted = tts_token.balanceOf(attacker) - (ttsBefore - MIN_INIT_QTY);
@@ -136,6 +144,7 @@ contract RT_FourthWave is BaseSetup {
         deal(address(tts_token), attacker, MIN_INIT_QTY, false);
         vm.startPrank(attacker);
         tts_token.approve(address(market), type(uint256).max);
+        _snapToken("tts_token_approve_RT_FourthWave.t_138");
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 55));
         market.buyGood(
             _ttsKey(),
@@ -147,6 +156,7 @@ contract RT_FourthWave is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_RT_FourthWave.t_149");
         vm.stopPrank();
     }
 
@@ -184,6 +194,7 @@ contract RT_FourthWave is BaseSetup {
             defaultdata,
             victim
         );
+        _snapMarket("market_investGood_RT_FourthWave.t_186");
         uint256 ethBeforeCtrl = eth.balanceOf(attacker);
         vm.prank(attacker);
         market.buyGood(
@@ -196,12 +207,14 @@ contract RT_FourthWave is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_RT_FourthWave.t_198");
         uint256 controlEth = eth.balanceOf(attacker) - ethBeforeCtrl;
         vm.revertToState(snap);
 
         uint256 patch = uint256(30) << INVEST_THRESHOLD_SHIFT;
         vm.prank(attacker);
         market.modifyGoodByGoodOwner(ethGoodId, patch, attacker, defaultdata);
+        _snapMarket("market_modifyGoodByGoodOwner_RT_FourthWave.t_204");
 
         packedInvest = _packInvest(ethGoodId, victimInvest);
         vm.prank(victim);
@@ -212,6 +225,7 @@ contract RT_FourthWave is BaseSetup {
             defaultdata,
             victim
         );
+        _snapMarket("market_investGood_RT_FourthWave.t_214");
 
         S_GoodTmpState memory st = market.getGoodState(ethGoodId);
         uint256 priceAfter = (uint256(st.investState.amount1()) * 1e18) /
@@ -233,6 +247,7 @@ contract RT_FourthWave is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_RT_FourthWave.t_235");
         uint256 attackEth = eth.balanceOf(attacker) - ethBefore;
         uint256 usdtSpent = usdtBefore - usdt.balanceOf(attacker);
 
@@ -269,6 +284,7 @@ contract RT_FourthWave is BaseSetup {
             attacker,
             defaultdata
         );
+        _snapMarket("market_initGood_RT_FourthWave.t_271");
         vm.stopPrank();
 
         uint256 fakeGoodId = fakeKey.toId();
@@ -295,6 +311,7 @@ contract RT_FourthWave is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_payGood_RT_FourthWave.t_297");
         vm.stopPrank();
 
         uint256 usdtProfit = usdt.balanceOf(attacker) - usdtBefore;
@@ -338,6 +355,7 @@ contract RT_FourthWave is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_RT_FourthWave.t_340");
         vm.stopPrank();
 
         vm.prank(victim);
@@ -351,6 +369,7 @@ contract RT_FourthWave is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_RT_FourthWave.t_353");
 
         uint256 btcHeld = btc.balanceOf(attacker);
         vm.startPrank(attacker);
@@ -365,6 +384,7 @@ contract RT_FourthWave is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_RT_FourthWave.t_367");
         vm.stopPrank();
 
         uint256 usdtAfter = usdt.balanceOf(attacker);
@@ -402,10 +422,12 @@ contract RT_FourthWave is BaseSetup {
             defaultdata,
             victim
         );
+        _snapMarket("market_investGood_RT_FourthWave.t_404");
         vm.stopPrank();
 
         vm.prank(attacker);
         market.lockGood(ethGoodId, attacker, defaultdata);
+        _snapMarket("market_lockGood_RT_FourthWave.t_408");
 
         uint256 victimProof = _proofId(victim, ethGoodId);
         uint128 victimShares = market.getProofState(victimProof).shares.amount0();
@@ -413,12 +435,14 @@ contract RT_FourthWave is BaseSetup {
         vm.startPrank(victim);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 10));
         market.disinvestProof(victimProof, victimShares, address(0), victim, defaultdata);
+        _snapMarket("market_disinvestProof_RT_FourthWave.t_415");
         vm.stopPrank();
 
         // Owner cannot clear freeze: freeze lives in the manager mask.
         uint256 unfreezePatch = 0;
         vm.prank(attacker);
         market.modifyGoodByGoodOwner(ethGoodId, unfreezePatch, attacker, defaultdata);
+        _snapMarket("market_modifyGoodByGoodOwner_RT_FourthWave.t_421");
         assertTrue(
             market.getGoodState(ethGoodId).goodConfig.isFreeze(),
             "owner write cannot clear freeze"

@@ -47,6 +47,7 @@ contract testInitNormalGood is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testInitNormalGood.t_49");
         metaGoodId = usdtKey.toId();
         vm.stopPrank();
     }
@@ -146,6 +147,7 @@ contract testInitNormalGood is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_testInitNormalGood.t_148");
         _snapMarket("init_ERC20_By_ERC20");
 
         assertEq(
@@ -203,6 +205,7 @@ contract testInitNormalGood is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_testInitNormalGood.t_205");
         _snapMarket("init_NativeETH_By_ERC20");
 
         assertEq(

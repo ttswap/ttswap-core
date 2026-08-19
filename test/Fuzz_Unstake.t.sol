@@ -16,7 +16,9 @@ contract Fuzz_Unstake is FuzzBase {
         vm.warp(1_000_000);
         vm.prank(marketcreator);
         tts_token.setCallMintTTS(address(this), true);
+        _snapToken("tts_token_setCallMintTTS_Fuzz_Unstake.t_18");
         tts_token.stake(staker, 1_000_000);
+        _snapToken("tts_token_stake_Fuzz_Unstake.t_19");
         proofId = uint256(keccak256(abi.encode(staker, address(this))));
     }
 
@@ -27,6 +29,7 @@ contract Fuzz_Unstake is FuzzBase {
 
         vm.warp(block.timestamp + 86_400);
         tts_token.unstake(staker, unstakeAmount);
+        _snapToken("tts_token_unstake_Fuzz_Unstake.t_29");
 
         s_proof memory proofAfter = tts_token.stakeproofinfo(proofId);
         assertEq(
@@ -42,6 +45,7 @@ contract Fuzz_Unstake is FuzzBase {
 
         vm.warp(block.timestamp + 86_400);
         tts_token.unstake(staker, full);
+        _snapToken("tts_token_unstake_Fuzz_Unstake.t_44");
 
         s_proof memory cleared = tts_token.stakeproofinfo(proofId);
         assertEq(cleared.proofstate.amount0(), 0, "proof cleared");

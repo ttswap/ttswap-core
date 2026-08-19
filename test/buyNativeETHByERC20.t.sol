@@ -62,6 +62,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_buyNativeETHByERC20.t_64");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -81,6 +82,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_buyNativeETHByERC20.t_83");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -208,6 +210,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_buyNativeETHByERC20.t_210");
         vm.stopPrank();
     }
 
@@ -227,6 +230,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_buyNativeETHByERC20.t_229");
         vm.stopPrank();
     }
 
@@ -245,6 +249,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_buyNativeETHByERC20.t_247");
         vm.stopPrank();
     }
 
@@ -252,6 +257,7 @@ contract buyNativeETHByERC20 is BaseSetup {
         vm.startPrank(marketcreator);
         uint256 cfg = market.getGoodState(usdtGoodId).goodConfig.setFreeze(true);
         market.modifyGoodByManager(usdtGoodId, cfg, marketcreator, defaultdata);
+        _snapMarket("market_modifyGoodByManager_buyNativeETHByERC20.t_254");
         vm.stopPrank();
 
         vm.startPrank(users[1]);
@@ -269,6 +275,7 @@ contract buyNativeETHByERC20 is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_buyNativeETHByERC20.t_271");
         vm.stopPrank();
     }
 }

@@ -35,6 +35,7 @@ contract C04_ProxyBrick is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_initGood_C04_ProxyBrick.t_37");
         usdtGoodId = key.toId();
         vm.stopPrank();
     }
@@ -85,14 +86,17 @@ contract C04_ProxyBrick is BaseSetup {
             defaultdata,
             lp
         );
+        _snapMarket("market_investGood_C04_ProxyBrick.t_87");
         uint256 lpProof = S_ProofKey({owner: lp, currentgood: usdtGoodId}).toId();
         vm.stopPrank();
 
         vm.prank(marketcreator);
         market.lockGood(usdtGoodId, marketcreator, defaultdata);
+        _snapMarket("market_lockGood_C04_ProxyBrick.t_92");
 
         vm.prank(lp);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 10));
         market.disinvestProof(lpProof, 1, address(0), lp, defaultdata);
+        _snapMarket("market_disinvestProof_C04_ProxyBrick.t_96");
     }
 }

@@ -63,6 +63,7 @@ contract RT_ThirdWave is BaseSetup {
         deal(key.contractAddress, owner, 100 * uint256(qty), false);
         MyToken(payable(key.contractAddress)).approve(address(market), type(uint256).max);
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_RT_ThirdWave.t_65");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -95,10 +96,12 @@ contract RT_ThirdWave is BaseSetup {
             defaultdata,
             attacker
         );
+        _snapMarket("market_investGood_RT_ThirdWave.t_97");
 
         uint256 proofId = _proofId(attacker, usdtGoodId);
         uint128 shares = market.getProofState(proofId).shares.amount0();
         market.disinvestProof(proofId, shares, address(0), attacker, defaultdata);
+        _snapMarket("market_disinvestProof_RT_ThirdWave.t_101");
         vm.stopPrank();
 
         uint256 ttsProfit = tts_token.balanceOf(attacker) - ttsBefore;
@@ -121,19 +124,24 @@ contract RT_ThirdWave is BaseSetup {
         uint128 ttsVal = uint128(100_000 * 10 ** 12);
         vm.prank(marketcreator);
         tts_token.mint(marketcreator, ttsQty);
+        _snapToken("tts_token_mint_RT_ThirdWave.t_123");
         vm.startPrank(marketcreator);
         tts_token.approve(address(market), type(uint256).max);
+        _snapToken("tts_token_approve_RT_ThirdWave.t_125");
         market.initGood(_ttsKey(), toTTSwapUINT256(ttsVal, ttsQty), defaultdata, marketcreator, defaultdata);
+        _snapMarket("market_initGood_RT_ThirdWave.t_126");
         vm.stopPrank();
         uint256 ttsGoodId = _ttsKey().toId();
         _relaxSafeLine(ttsGoodId);
 
         vm.prank(marketcreator);
         tts_token.setEnv(address(market));
+        _snapToken("tts_token_setEnv_RT_ThirdWave.t_132");
 
         s_share memory share = s_share({leftamount: 4_000_000 * 10 ** 12, metric: 8, chips: 1});
         vm.prank(marketcreator);
         tts_token.addShare(share, attacker);
+        _snapToken("tts_token_addShare_RT_ThirdWave.t_136");
 
         assertEq(tts_token.usershares(attacker).metric, 8, "share parked at metric 8");
 
@@ -141,6 +149,7 @@ contract RT_ThirdWave is BaseSetup {
         vm.prank(attacker);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 68));
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_RT_ThirdWave.t_143");
 
         uint256 usdtStart = 20_000 * 10 ** 6;
         deal(address(usdt), attacker, usdtStart, false);
@@ -159,11 +168,14 @@ contract RT_ThirdWave is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_RT_ThirdWave.t_161");
         uint256 ttsAfterPump = tts_token.balanceOf(attacker);
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_RT_ThirdWave.t_163");
         uint256 minted = tts_token.balanceOf(attacker) - ttsAfterPump;
         // Dump only the TTS bought in the pump; keep minted share as profit.
         tts_token.approve(address(market), type(uint256).max);
+        _snapToken("tts_token_approve_RT_ThirdWave.t_166");
         if (ttsAfterPump > 0) {
             market.buyGood(
                 _ttsKey(),
@@ -175,6 +187,7 @@ contract RT_ThirdWave is BaseSetup {
                 defaultdata,
                 0
             );
+            _snapMarket("market_buyGood_RT_ThirdWave.t_177");
         }
         vm.stopPrank();
 
@@ -224,6 +237,7 @@ contract RT_ThirdWave is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_RT_ThirdWave.t_226");
         vm.stopPrank();
 
         uint256 usdtBefore = usdt.balanceOf(attacker);
@@ -237,6 +251,7 @@ contract RT_ThirdWave is BaseSetup {
             defaultdata,
             victim
         );
+        _snapMarket("market_investGood_RT_ThirdWave.t_239");
 
         uint256 btcHeld = btc.balanceOf(attacker);
         vm.startPrank(attacker);
@@ -252,6 +267,7 @@ contract RT_ThirdWave is BaseSetup {
                 defaultdata,
                 0
             );
+            _snapMarket("market_buyGood_RT_ThirdWave.t_254");
         }
         vm.stopPrank();
 
@@ -286,6 +302,7 @@ contract RT_ThirdWave is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_RT_ThirdWave.t_288");
         vm.stopPrank();
     }
 
@@ -299,19 +316,25 @@ contract RT_ThirdWave is BaseSetup {
         uint128 ttsVal = uint128(100_000 * 10 ** 12);
         vm.prank(marketcreator);
         tts_token.mint(marketcreator, ttsQty);
+        _snapToken("tts_token_mint_RT_ThirdWave.t_301");
         vm.startPrank(marketcreator);
         tts_token.approve(address(market), type(uint256).max);
+        _snapToken("tts_token_approve_RT_ThirdWave.t_303");
         market.initGood(_ttsKey(), toTTSwapUINT256(ttsVal, ttsQty), defaultdata, marketcreator, defaultdata);
+        _snapMarket("market_initGood_RT_ThirdWave.t_304");
         tts_token.setEnv(address(market));
+        _snapToken("tts_token_setEnv_RT_ThirdWave.t_305");
         vm.stopPrank();
 
         s_share memory share = s_share({leftamount: 10_000_000 * 10 ** 12, metric: 8, chips: 1});
         vm.prank(marketcreator);
         tts_token.addShare(share, attacker);
+        _snapToken("tts_token_addShare_RT_ThirdWave.t_310");
 
         vm.prank(attacker);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 68));
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_RT_ThirdWave.t_314");
 
         // Donate USDT to inflate Q_usdt → USDT price down → TTS/USDT ratio up.
         // Need ~1.3x Q_usdt: 0.3 * 5e10 = 1.5e10 = 15_000 USDT. Use 20_000.
@@ -322,7 +345,9 @@ contract RT_ThirdWave is BaseSetup {
         vm.startPrank(attacker);
         usdt.approve(address(market), type(uint256).max);
         market.goodWelfare(usdtGoodId, donate, defaultdata, attacker, defaultdata);
+        _snapMarket("market_goodWelfare_RT_ThirdWave.t_324");
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_RT_ThirdWave.t_325");
         vm.stopPrank();
 
         uint256 minted = tts_token.balanceOf(attacker) - ttsBefore;

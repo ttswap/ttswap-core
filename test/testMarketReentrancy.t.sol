@@ -105,6 +105,7 @@ contract testMarketReentrancy is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testMarketReentrancy.t_107");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -125,6 +126,7 @@ contract testMarketReentrancy is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testMarketReentrancy.t_127");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -147,6 +149,7 @@ contract testMarketReentrancy is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_testMarketReentrancy.t_149");
         _snapMarket("buyGood_revert_reentrancy");
         vm.stopPrank();
     }

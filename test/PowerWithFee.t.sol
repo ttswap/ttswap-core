@@ -70,6 +70,7 @@ contract testPowerWithFee is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_PowerWithFee.t_72");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -82,6 +83,7 @@ contract testPowerWithFee is BaseSetup {
         cfg = (cfg & ~(uint256(0x1f) << LIMIT_POWER_SHIFT)) |
             (field << LIMIT_POWER_SHIFT);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        _snapMarket("market_modifyGoodByManager_PowerWithFee.t_84");
         vm.stopPrank();
     }
 
@@ -90,6 +92,7 @@ contract testPowerWithFee is BaseSetup {
         uint256 cfg = market.getGoodState(goodId).goodConfig;
         cfg = (cfg & ~(uint256(0x1f) << POWER_SHIFT)) | (field << POWER_SHIFT);
         market.modifyGoodByGoodOwner(goodId, cfg, owner, defaultdata);
+        _snapMarket("market_modifyGoodByGoodOwner_PowerWithFee.t_92");
         vm.stopPrank();
     }
 
@@ -103,6 +106,7 @@ contract testPowerWithFee is BaseSetup {
             defaultdata,
             trader
         );
+        _snapMarket("market_investGood_PowerWithFee.t_105");
     }
 
     function _disinvest(address trader, uint128 shares) internal {
@@ -113,6 +117,7 @@ contract testPowerWithFee is BaseSetup {
             trader,
             defaultdata
         );
+        _snapMarket("market_disinvestProof_PowerWithFee.t_115");
     }
 
     // ── invest with leverage + fee ─────────────────────────────────────────

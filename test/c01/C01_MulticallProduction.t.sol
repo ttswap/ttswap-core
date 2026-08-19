@@ -102,6 +102,7 @@ contract C01_MulticallProduction is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_C01_MulticallProduction.t_104");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -122,6 +123,7 @@ contract C01_MulticallProduction is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_C01_MulticallProduction.t_124");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -142,6 +144,7 @@ contract C01_MulticallProduction is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_C01_MulticallProduction.t_144");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -283,6 +286,7 @@ contract C01_MulticallProduction is BaseSetup {
 
         vm.startPrank(marketcreator);
         tts_token.setCallMintTTS(address(vulnerable), true);
+        _snapToken("tts_token_setCallMintTTS_C01_MulticallProduction.t_285");
         vm.stopPrank();
 
         vm.warp(0);
@@ -430,6 +434,7 @@ contract C01_MulticallProduction is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_C01_MulticallProduction.t_432");
         _snapMarket("buyGood_native_btc_baseline");
         vm.stopPrank();
     }

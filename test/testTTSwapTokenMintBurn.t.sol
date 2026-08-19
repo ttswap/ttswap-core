@@ -15,10 +15,12 @@ contract testTTSwapTokenMintBurn is BaseSetup {
         uint256 amount = 1_000_000 ether;
         vm.prank(marketcreator);
         tts_token.mint(users[5], amount);
+        _snapToken("tts_token_mint_testTTSwapTokenMintBurn.t_17");
 
         uint256 supplyBefore = tts_token.totalSupply();
         vm.prank(users[5]);
         tts_token.burn(amount / 2);
+        _snapToken("tts_token_burn_testTTSwapTokenMintBurn.t_21");
 
         assertEq(tts_token.balanceOf(users[5]), amount / 2, "balance halved");
         assertEq(tts_token.totalSupply(), supplyBefore - amount / 2, "supply reduced");
@@ -28,6 +30,7 @@ contract testTTSwapTokenMintBurn is BaseSetup {
         uint256 amount = 500 ether;
         vm.prank(marketcreator);
         tts_token.mint(users[3], amount);
+        _snapToken("tts_token_mint_testTTSwapTokenMintBurn.t_30");
         assertEq(tts_token.balanceOf(users[3]), amount, "minted");
     }
 
@@ -35,15 +38,18 @@ contract testTTSwapTokenMintBurn is BaseSetup {
         vm.prank(users[3]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 62));
         tts_token.mint(users[4], 1 ether);
+        _snapToken("tts_token_mint_testTTSwapTokenMintBurn.t_37");
     }
 
     function testDAOAdminBurnFrom_success() public {
         uint256 amount = 100 ether;
         vm.prank(marketcreator);
         tts_token.mint(users[4], amount);
+        _snapToken("tts_token_mint_testTTSwapTokenMintBurn.t_43");
 
         vm.prank(marketcreator);
         tts_token.burn(users[4], amount / 4);
+        _snapToken("tts_token_burn_testTTSwapTokenMintBurn.t_46");
         assertEq(tts_token.balanceOf(users[4]), amount * 3 / 4, "burned from");
     }
 
@@ -51,6 +57,7 @@ contract testTTSwapTokenMintBurn is BaseSetup {
         vm.prank(users[3]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 62));
         tts_token.burn(users[4], 1);
+        _snapToken("tts_token_burn_testTTSwapTokenMintBurn.t_53");
     }
 
     function testShareMint_revert_marketPriceNotHigher() public {
@@ -59,7 +66,9 @@ contract testTTSwapTokenMintBurn is BaseSetup {
 
         vm.startPrank(marketcreator);
         tts_token.setEnv(address(market));
+        _snapToken("tts_token_setEnv_testTTSwapTokenMintBurn.t_61");
         tts_token.addShare(share, shareOwner);
+        _snapToken("tts_token_addShare_testTTSwapTokenMintBurn.t_62");
         vm.stopPrank();
 
         uint256 ttsGoodId = T_GoodKey({
@@ -89,11 +98,13 @@ contract testTTSwapTokenMintBurn is BaseSetup {
         vm.prank(shareOwner);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 68));
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_testTTSwapTokenMintBurn.t_91");
     }
 
     function testShareMint_revert_noSharesLeft() public {
         vm.prank(marketcreator);
         tts_token.setEnv(address(market));
+        _snapToken("tts_token_setEnv_testTTSwapTokenMintBurn.t_96");
 
         vm.mockCall(
             address(market),
@@ -104,6 +115,7 @@ contract testTTSwapTokenMintBurn is BaseSetup {
         vm.prank(users[5]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 69));
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_testTTSwapTokenMintBurn.t_106");
     }
 
     function testShareMint_metricIncrementsAndLeftAmountDecreases() public {
@@ -112,7 +124,9 @@ contract testTTSwapTokenMintBurn is BaseSetup {
 
         vm.startPrank(marketcreator);
         tts_token.setEnv(address(market));
+        _snapToken("tts_token_setEnv_testTTSwapTokenMintBurn.t_114");
         tts_token.addShare(share, shareOwner);
+        _snapToken("tts_token_addShare_testTTSwapTokenMintBurn.t_115");
         vm.stopPrank();
 
         uint256 ttsGoodId = T_GoodKey({
@@ -142,6 +156,7 @@ contract testTTSwapTokenMintBurn is BaseSetup {
         uint128 expectedMint = share.leftamount / share.chips;
         vm.prank(shareOwner);
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_testTTSwapTokenMintBurn.t_144");
 
         s_share memory afterMint = tts_token.usershares(shareOwner);
         assertEq(afterMint.leftamount, share.leftamount - expectedMint, "left reduced");

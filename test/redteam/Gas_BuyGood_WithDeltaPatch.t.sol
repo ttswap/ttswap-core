@@ -28,6 +28,7 @@ contract Gas_BuyGood_WithDeltaPatch is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_initGood_Gas_BuyGood_WithDeltaPatch.t_30");
         usdtGoodId = uk.toId();
         vm.stopPrank();
 
@@ -42,6 +43,7 @@ contract Gas_BuyGood_WithDeltaPatch is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_Gas_BuyGood_WithDeltaPatch.t_44");
         btcGoodId = bk.toId();
         vm.stopPrank();
 
@@ -68,6 +70,7 @@ contract Gas_BuyGood_WithDeltaPatch is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_Gas_BuyGood_WithDeltaPatch.t_70");
         _warpToFreshRunSlot();
         uint256 g0 = gasleft();
         market.buyGood(
@@ -80,6 +83,7 @@ contract Gas_BuyGood_WithDeltaPatch is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_Gas_BuyGood_WithDeltaPatch.t_82");
         uint256 used = g0 - gasleft();
         vm.stopPrank();
 

@@ -97,6 +97,7 @@ contract testCollectCommission is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testCollectCommission.t_99");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -117,6 +118,7 @@ contract testCollectCommission is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testCollectCommission.t_119");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -134,6 +136,7 @@ contract testCollectCommission is BaseSetup {
             defaultdata,
             trader
         );
+        _snapMarket("market_investGood_testCollectCommission.t_136");
     }
 
     function _investUsdt(address trader, uint128 qty) internal {
@@ -146,6 +149,7 @@ contract testCollectCommission is BaseSetup {
             defaultdata,
             trader
         );
+        _snapMarket("market_investGood_testCollectCommission.t_148");
     }
 
     function _partialShares(uint256 proofId) internal view returns (uint128) {
@@ -167,6 +171,7 @@ contract testCollectCommission is BaseSetup {
             trader,
             defaultdata
         );
+        _snapMarket("market_disinvestProof_testCollectCommission.t_169");
     }
 
     function _query(uint256[] memory ids, address recipient)
@@ -178,6 +183,7 @@ contract testCollectCommission is BaseSetup {
 
     function _collect(address trader, uint256[] memory ids) internal {
         market.collectCommission(ids, trader, defaultdata);
+        _snapMarket("market_collectCommission_testCollectCommission.t_180");
     }
 
     function _accrueBtcGateCommission() internal {
@@ -291,6 +297,7 @@ contract testCollectCommission is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_testCollectCommission.t_293");
 
         _disinvestWithGate(users[2], btcGoodId, gate);
         vm.stopPrank();
@@ -357,6 +364,7 @@ contract testCollectCommission is BaseSetup {
         vm.startPrank(gate);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 39));
         market.collectCommission(_singleId(btcGoodId), users[2], defaultdata);
+        _snapMarket("market_collectCommission_testCollectCommission.t_359");
         vm.stopPrank();
     }
 
@@ -404,6 +412,7 @@ contract testCollectCommission is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_testCollectCommission.t_406");
         assertEq(tts_token.getreferral(trader), referral, "referral linked");
 
         _disinvestWithGate(trader, btcGoodId, address(0));

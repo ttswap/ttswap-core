@@ -58,6 +58,7 @@ contract testProxyUpgrade is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testProxyUpgrade.t_60");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -74,6 +75,7 @@ contract testProxyUpgrade is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_testProxyUpgrade.t_76");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -95,6 +97,7 @@ contract testProxyUpgrade is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_testProxyUpgrade.t_97");
         _snapMarket("buyGood_proxy_setup");
         vm.stopPrank();
     }
@@ -138,6 +141,7 @@ contract testProxyUpgrade is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_testProxyUpgrade.t_140");
         _snapMarket("buyGood_after_proxy_upgrade");
         vm.stopPrank();
     }

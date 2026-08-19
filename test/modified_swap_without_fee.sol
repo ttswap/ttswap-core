@@ -85,6 +85,7 @@ contract testSwapWithoutFee is BaseSetup {
             usdt.approve(address(market), qty);
         }
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, marketcreator, defaultdata);
+        _snapMarket("market_initGood_modified_swap_without_fee_87");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -104,6 +105,7 @@ contract testSwapWithoutFee is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_modifyGoodByGoodOwner_modified_swap_without_fee_106");
         vm.stopPrank();
     }
 

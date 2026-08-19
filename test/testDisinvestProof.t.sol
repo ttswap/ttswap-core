@@ -94,6 +94,7 @@ contract testDisinvestProof is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testDisinvestProof.t_96");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -114,6 +115,7 @@ contract testDisinvestProof is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testDisinvestProof.t_116");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -133,6 +135,7 @@ contract testDisinvestProof is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testDisinvestProof.t_135");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -146,6 +149,7 @@ contract testDisinvestProof is BaseSetup {
             
             .setPromised(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        _snapMarket("market_modifyGoodByManager_testDisinvestProof.t_148");
         vm.stopPrank();
     }
 
@@ -154,6 +158,7 @@ contract testDisinvestProof is BaseSetup {
         vm.startPrank(marketcreator);
         uint256 cfg = market.getGoodState(goodId).goodConfig.setFreeze(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        _snapMarket("market_modifyGoodByManager_testDisinvestProof.t_156");
         vm.stopPrank();
     }
 
@@ -167,6 +172,7 @@ contract testDisinvestProof is BaseSetup {
             defaultdata,
             trader
         );
+        _snapMarket("market_investGood_testDisinvestProof.t_169");
     }
 
     function _investUsdt(address trader, uint128 qty) internal {
@@ -179,6 +185,7 @@ contract testDisinvestProof is BaseSetup {
             defaultdata,
             trader
         );
+        _snapMarket("market_investGood_testDisinvestProof.t_181");
     }
 
     function _investNative(address trader, uint128 qty) internal {
@@ -190,6 +197,7 @@ contract testDisinvestProof is BaseSetup {
             defaultdata,
             trader
         );
+        _snapMarket("market_investGood_testDisinvestProof.t_192");
     }
 
     function _partialShares(uint256 proofId) internal view returns (uint128) {
@@ -425,6 +433,7 @@ contract testDisinvestProof is BaseSetup {
             users[2],
             defaultdata
         );
+        _snapMarket("market_disinvestProof_testDisinvestProof.t_427");
         vm.stopPrank();
     }
 
@@ -466,6 +475,7 @@ contract testDisinvestProof is BaseSetup {
         vm.startPrank(users[1]);
         vm.recordLogs();
         market.refreshPromise(proofId);
+        _snapMarket("market_refreshPromise_testDisinvestProof.t_468");
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bool found;
@@ -487,6 +497,7 @@ contract testDisinvestProof is BaseSetup {
 
         vm.startPrank(marketcreator);
         tts_token.setBan(gate, true);
+        _snapToken("tts_token_setBan_testDisinvestProof.t_489");
         vm.stopPrank();
 
         vm.startPrank(users[1]);
@@ -569,6 +580,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testDisinvestProof.t_571");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -590,6 +602,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
             defaultdata,
             marketcreator
         );
+        _snapMarket("market_investGood_testDisinvestProof.t_592");
 
         uint256 proofId = _proofId(marketcreator, nativeValueGoodId);
         uint256 ethBefore = marketcreator.balance;
@@ -601,6 +614,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_disinvestProof_testDisinvestProof.t_603");
         _snapMarket("disinvest_native_value_owner_first");
 
         assertGt(marketcreator.balance, ethBefore, "owner received eth");
@@ -618,6 +632,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
             defaultdata,
             users[2]
         );
+        _snapMarket("market_investGood_testDisinvestProof.t_620");
 
         uint256 proofId = _proofId(users[2], nativeValueGoodId);
         uint256 ethBefore = users[2].balance;
@@ -629,6 +644,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
             users[2],
             defaultdata
         );
+        _snapMarket("market_disinvestProof_testDisinvestProof.t_631");
         _snapMarket("disinvest_native_value_other_first");
 
         assertGt(users[2].balance, ethBefore, "other user received eth");
@@ -647,6 +663,7 @@ contract testDisinvestNativeETHValueGood is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_disinvestProof_testDisinvestProof.t_649");
         _snapMarket("disinvest_native_value_init_only");
 
         assertGt(marketcreator.balance, ethBefore, "init proof disinvest ok");

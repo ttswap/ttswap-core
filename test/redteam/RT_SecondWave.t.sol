@@ -67,6 +67,7 @@ contract RT_SecondWave is BaseSetup {
         deal(key.contractAddress, owner, 100 * uint256(qty), false);
         MyToken(payable(key.contractAddress)).approve(address(market), type(uint256).max);
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_RT_SecondWave.t_69");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -90,6 +91,7 @@ contract RT_SecondWave is BaseSetup {
             _usdtKey(), _btcKey(), toTTSwapUINT256(uint128(1e6), 0),
             address(0), defaultdata, victim, defaultdata, 0
         );
+        _snapMarket("market_buyGood_RT_SecondWave.t_92");
         vm.stopPrank();
 
         // --- same block, new attempt: attacker fires first with a 1-wei self-pay ---
@@ -102,6 +104,7 @@ contract RT_SecondWave is BaseSetup {
             _usdtKey(), _usdtKey(), toTTSwapUINT256(0, 1),
             attacker, defaultdata, attacker, defaultdata, 0
         );
+        _snapMarket("market_payGood_RT_SecondWave.t_104");
         vm.stopPrank();
         assertEq(usdt.balanceOf(attacker), balBefore, "attacker lost nothing (1 wei round trip)");
 
@@ -112,11 +115,13 @@ contract RT_SecondWave is BaseSetup {
             _usdtKey(), _btcKey(), toTTSwapUINT256(uint128(1e6), 0),
             address(0), defaultdata, victim, defaultdata, 0
         );
+        _snapMarket("market_buyGood_RT_SecondWave.t_114");
 
         // investGood on USDT is equally blocked.
         vm.prank(victim);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
         market.investGood(_usdtKey(), _packInvest(usdtGoodId, 1e6), defaultdata, defaultdata, victim);
+        _snapMarket("market_investGood_RT_SecondWave.t_119");
     }
 
     function test_RT09_multicall_whole_market_censorship_one_tx() public {
@@ -140,6 +145,7 @@ contract RT_SecondWave is BaseSetup {
             (_btcKey(), _btcKey(), toTTSwapUINT256(0, 1), attacker, defaultdata, attacker, defaultdata, 0)
         );
         market.multicall(calls);
+        _snapMarket("market_multicall_RT_SecondWave.t_142");
         vm.stopPrank();
 
         // Any swap on either good this block is dead.
@@ -151,11 +157,13 @@ contract RT_SecondWave is BaseSetup {
             _usdtKey(), _btcKey(), toTTSwapUINT256(uint128(1e6), 0),
             address(0), defaultdata, victim, defaultdata, 0
         );
+        _snapMarket("market_buyGood_RT_SecondWave.t_153");
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
         market.buyGood(
             _btcKey(), _usdtKey(), toTTSwapUINT256(uint128(1e4), 0),
             address(0), defaultdata, victim, defaultdata, 0
         );
+        _snapMarket("market_buyGood_RT_SecondWave.t_158");
         vm.stopPrank();
         emit log("RT09: 2 dust self-pays in 1 tx = whole-market swap halt for the block");
     }
@@ -179,6 +187,7 @@ contract RT_SecondWave is BaseSetup {
         vm.startPrank(attacker);
         eth.approve(address(market), type(uint256).max);
         market.goodWelfare(goodId, 5e11, defaultdata, attacker, defaultdata);
+        _snapMarket("market_goodWelfare_RT_SecondWave.t_181");
         vm.stopPrank();
 
         uint256 victimBalBefore = eth.balanceOf(victim);
@@ -188,6 +197,7 @@ contract RT_SecondWave is BaseSetup {
         eth.approve(address(market), type(uint256).max);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 56));
         market.investGood(key, _packInvest(goodId, 1e6), defaultdata, defaultdata, victim);
+        _snapMarket("market_investGood_RT_SecondWave.t_190");
         vm.stopPrank();
 
         assertEq(eth.balanceOf(victim), victimBalBefore, "victim keeps tokens after 0-share reject");
@@ -214,6 +224,7 @@ contract RT_SecondWave is BaseSetup {
         vm.startPrank(victim);
         eth.approve(address(market), type(uint256).max);
         market.investGood(_ethKey(), _packInvest(skinnyId, 1e6), defaultdata, defaultdata, victim);
+        _snapMarket("market_investGood_RT_SecondWave.t_216");
         vm.stopPrank();
 
         // Control: without one-sided flow, an LP exit works fine.
@@ -223,6 +234,7 @@ contract RT_SecondWave is BaseSetup {
         _warpToFreshRunSlot();
         vm.prank(users[1]);
         market.disinvestProof(lp1Proof, lp1Shares0 / 20, address(0), users[1], defaultdata);
+        _snapMarket("market_disinvestProof_RT_SecondWave.t_225");
         assertGt(eth.balanceOf(users[1]), 0, "control: LP exits when pool is solvent");
 
         // One-sided flow: trader sells 7.4e10 USDT and pulls ~30% of the ETH
@@ -235,6 +247,7 @@ contract RT_SecondWave is BaseSetup {
             _usdtKey(), _ethKey(), toTTSwapUINT256(uint128(7.4e10), 0),
             address(0), defaultdata, trader, defaultdata, 0
         );
+        _snapMarket("market_buyGood_RT_SecondWave.t_237");
         vm.stopPrank();
         emit log_named_uint("RT11 value exported from USDT leg", g1change.amount1());
         emit log_named_uint("RT11 ETH bought out", g2change.amount1());
@@ -292,16 +305,20 @@ contract RT_SecondWave is BaseSetup {
         uint256 CAP = 200_000_000_000_000_000_000;
         vm.prank(marketcreator); // DAO admin
         tts_token.mint(marketcreator, CAP);
+        _snapToken("tts_token_mint_RT_SecondWave.t_294");
         assertEq(tts_token.totalSupply(), CAP, "at advertised cap");
 
         vm.prank(marketcreator);
         tts_token.setCallMintTTS(attacker, true);
+        _snapToken("tts_token_setCallMintTTS_RT_SecondWave.t_298");
         vm.prank(attacker);
         tts_token.stake(attacker, 1e18);
+        _snapToken("tts_token_stake_RT_SecondWave.t_300");
 
         vm.warp(block.timestamp + 86401);
         vm.prank(attacker);
         tts_token.unstake(attacker, 1e18);
+        _snapToken("tts_token_unstake_RT_SecondWave.t_304");
 
         uint256 minted = tts_token.balanceOf(attacker);
         emit log_named_uint("RT12 post-cap floor drip (raw)", minted);
@@ -325,6 +342,7 @@ contract RT_SecondWave is BaseSetup {
         usdt.approve(address(market), type(uint256).max);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
         market.investGood(_usdtKey(), _packInvest(usdtGoodId, 1e8), defaultdata, defaultdata, victim);
+        _snapMarket("market_investGood_RT_SecondWave.t_327");
         vm.stopPrank();
         emit log("RT13: untouched good bricked for the whole block N%4095==0");
     }
@@ -338,35 +356,44 @@ contract RT_SecondWave is BaseSetup {
     function test_RT14_shareMint_metric_freezes_leftamount() public {
         vm.prank(marketcreator);
         tts_token.setEnv(address(market_proxy));
+        _snapToken("tts_token_setEnv_RT_SecondWave.t_340");
 
         vm.startPrank(marketcreator);
         tts_token.mint(marketcreator, 1e8);
+        _snapToken("tts_token_mint_RT_SecondWave.t_343");
         tts_token.approve(address(market), type(uint256).max);
+        _snapToken("tts_token_approve_RT_SecondWave.t_344");
         T_GoodKey memory ttsKey = T_GoodKey({
             ercType: 1,
             contractAddress: address(tts_token),
             id: 0
         });
         market.initGood(ttsKey, toTTSwapUINT256(MAX_INIT_VALUE, MIN_INIT_QTY), defaultdata, marketcreator, defaultdata);
+        _snapMarket("market_initGood_RT_SecondWave.t_350");
         vm.stopPrank();
 
         // Control: low metric still mints.
         vm.prank(marketcreator);
         tts_token.addShare(s_share({leftamount: 1e6, metric: 10, chips: 10}), victim);
+        _snapToken("tts_token_addShare_RT_SecondWave.t_355");
         vm.prank(victim);
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_RT_SecondWave.t_357");
         assertGt(tts_token.balanceOf(victim), 0, "control: low metric mints");
 
         // Unschedulable under cap 60: metric=60, chips=10 rejected at addShare.
         vm.prank(marketcreator);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 75));
         tts_token.addShare(s_share({leftamount: 1e6, metric: 60, chips: 10}), attacker);
+        _snapToken("tts_token_addShare_RT_SecondWave.t_363");
 
         // Last mintable tranche: metric=60, chips=1.
         vm.prank(marketcreator);
         tts_token.addShare(s_share({leftamount: 1e6, metric: 60, chips: 1}), attacker);
+        _snapToken("tts_token_addShare_RT_SecondWave.t_367");
         vm.prank(attacker);
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_RT_SecondWave.t_369");
         assertEq(tts_token.balanceOf(attacker), 1e6, "full tranche minted at metric 60");
         (uint128 left, uint120 metricAfter,) = _shareOf(attacker);
         assertEq(left, 0, "no frozen leftover");
@@ -377,11 +404,14 @@ contract RT_SecondWave is BaseSetup {
     function test_RT14_addShare_merge_metric_poisoning() public {
         vm.startPrank(marketcreator);
         tts_token.addShare(s_share({leftamount: 1e6, metric: 1, chips: 10}), victim);
+        _snapToken("tts_token_addShare_RT_SecondWave.t_379");
         // Over-cap dust rejected; in-cap higher metric still cannot raise victim's metric.
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 75));
         tts_token.addShare(s_share({leftamount: 1, metric: 120, chips: 1}), victim);
+        _snapToken("tts_token_addShare_RT_SecondWave.t_382");
 
         tts_token.addShare(s_share({leftamount: 1, metric: 50, chips: 1}), victim);
+        _snapToken("tts_token_addShare_RT_SecondWave.t_384");
         vm.stopPrank();
 
         (, uint120 metric, uint8 chips) = _shareOf(victim);

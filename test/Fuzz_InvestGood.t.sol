@@ -32,6 +32,7 @@ contract Fuzz_InvestGood is FuzzBase {
             defaultdata,
             FUZZ_USER
         );
+        _snapMarket("market_investGood_Fuzz_InvestGood.t_34");
 
         S_ProofState memory proof = market.getProofState(proofId);
         assertEq(proof.currentgood, btcGoodId, "proof good");
@@ -55,6 +56,7 @@ contract Fuzz_InvestGood is FuzzBase {
             defaultdata,
             FUZZ_USER
         );
+        _snapMarket("market_investGood_Fuzz_InvestGood.t_57");
 
         S_ProofState memory proof = market.getProofState(proofId);
         assertGt(proof.shares.amount0(), 0, "value good shares");
@@ -74,6 +76,7 @@ contract Fuzz_InvestGood is FuzzBase {
             defaultdata,
             FUZZ_USER
         );
+        _snapMarket("market_investGood_Fuzz_InvestGood.t_76");
         _snapMarket("gas_baseline_invest_btc");
         vm.stopPrank();
     }
@@ -91,6 +94,7 @@ contract Fuzz_InvestGood is FuzzBase {
             defaultdata,
             FUZZ_USER
         );
+        _snapMarket("market_investGood_Fuzz_InvestGood.t_93");
         _snapMarket("gas_baseline_invest_usdt_value");
         vm.stopPrank();
     }

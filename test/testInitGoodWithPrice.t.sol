@@ -72,6 +72,7 @@ contract testInitGoodWithPrice is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testInitGoodWithPrice.t_74");
         metaGoodId = usdtKey.toId();
         vm.stopPrank();
     }
@@ -136,6 +137,7 @@ contract testInitGoodWithPrice is BaseSetup {
             trader,
             defaultdata
         );
+        _snapMarket("market_initGood_testInitGoodWithPrice.t_138");
     }
 
 
@@ -151,6 +153,7 @@ contract testInitGoodWithPrice is BaseSetup {
             
             .setPromised(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        _snapMarket("market_modifyGoodByManager_testInitGoodWithPrice.t_153");
         vm.stopPrank();
         vm.startPrank(restoreTrader);
     }
@@ -194,6 +197,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_testInitGoodWithPrice.t_196");
         _snapMarket("initGood_NativeETH_withPrice");
 
         assertEq(users[1].balance, 9 * BTC_QTY, "user eth balance");
@@ -244,6 +248,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_testInitGoodWithPrice.t_246");
         vm.stopPrank();
     }
 
@@ -259,6 +264,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_testInitGoodWithPrice.t_261");
         vm.stopPrank();
     }
 
@@ -274,6 +280,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_testInitGoodWithPrice.t_276");
         vm.stopPrank();
     }
 
@@ -289,6 +296,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_testInitGoodWithPrice.t_291");
         vm.stopPrank();
     }
 
@@ -304,6 +312,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_testInitGoodWithPrice.t_306");
         vm.stopPrank();
     }
 
@@ -319,6 +328,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[2],
             defaultdata
         );
+        _snapMarket("market_initGood_testInitGoodWithPrice.t_321");
         vm.stopPrank();
     }
 
@@ -334,6 +344,7 @@ contract testInitGoodWithPrice is BaseSetup {
             address(0),
             defaultdata
         );
+        _snapMarket("market_initGood_testInitGoodWithPrice.t_336");
         vm.stopPrank();
     }
 
@@ -355,6 +366,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInitGoodWithPrice.t_357");
         _snapMarket("investGood_poolPrice_first");
 
         S_GoodTmpState memory after1 = market.getGoodState(goodId);
@@ -377,6 +389,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInitGoodWithPrice.t_379");
         _snapMarket("investGood_poolPrice_second");
 
         S_GoodTmpState memory after2 = market.getGoodState(goodId);
@@ -405,6 +418,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInitGoodWithPrice.t_407");
         vm.stopPrank();
     }
 
@@ -425,6 +439,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[2]
         );
+        _snapMarket("market_investGood_testInitGoodWithPrice.t_427");
         _snapMarket("investGood_nonOwner_poolPrice");
 
         S_GoodTmpState memory state = market.getGoodState(goodId);
@@ -449,6 +464,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[2]
         );
+        _snapMarket("market_investGood_testInitGoodWithPrice.t_451");
         assertGt(
             market.getGoodState(goodId).currentState.amount1(),
             BTC_QTY,
@@ -471,6 +487,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInitGoodWithPrice.t_473");
         _snapMarket("investGood_owner_samePrice");
 
         S_GoodTmpState memory state = market.getGoodState(goodId);
@@ -494,6 +511,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInitGoodWithPrice.t_496");
         _snapMarket("investGood_metagood_normalUser");
 
         S_GoodTmpState memory after_ = market.getGoodState(metaGoodId);

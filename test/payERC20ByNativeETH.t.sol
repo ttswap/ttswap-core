@@ -58,6 +58,7 @@ contract payERC20ByNativeETH is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_payERC20ByNativeETH.t_60");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -72,6 +73,7 @@ contract payERC20ByNativeETH is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_payERC20ByNativeETH.t_74");
         goodId = key.toId();
         vm.stopPrank();
     }
