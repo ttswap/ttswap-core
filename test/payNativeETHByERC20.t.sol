@@ -53,6 +53,7 @@ contract payNativeETHByERC20 is BaseSetup {
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_payNativeETHByERC20.t_55");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -72,6 +73,7 @@ contract payNativeETHByERC20 is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_payNativeETHByERC20.t_74");
         goodId = key.toId();
         vm.stopPrank();
     }

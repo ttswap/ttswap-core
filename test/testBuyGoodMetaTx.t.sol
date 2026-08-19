@@ -118,6 +118,7 @@ contract testBuyGoodMetaTx is BaseSetup {
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_testBuyGoodMetaTx.t_120");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -132,6 +133,7 @@ contract testBuyGoodMetaTx is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_testBuyGoodMetaTx.t_134");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -270,6 +272,7 @@ contract testBuyGoodMetaTx is BaseSetup {
             sig,
             uint256(pastDeadline)
         );
+        _snapMarket("market_buyGood_testBuyGoodMetaTx.t_272");
         _snapMarket("buyGood_metaTx_revert_expiredDeadline");
     }
 
@@ -304,6 +307,7 @@ contract testBuyGoodMetaTx is BaseSetup {
             bytes(""),
             0
         );
+        _snapMarket("market_buyGood_testBuyGoodMetaTx.t_306");
     }
 
     function testBuyGoodMetaTx_revert_invalidSigner() public {
@@ -332,11 +336,13 @@ contract testBuyGoodMetaTx is BaseSetup {
             badSig,
             0
         );
+        _snapMarket("market_buyGood_testBuyGoodMetaTx.t_334");
     }
 
     function testBuyGoodMetaTx_revert_staleNonce() public {
         vm.prank(trader);
         market.cancelNonce();
+        _snapMarket("market_cancelNonce_testBuyGoodMetaTx.t_339");
         _snapMarket("cancelNonce_metaTx_setup");
 
         _warpToFreshRunSlot();
@@ -355,6 +361,7 @@ contract testBuyGoodMetaTx is BaseSetup {
 
         vm.prank(trader);
         market.cancelNonce();
+        _snapMarket("market_cancelNonce_testBuyGoodMetaTx.t_357");
 
         vm.prank(relayer);
         vm.expectRevert(L_SignatureVerification.InvalidSigner.selector);
@@ -368,5 +375,6 @@ contract testBuyGoodMetaTx is BaseSetup {
             sig,
             0
         );
+        _snapMarket("market_buyGood_testBuyGoodMetaTx.t_370");
     }
 }

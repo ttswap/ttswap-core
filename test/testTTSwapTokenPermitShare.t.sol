@@ -22,6 +22,7 @@ contract testTTSwapTokenPermitShare is BaseSetup {
         tokenAdmin = vm.addr(ADMIN_KEY);
         vm.startPrank(marketcreator);
         tts_token.setTokenAdmin(tokenAdmin, true);
+        _snapToken("tts_token_setTokenAdmin_testTTSwapTokenPermitShare.t_24");
         vm.stopPrank();
     }
 
@@ -66,6 +67,7 @@ contract testTTSwapTokenPermitShare is BaseSetup {
 
         vm.prank(recipient);
         tts_token.permitShare(share, deadline, sig, tokenAdmin);
+        _snapToken("tts_token_permitShare_testTTSwapTokenPermitShare.t_68");
 
         s_share memory stored = tts_token.usershares(recipient);
         assertEq(stored.leftamount, 500_000, "share added");
@@ -80,6 +82,7 @@ contract testTTSwapTokenPermitShare is BaseSetup {
         vm.prank(users[4]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 72));
         tts_token.permitShare(share, deadline, sig, tokenAdmin);
+        _snapToken("tts_token_permitShare_testTTSwapTokenPermitShare.t_82");
     }
 
     function testPermitShare_revert_nonTokenAdminSigner() public {
@@ -98,6 +101,7 @@ contract testTTSwapTokenPermitShare is BaseSetup {
         vm.prank(users[4]);
         vm.expectRevert(L_SignatureVerification.InvalidSigner.selector);
         tts_token.permitShare(share, deadline, sig, outsider);
+        _snapToken("tts_token_permitShare_testTTSwapTokenPermitShare.t_100");
     }
 
     function testPermitShare_revert_replay() public {
@@ -109,8 +113,10 @@ contract testTTSwapTokenPermitShare is BaseSetup {
 
         vm.startPrank(recipient);
         tts_token.permitShare(share, deadline, sig, tokenAdmin);
+        _snapToken("tts_token_permitShare_testTTSwapTokenPermitShare.t_111");
         vm.expectRevert(L_SignatureVerification.InvalidSigner.selector);
         tts_token.permitShare(share, deadline, sig, tokenAdmin);
+        _snapToken("tts_token_permitShare_testTTSwapTokenPermitShare.t_113");
         vm.stopPrank();
     }
 

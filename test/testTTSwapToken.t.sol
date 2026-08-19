@@ -29,11 +29,13 @@ contract testTTSwapToken is BaseSetup {
         vm.warp(1_000_000);
         vm.prank(marketcreator);
         tts_token.setCallMintTTS(stakeCaller, true);
+        _snapToken("tts_token_setCallMintTTS_testTTSwapToken.t_31");
     }
 
     function testTTSwapToken_stake_unstake_cycle() public {
         vm.prank(stakeCaller);
         uint128 netconstruct = tts_token.stake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapToken.t_36");
         assertEq(netconstruct, 0, "first stake has no construct fee");
 
         uint256 stakeAfter = tts_token.stakestate();
@@ -45,6 +47,7 @@ contract testTTSwapToken is BaseSetup {
 
         vm.prank(stakeCaller);
         tts_token.unstake(beneficiary, UNSTAKE_VALUE);
+        _snapToken("tts_token_unstake_testTTSwapToken.t_47");
 
         uint256 stakeFinal = tts_token.stakestate();
         assertEq(
@@ -59,13 +62,16 @@ contract testTTSwapToken is BaseSetup {
         vm.prank(users[3]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 71));
         tts_token.stake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapToken.t_61");
     }
 
     function testTTSwapToken_unstake_full_exit() public {
         vm.startPrank(stakeCaller);
         tts_token.stake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapToken.t_66");
         vm.warp(block.timestamp + 86_400);
         tts_token.unstake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_unstake_testTTSwapToken.t_68");
         vm.stopPrank();
 
         assertEq(tts_token.stakestate().amount1(), 0, "full unstake clears stake");
@@ -76,28 +82,34 @@ contract testTTSwapToken is BaseSetup {
     function testTTSwapToken_setDAOAdmin_ok() public {
         vm.prank(marketcreator);
         tts_token.setDAOAdmin(users[3], true);
+        _snapToken("tts_token_setDAOAdmin_testTTSwapToken.t_78");
         vm.prank(marketcreator);
         tts_token.setDAOAdmin(users[3], false);
+        _snapToken("tts_token_setDAOAdmin_testTTSwapToken.t_80");
     }
 
     function testTTSwapToken_setDAOAdmin_revert_notAdmin() public {
         vm.prank(users[3]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 62));
         tts_token.setDAOAdmin(users[4], true);
+        _snapToken("tts_token_setDAOAdmin_testTTSwapToken.t_86");
     }
 
     function testTTSwapToken_setRatio_ok_and_revert() public {
         vm.prank(marketcreator);
         tts_token.setRatio(5000);
+        _snapToken("tts_token_setRatio_testTTSwapToken.t_91");
         assertEq(tts_token.ttstokenconfig() & 0xFFFF, 5000, "ratio stored");
 
         vm.prank(users[3]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 63));
         tts_token.setRatio(100);
+        _snapToken("tts_token_setRatio_testTTSwapToken.t_96");
 
         vm.prank(marketcreator);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 66));
         tts_token.setRatio(10001);
+        _snapToken("tts_token_setRatio_testTTSwapToken.t_100");
     }
 
     // ── TASK-P2-007 addShare / burnShare / shareMint ───────────────────────
@@ -112,7 +124,9 @@ contract testTTSwapToken is BaseSetup {
 
         vm.startPrank(marketcreator);
         tts_token.setEnv(address(market));
+        _snapToken("tts_token_setEnv_testTTSwapToken.t_114");
         tts_token.addShare(share, shareOwner);
+        _snapToken("tts_token_addShare_testTTSwapToken.t_115");
         vm.stopPrank();
 
         s_share memory stored = tts_token.usershares(shareOwner);
@@ -146,10 +160,12 @@ contract testTTSwapToken is BaseSetup {
         uint256 balBefore = tts_token.balanceOf(shareOwner);
         vm.prank(shareOwner);
         tts_token.shareMint();
+        _snapToken("tts_token_shareMint_testTTSwapToken.t_148");
         assertGt(tts_token.balanceOf(shareOwner), balBefore, "shareMint minted");
 
         vm.prank(marketcreator);
         tts_token.burnShare(shareOwner);
+        _snapToken("tts_token_burnShare_testTTSwapToken.t_152");
         assertEq(tts_token.usershares(shareOwner).leftamount, 0, "share burned");
     }
 
@@ -161,6 +177,7 @@ contract testTTSwapToken is BaseSetup {
         deal(address(usdt), users[5], usdtAmount, false);
         usdt.approve(address(tts_token), usdtAmount);
         tts_token.publicSell(usdtAmount, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapToken.t_163");
         vm.stopPrank();
 
         assertEq(
@@ -179,7 +196,9 @@ contract testTTSwapToken is BaseSetup {
         deal(address(usdt), users[5], tier1Cap + usdtAmount, false);
         usdt.approve(address(tts_token), tier1Cap + usdtAmount);
         tts_token.publicSell(tier1Cap, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapToken.t_181");
         tts_token.publicSell(usdtAmount, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapToken.t_182");
         vm.stopPrank();
 
         assertEq(
@@ -194,8 +213,10 @@ contract testTTSwapToken is BaseSetup {
         deal(address(usdt), users[5], 250_000_000_001, false);
         usdt.approve(address(tts_token), 250_000_000_001);
         tts_token.publicSell(250_000_000_000, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapToken.t_196");
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 70));
         tts_token.publicSell(1, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapToken.t_198");
         vm.stopPrank();
     }
 
@@ -209,12 +230,14 @@ contract testTTSwapToken is BaseSetup {
         });
         vm.prank(marketcreator);
         tts_token.addShare(share, users[6]);
+        _snapToken("tts_token_addShare_testTTSwapToken.t_211");
 
         s_share memory viewShare = tts_token.usershares(users[6]);
         assertEq(viewShare.leftamount, 500_000, "usershares view");
 
         vm.prank(stakeCaller);
         tts_token.stake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapToken.t_217");
 
         uint256 proofId = uint256(keccak256(abi.encode(beneficiary, stakeCaller)));
         s_proof memory proof = tts_token.stakeproofinfo(proofId);

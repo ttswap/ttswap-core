@@ -78,6 +78,7 @@ contract testInitMetaGood is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testInitMetaGood.t_80");
         _snapMarket("init_ERC20_metagood");
         goodId = usdtKey.toId();
 
@@ -170,6 +171,7 @@ contract testInitMetaGood is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testInitMetaGood.t_172");
         _snapMarket("init_NativeETH_metagood");
         goodId = nativeKey.toId();
 

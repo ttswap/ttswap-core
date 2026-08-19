@@ -57,6 +57,7 @@ contract C03_RunBlockTemporary is BaseSetup {
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_C03_RunBlockTemporary.t_59");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -71,6 +72,7 @@ contract C03_RunBlockTemporary is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_C03_RunBlockTemporary.t_73");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -88,6 +90,7 @@ contract C03_RunBlockTemporary is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_payGood_C03_RunBlockTemporary.t_90");
         _snapMarket("payGood_zero_same_token");
     }
 
@@ -105,6 +108,7 @@ contract C03_RunBlockTemporary is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_C03_RunBlockTemporary.t_107");
         _snapMarket("buyGood_usdt_btc_after_run_slot");
         vm.stopPrank();
     }
@@ -130,6 +134,7 @@ contract C03_RunBlockTemporary is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_C03_RunBlockTemporary.t_132");
         _snapMarket("buyGood_revert_run_block_same_slot");
         vm.stopPrank();
 
@@ -161,6 +166,7 @@ contract C03_RunBlockTemporary is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_C03_RunBlockTemporary.t_163");
         _snapMarket("buyGood_revert_run_block_second_trader");
         vm.stopPrank();
 

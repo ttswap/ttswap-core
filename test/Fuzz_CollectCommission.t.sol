@@ -24,6 +24,7 @@ contract Fuzz_CollectCommission is FuzzBase {
             defaultdata,
             FUZZ_USER
         );
+        _snapMarket("market_investGood_Fuzz_CollectCommission.t_26");
         market.disinvestProof(
             _proofId(FUZZ_USER, btcGoodId),
             uint128(1 * 10 ** 7),
@@ -31,6 +32,7 @@ contract Fuzz_CollectCommission is FuzzBase {
             FUZZ_USER,
             defaultdata
         );
+        _snapMarket("market_disinvestProof_Fuzz_CollectCommission.t_33");
         vm.stopPrank();
     }
 
@@ -53,6 +55,7 @@ contract Fuzz_CollectCommission is FuzzBase {
 
         vm.startPrank(gate);
         market.collectCommission(ids, gate, defaultdata);
+        _snapMarket("market_collectCommission_Fuzz_CollectCommission.t_55");
         uint256[] memory afterCollect = market.queryCommission(ids, gate);
         assertLe(afterCollect[0], 1, "collected to sentinel/zero");
         vm.stopPrank();
@@ -64,6 +67,7 @@ contract Fuzz_CollectCommission is FuzzBase {
 
         vm.startPrank(gate);
         market.collectCommission(ids, gate, defaultdata);
+        _snapMarket("market_collectCommission_Fuzz_CollectCommission.t_66");
         _snapMarket("gas_baseline_collect_commission");
         vm.stopPrank();
     }

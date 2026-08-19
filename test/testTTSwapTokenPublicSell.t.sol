@@ -22,6 +22,7 @@ contract testTTSwapTokenPublicSell is BaseSetup {
         uint256 tokenUsdtBefore = usdt.balanceOf(address(tts_token));
 
         tts_token.publicSell(amount, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapTokenPublicSell.t_24");
 
         assertEq(usdt.balanceOf(address(tts_token)), tokenUsdtBefore + amount, "usdt in token");
         assertEq(usdt.balanceOf(buyer), buyerUsdtBefore - amount, "buyer spent usdt");
@@ -42,10 +43,12 @@ contract testTTSwapTokenPublicSell is BaseSetup {
         deal(address(usdt), buyer, amount, false);
         usdt.approve(address(tts_token), amount);
         tts_token.publicSell(amount, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapTokenPublicSell.t_44");
         vm.stopPrank();
 
         vm.prank(marketcreator);
         tts_token.withdrawPublicSell(amount, recipient);
+        _snapToken("tts_token_withdrawPublicSell_testTTSwapTokenPublicSell.t_48");
 
         assertEq(usdt.balanceOf(recipient), amount, "recipient received");
         assertEq(usdt.balanceOf(address(tts_token)), 0, "token drained");
@@ -55,6 +58,7 @@ contract testTTSwapTokenPublicSell is BaseSetup {
         vm.prank(users[3]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 63));
         tts_token.withdrawPublicSell(1, users[4]);
+        _snapToken("tts_token_withdrawPublicSell_testTTSwapTokenPublicSell.t_57");
     }
 
     function testPublicSell_tier3() public {
@@ -67,7 +71,9 @@ contract testTTSwapTokenPublicSell is BaseSetup {
         deal(address(usdt), buyer, tier3Prefill + tier3Amount, false);
         usdt.approve(address(tts_token), tier3Prefill + tier3Amount);
         tts_token.publicSell(tier3Prefill, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapTokenPublicSell.t_69");
         tts_token.publicSell(tier3Amount, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapTokenPublicSell.t_70");
         vm.stopPrank();
 
         assertEq(
@@ -87,8 +93,10 @@ contract testTTSwapTokenPublicSell is BaseSetup {
         deal(address(usdt), buyer, prefill + amount, false);
         usdt.approve(address(tts_token), prefill + amount);
         tts_token.publicSell(prefill, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapTokenPublicSell.t_89");
         // Single tx crosses into tier-2; entire amount priced at tier-2 rate.
         tts_token.publicSell(amount, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapTokenPublicSell.t_91");
         vm.stopPrank();
 
         assertEq(
@@ -104,6 +112,7 @@ contract testTTSwapTokenPublicSell is BaseSetup {
         deal(address(usdt), buyer, 1_000_000, false);
         usdt.approve(address(tts_token), 1_000_000);
         tts_token.publicSell(0, defaultdata);
+        _snapToken("tts_token_publicSell_testTTSwapTokenPublicSell.t_106");
         assertEq(tts_token.balanceOf(buyer), 0, "no mint on zero");
         assertEq(tts_token.publicsell(), 0, "publicsell unchanged");
         vm.stopPrank();

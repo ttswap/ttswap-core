@@ -54,6 +54,7 @@ contract payERC20ByERC20 is BaseSetup {
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_payERC20ByERC20.t_56");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -68,6 +69,7 @@ contract payERC20ByERC20 is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_payERC20ByERC20.t_70");
         goodId = key.toId();
         vm.stopPrank();
     }

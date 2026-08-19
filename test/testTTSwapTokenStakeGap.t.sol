@@ -26,23 +26,28 @@ contract testTTSwapTokenStakeGap is BaseSetup {
         vm.warp(1_000_000);
         vm.prank(marketcreator);
         tts_token.setCallMintTTS(stakeCaller, true);
+        _snapToken("tts_token_setCallMintTTS_testTTSwapTokenStakeGap.t_28");
     }
 
     function testStake_whenPoolstateHasConstruct_calculatesNetConstruct() public {
         vm.prank(stakeCaller);
         tts_token.stake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapTokenStakeGap.t_33");
         uint128 poolBefore = tts_token.poolstate().amount0();
         vm.warp(block.timestamp + 86_401);
         vm.prank(stakeCaller);
         tts_token.stake(beneficiary2, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapTokenStakeGap.t_37");
         assertGt(tts_token.poolstate().amount0(), poolBefore, "daily fee accrues to pool");
     }
 
     function testUnstake_moreThanUserProof_clampsToFullExit() public {
         vm.startPrank(stakeCaller);
         tts_token.stake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapTokenStakeGap.t_43");
         vm.warp(block.timestamp + 86_400);
         tts_token.unstake(beneficiary, STAKE_VALUE + 1);
+        _snapToken("tts_token_unstake_testTTSwapTokenStakeGap.t_45");
         vm.stopPrank();
         assertEq(tts_token.stakestate().amount1(), 0, "full exit");
     }
@@ -50,38 +55,47 @@ contract testTTSwapTokenStakeGap is BaseSetup {
     function testUnstake_afterFullExit_revertsOnFurtherUnstake() public {
         vm.startPrank(stakeCaller);
         tts_token.stake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapTokenStakeGap.t_52");
         vm.warp(block.timestamp + 86_400);
         tts_token.unstake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_unstake_testTTSwapTokenStakeGap.t_54");
         vm.expectRevert();
         tts_token.unstake(beneficiary, 0);
+        _snapToken("tts_token_unstake_testTTSwapTokenStakeGap.t_56");
         vm.stopPrank();
     }
 
     function testStakeFee_noMintBeforeOneDay() public {
         vm.prank(stakeCaller);
         tts_token.stake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapTokenStakeGap.t_62");
         uint128 tsBefore = tts_token.stakestate().amount0();
         vm.prank(stakeCaller);
         tts_token.unstake(beneficiary, UNSTAKE_VALUE);
+        _snapToken("tts_token_unstake_testTTSwapTokenStakeGap.t_65");
         assertEq(tts_token.stakestate().amount0(), tsBefore, "timestamp not bumped before 1 day");
     }
 
     function testStakeFee_afterOneDay_updatesStakeTimestamp() public {
         vm.prank(stakeCaller);
         tts_token.stake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapTokenStakeGap.t_71");
         uint128 tsBefore = tts_token.stakestate().amount0();
         vm.warp(block.timestamp + 86_401);
         vm.prank(stakeCaller);
         tts_token.unstake(beneficiary, UNSTAKE_VALUE);
+        _snapToken("tts_token_unstake_testTTSwapTokenStakeGap.t_75");
         assertGt(tts_token.stakestate().amount0(), tsBefore, "timestamp bumped after fee");
     }
 
     function testUnstake_profitMintedAfterOneDay() public {
         vm.startPrank(stakeCaller);
         tts_token.stake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapTokenStakeGap.t_81");
         vm.warp(block.timestamp + 86_401);
         uint256 supplyBefore = tts_token.totalSupply();
         tts_token.unstake(beneficiary, UNSTAKE_VALUE);
+        _snapToken("tts_token_unstake_testTTSwapTokenStakeGap.t_84");
         vm.stopPrank();
         assertGt(tts_token.totalSupply(), supplyBefore, "profit minted after daily fee");
     }
@@ -92,6 +106,7 @@ contract testTTSwapTokenStakeGap is BaseSetup {
         vm.warp(block.timestamp + 86_401);
         vm.prank(stakeCaller);
         tts_token.stake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_stake_testTTSwapTokenStakeGap.t_94");
         assertEq(
             tts_token.poolstate().amount0(),
             poolBefore,
@@ -99,6 +114,7 @@ contract testTTSwapTokenStakeGap is BaseSetup {
         );
         vm.prank(stakeCaller);
         tts_token.unstake(beneficiary, STAKE_VALUE);
+        _snapToken("tts_token_unstake_testTTSwapTokenStakeGap.t_101");
         assertEq(tts_token.balanceOf(beneficiary), 0, "first staker gets no idle drip");
     }
 }

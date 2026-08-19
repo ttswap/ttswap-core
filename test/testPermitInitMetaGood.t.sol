@@ -104,12 +104,19 @@ contract testPermitInitGood is BaseSetup {
         market = TTSwap_Market(payable(address(market_proxy)));
 
         tts_token.setTokenAdmin(keyedCreator, true);
+        _snapToken("tts_token_setTokenAdmin_testPermitInitMetaGood.t_106");
         tts_token.setTokenManager(keyedCreator, true);
+        _snapToken("tts_token_setTokenManager_testPermitInitMetaGood.t_107");
         tts_token.setCallMintTTS(address(market), true);
+        _snapToken("tts_token_setCallMintTTS_testPermitInitMetaGood.t_108");
         tts_token.setMarketAdmin(keyedCreator, true);
+        _snapToken("tts_token_setMarketAdmin_testPermitInitMetaGood.t_109");
         tts_token.setMarketManager(keyedCreator, true);
+        _snapToken("tts_token_setMarketManager_testPermitInitMetaGood.t_110");
         tts_token.setStakeAdmin(keyedCreator, true);
+        _snapToken("tts_token_setStakeAdmin_testPermitInitMetaGood.t_111");
         tts_token.setStakeManager(keyedCreator, true);
+        _snapToken("tts_token_setStakeManager_testPermitInitMetaGood.t_112");
         vm.stopPrank();
 
         permit2Logic = new Permit2();
@@ -292,6 +299,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testPermitInitMetaGood.t_294");
         _snapMarket("init_good_erc20_approve");
         _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
         vm.stopPrank();
@@ -309,6 +317,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testPermitInitMetaGood.t_311");
         _snapMarket("init_good_native_msgvalue");
         _assertInitGoodState(key.toId(), keyedCreator, true, address(0), INIT_QTY);
         vm.stopPrank();
@@ -366,6 +375,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testPermitInitMetaGood.t_368");
         _snapMarket("init_good_eip2612");
         _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
         vm.stopPrank();
@@ -415,6 +425,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testPermitInitMetaGood.t_417");
         _snapMarket("init_good_permit2_allowance");
         _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
         vm.stopPrank();
@@ -444,6 +455,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testPermitInitMetaGood.t_446");
         _snapMarket("init_good_permit2_single");
         _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
         vm.stopPrank();
@@ -511,6 +523,7 @@ contract testPermitInitGood is BaseSetup {
             keyedCreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testPermitInitMetaGood.t_513");
         _snapMarket("init_good_permit2_sigtransfer");
         _assertInitGoodState(key.toId(), keyedCreator, false, address(permitToken), INIT_QTY);
         vm.stopPrank();

@@ -102,6 +102,7 @@ contract testMarketGapP2 is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_initGood_testMarketGapP2.t_104");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -118,6 +119,7 @@ contract testMarketGapP2 is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_testMarketGapP2.t_120");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -126,6 +128,7 @@ contract testMarketGapP2 is BaseSetup {
         vm.startPrank(marketcreator);
         uint256 cfg = market.getGoodState(goodId).goodConfig.setPromised(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        _snapMarket("market_modifyGoodByManager_testMarketGapP2.t_128");
         vm.stopPrank();
     }
 
@@ -135,6 +138,7 @@ contract testMarketGapP2 is BaseSetup {
         assertEq(market.nonces(users[1]), 0, "initial");
         vm.prank(users[1]);
         market.cancelNonce();
+        _snapMarket("market_cancelNonce_testMarketGapP2.t_137");
         _snapMarket("cancelNonce");
         assertEq(market.nonces(users[1]), 1, "incremented");
         assertEq(market.nonces(users[2]), 0, "other user isolated");
@@ -159,6 +163,7 @@ contract testMarketGapP2 is BaseSetup {
 
         vm.prank(trader);
         market.cancelNonce();
+        _snapMarket("market_cancelNonce_testMarketGapP2.t_161");
 
         vm.prank(users[2]);
         vm.expectRevert(L_SignatureVerification.InvalidSigner.selector);
@@ -172,6 +177,7 @@ contract testMarketGapP2 is BaseSetup {
             sig,
             0
         );
+        _snapMarket("market_buyGood_testMarketGapP2.t_174");
         _snapMarket("buyGood_revert_staleNonce_after_cancel");
     }
 
@@ -180,13 +186,16 @@ contract testMarketGapP2 is BaseSetup {
     function testSetReferral_revert_noCallMintPermission() public {
         vm.prank(users[3]);
         tts_token.setReferral(users[4], users[5]);
+        _snapToken("tts_token_setReferral_testMarketGapP2.t_182");
         assertEq(tts_token.getreferral(users[4]), address(0), "unchanged");
     }
 
     function testSetReferral_revert_userEqualsReferral() public {
         vm.startPrank(marketcreator);
         tts_token.setCallMintTTS(marketcreator, true);
+        _snapToken("tts_token_setCallMintTTS_testMarketGapP2.t_188");
         tts_token.setReferral(users[4], users[4]);
+        _snapToken("tts_token_setReferral_testMarketGapP2.t_189");
         vm.stopPrank();
         assertEq(tts_token.getreferral(users[4]), address(0), "self refer blocked");
     }
@@ -196,8 +205,11 @@ contract testMarketGapP2 is BaseSetup {
         address second = users[6];
         vm.startPrank(marketcreator);
         tts_token.setCallMintTTS(marketcreator, true);
+        _snapToken("tts_token_setCallMintTTS_testMarketGapP2.t_198");
         tts_token.setReferral(users[4], first);
+        _snapToken("tts_token_setReferral_testMarketGapP2.t_199");
         tts_token.setReferral(users[4], second);
+        _snapToken("tts_token_setReferral_testMarketGapP2.t_200");
         vm.stopPrank();
         assertEq(tts_token.getreferral(users[4]), first, "first wins");
     }
@@ -205,8 +217,10 @@ contract testMarketGapP2 is BaseSetup {
     function testSetReferral_emitsOnce() public {
         vm.startPrank(marketcreator);
         tts_token.setCallMintTTS(marketcreator, true);
+        _snapToken("tts_token_setCallMintTTS_testMarketGapP2.t_207");
         vm.recordLogs();
         tts_token.setReferral(users[4], users[5]);
+        _snapToken("tts_token_setReferral_testMarketGapP2.t_209");
         Vm.Log[] memory logs = vm.getRecordedLogs();
         uint256 count;
         for (uint256 i = 0; i < logs.length; i++) {
@@ -230,11 +244,13 @@ contract testMarketGapP2 is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testMarketGapP2.t_232");
         _snapMarket("investGood_refreshPromise_noEmit_notPromised");
         uint256 proofId = _proofId(users[1], btcGoodId);
 
         vm.recordLogs();
         market.refreshPromise(proofId);
+        _snapMarket("market_refreshPromise_testMarketGapP2.t_237");
         _snapMarket("refreshPromise_noEmit_notPromised");
         Vm.Log[] memory logs = vm.getRecordedLogs();
         for (uint256 i = 0; i < logs.length; i++) {
@@ -257,11 +273,13 @@ contract testMarketGapP2 is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testMarketGapP2.t_259");
         _snapMarket("investGood_refreshPromise_noEmit_notOwner");
         uint256 proofId = _proofId(users[1], usdtGoodId);
 
         vm.recordLogs();
         market.refreshPromise(proofId);
+        _snapMarket("market_refreshPromise_testMarketGapP2.t_264");
         _snapMarket("refreshPromise_noEmit_notOwner");
         Vm.Log[] memory logs = vm.getRecordedLogs();
         for (uint256 i = 0; i < logs.length; i++) {

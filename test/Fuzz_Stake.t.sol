@@ -13,6 +13,7 @@ contract Fuzz_Stake is FuzzBase {
         vm.warp(1_000_000);
         vm.prank(marketcreator);
         tts_token.setCallMintTTS(address(this), true);
+        _snapToken("tts_token_setCallMintTTS_Fuzz_Stake.t_15");
     }
 
     function testFuzz_Stake_valid(address staker, uint128 proofValue) public {
@@ -21,6 +22,7 @@ contract Fuzz_Stake is FuzzBase {
 
         uint256 stakeBefore = tts_token.stakestate().amount1();
         uint128 construct = tts_token.stake(staker, proofValue);
+        _snapToken("tts_token_stake_Fuzz_Stake.t_23");
 
         assertEq(
             tts_token.stakestate().amount1(),

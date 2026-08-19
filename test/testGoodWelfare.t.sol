@@ -53,6 +53,7 @@ contract testGoodWelfare is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testGoodWelfare.t_55");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -73,6 +74,7 @@ contract testGoodWelfare is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testGoodWelfare.t_75");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -85,6 +87,7 @@ contract testGoodWelfare is BaseSetup {
 
         S_GoodTmpState memory before_ = market.getGoodState(btcGoodId);
         market.goodWelfare(btcGoodId, WELFARE, defaultdata, users[1], defaultdata);
+        _snapMarket("market_goodWelfare_testGoodWelfare.t_87");
         _snapMarket("goodWelfare_btc");
 
         S_GoodTmpState memory after_ = market.getGoodState(btcGoodId);
@@ -110,6 +113,7 @@ contract testGoodWelfare is BaseSetup {
         vm.prank(users[1]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 12));
         market.goodWelfare(uint256(uint160(address(0xBEEF))), WELFARE, defaultdata, users[1], defaultdata);
+        _snapMarket("market_goodWelfare_testGoodWelfare.t_112");
     }
 
     function testGoodWelfare_revert_overflow() public {
@@ -120,6 +124,7 @@ contract testGoodWelfare is BaseSetup {
         uint128 overflowAmt = uint128(2 ** 109);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 18));
         market.goodWelfare(btcGoodId, overflowAmt, defaultdata, users[1], defaultdata);
+        _snapMarket("market_goodWelfare_testGoodWelfare.t_122");
         vm.stopPrank();
     }
 
@@ -136,6 +141,7 @@ contract testGoodWelfare is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_goodWelfare_testGoodWelfare.t_138");
         _snapMarket("goodWelfare_nativeETH");
 
         S_GoodTmpState memory after_ = market.getGoodState(nativeGoodId);
@@ -150,6 +156,7 @@ contract testGoodWelfare is BaseSetup {
         vm.prank(users[1]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 39));
         market.goodWelfare(btcGoodId, WELFARE, defaultdata, users[2], defaultdata);
+        _snapMarket("market_goodWelfare_testGoodWelfare.t_152");
     }
 
     function testGoodWelfare_revert_insufficientAllowance() public {
@@ -158,6 +165,7 @@ contract testGoodWelfare is BaseSetup {
         deal(address(btc), donor, WELFARE, false);
         vm.expectRevert(L_CurrencyLibrary.ERC20TransferFailed.selector);
         market.goodWelfare(btcGoodId, WELFARE, defaultdata, donor, defaultdata);
+        _snapMarket("market_goodWelfare_testGoodWelfare.t_160");
         vm.stopPrank();
     }
 
@@ -167,6 +175,7 @@ contract testGoodWelfare is BaseSetup {
         btc.approve(address(market), WELFARE);
         vm.recordLogs();
         market.goodWelfare(btcGoodId, WELFARE, defaultdata, users[1], defaultdata);
+        _snapMarket("market_goodWelfare_testGoodWelfare.t_169");
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bool found;
         for (uint256 i = logs.length; i > 0; i--) {

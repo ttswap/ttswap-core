@@ -39,11 +39,16 @@ contract addRefer is BaseSetup {
     function testaddRefer() public {
         vm.startPrank(marketcreator);
         tts_token.setTokenAdmin(marketcreator,true);
+        _snapToken("tts_token_setTokenAdmin_addRefer_41");
         tts_token.setTokenManager(marketcreator,true);
+        _snapToken("tts_token_setTokenManager_addRefer_42");
         tts_token.setCallMintTTS(marketcreator, true);
+        _snapToken("tts_token_setCallMintTTS_addRefer_43");
         tts_token.setReferral(users[4], 0xa50eb0d081E986c280efF32dae089939Ea07bd22);
+        _snapToken("tts_token_setReferral_addRefer_44");
         assertEq(tts_token.userConfig(users[4]).referral(), 0xa50eb0d081E986c280efF32dae089939Ea07bd22, "refer error");
         tts_token.setReferral(users[4], address(3));
+        _snapToken("tts_token_setReferral_addRefer_46");
         assertEq(tts_token.userConfig(users[4]).referral(), 0xa50eb0d081E986c280efF32dae089939Ea07bd22, "refer error");
         vm.stopPrank();
     }

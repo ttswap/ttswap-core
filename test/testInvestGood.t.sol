@@ -103,6 +103,7 @@ contract testInvestGood is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testInvestGood.t_105");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -123,6 +124,7 @@ contract testInvestGood is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testInvestGood.t_125");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -142,6 +144,7 @@ contract testInvestGood is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testInvestGood.t_144");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -155,6 +158,7 @@ contract testInvestGood is BaseSetup {
             
             .setPromised(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        _snapMarket("market_modifyGoodByManager_testInvestGood.t_157");
         vm.stopPrank();
     }
 
@@ -163,6 +167,7 @@ contract testInvestGood is BaseSetup {
         vm.startPrank(marketcreator);
         uint256 cfg = market.getGoodState(goodId).goodConfig.setFreeze(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        _snapMarket("market_modifyGoodByManager_testInvestGood.t_165");
         vm.stopPrank();
     }
 
@@ -172,6 +177,7 @@ contract testInvestGood is BaseSetup {
         cfg = (cfg & ~(uint256(0x1f) << LIMIT_POWER_SHIFT)) |
             (limitField << LIMIT_POWER_SHIFT);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
+        _snapMarket("market_modifyGoodByManager_testInvestGood.t_174");
         vm.stopPrank();
     }
 
@@ -180,6 +186,7 @@ contract testInvestGood is BaseSetup {
         uint256 cfg = market.getGoodState(goodId).goodConfig;
         cfg = (cfg & ~(uint256(0x1f) << POWER_SHIFT)) | (powerField << POWER_SHIFT);
         market.modifyGoodByGoodOwner(goodId, cfg, owner, defaultdata);
+        _snapMarket("market_modifyGoodByGoodOwner_testInvestGood.t_182");
         vm.stopPrank();
     }
 
@@ -193,6 +200,7 @@ contract testInvestGood is BaseSetup {
         cfg = (cfg & ~(uint256(0x3f) << INVEST_FEE_SHIFT)) |
             (feeField << INVEST_FEE_SHIFT);
         market.modifyGoodByGoodOwner(goodId, cfg, owner, defaultdata);
+        _snapMarket("market_modifyGoodByGoodOwner_testInvestGood.t_195");
         vm.stopPrank();
     }
 
@@ -332,6 +340,7 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInvestGood.t_334");
         vm.stopPrank();
     }
 
@@ -346,6 +355,7 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[2]
         );
+        _snapMarket("market_investGood_testInvestGood.t_348");
         vm.stopPrank();
     }
 
@@ -362,6 +372,7 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInvestGood.t_364");
         vm.stopPrank();
     }
 
@@ -378,6 +389,7 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[4]
         );
+        _snapMarket("market_investGood_testInvestGood.t_380");
         assertGt(
             market.getGoodState(btcGoodId).currentState.amount1(),
             BTC_INIT_QTY,
@@ -398,6 +410,7 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInvestGood.t_400");
         vm.stopPrank();
     }
 
@@ -606,6 +619,7 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInvestGood.t_608");
         market.investGood(
             _btcKey(),
             _packInvest(btcGoodId, BTC_INVEST),
@@ -613,6 +627,7 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInvestGood.t_615");
         vm.stopPrank();
     }
 
@@ -652,6 +667,7 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInvestGood.t_654");
         vm.stopPrank();
     }
 
@@ -669,6 +685,7 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[1]
         );
+        _snapMarket("market_investGood_testInvestGood.t_671");
         vm.stopPrank();
     }
 
@@ -687,6 +704,7 @@ contract testInvestGood is BaseSetup {
                 users[1]
             )
         );
+        _snapMarket("market_investGood_quoteWithin1pct");
         vm.stopPrank();
     }
 
@@ -710,6 +728,7 @@ contract testInvestGood is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_testInvestGood.t_712");
         uint256 maxGoodId = key.toId();
         vm.stopPrank();
 
@@ -727,6 +746,7 @@ contract testInvestGood is BaseSetup {
             defaultdata,
             users[2]
         );
+        _snapMarket("market_investGood_testInvestGood.t_729");
         vm.stopPrank();
     }
 }
@@ -779,6 +799,7 @@ contract testInvestNativeETHValueGood is BaseSetup {
             owner,
             defaultdata
         );
+        _snapMarket("market_initGood_testInvestGood.t_781");
         goodId = key.toId();
         vm.stopPrank();
     }

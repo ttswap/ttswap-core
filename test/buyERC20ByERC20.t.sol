@@ -55,6 +55,7 @@ contract buyERC20ByERC20 is BaseSetup {
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_buyERC20ByERC20.t_57");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -69,6 +70,7 @@ contract buyERC20ByERC20 is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
+        _snapMarket("market_initGood_buyERC20ByERC20.t_71");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -196,6 +198,7 @@ contract buyERC20ByERC20 is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_buyERC20ByERC20.t_198");
         vm.stopPrank();
     }
 
@@ -215,6 +218,7 @@ contract buyERC20ByERC20 is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_buyERC20ByERC20.t_217");
         vm.stopPrank();
     }
 
@@ -233,6 +237,7 @@ contract buyERC20ByERC20 is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_buyERC20ByERC20.t_235");
         vm.stopPrank();
     }
 
@@ -240,6 +245,7 @@ contract buyERC20ByERC20 is BaseSetup {
         vm.startPrank(marketcreator);
         uint256 cfg = market.getGoodState(btcGoodId).goodConfig.setFreeze(true);
         market.modifyGoodByManager(btcGoodId, cfg, marketcreator, defaultdata);
+        _snapMarket("market_modifyGoodByManager_buyERC20ByERC20.t_242");
         vm.stopPrank();
 
         vm.startPrank(users[1]);
@@ -257,6 +263,7 @@ contract buyERC20ByERC20 is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_buyERC20ByERC20.t_259");
         vm.stopPrank();
     }
 

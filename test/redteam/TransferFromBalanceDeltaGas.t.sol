@@ -162,6 +162,7 @@ contract TransferFromDelta_E2E_BuyGood is BaseSetup {
             marketcreator,
             defaultdata
         );
+        _snapMarket("market_initGood_TransferFromBalanceDeltaGas.t_164");
         usdtGoodId = uk.toId();
         vm.stopPrank();
 
@@ -176,6 +177,7 @@ contract TransferFromDelta_E2E_BuyGood is BaseSetup {
             users[1],
             defaultdata
         );
+        _snapMarket("market_initGood_TransferFromBalanceDeltaGas.t_178");
         btcGoodId = bk.toId();
         vm.stopPrank();
 
@@ -201,6 +203,7 @@ contract TransferFromDelta_E2E_BuyGood is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_TransferFromBalanceDeltaGas.t_203");
         _warpToFreshRunSlot();
         market.buyGood(
             T_GoodKey({ercType: 1, contractAddress: address(usdt), id: 0}),
@@ -212,6 +215,7 @@ contract TransferFromDelta_E2E_BuyGood is BaseSetup {
             defaultdata,
             0
         );
+        _snapMarket("market_buyGood_TransferFromBalanceDeltaGas.t_214");
         uint256 gasBuy = vm.lastCallGas().gasTotalUsed;
         vm.stopPrank();
 
