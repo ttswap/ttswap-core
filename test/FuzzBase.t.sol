@@ -64,7 +64,7 @@ abstract contract FuzzBase is BaseSetup {
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_FuzzBase.t_66");
+        _snapMarket("testFuzz_InitUsdtGood");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -79,7 +79,7 @@ abstract contract FuzzBase is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_FuzzBase.t_80");
+        _snapMarket("testFuzz_InitBtcGood");
         goodId = key.toId();
         vm.stopPrank();
     }

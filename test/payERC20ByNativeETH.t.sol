@@ -58,7 +58,6 @@ contract payERC20ByNativeETH is BaseSetup {
             owner,
             defaultdata
         );
-        _snapMarket("market_initGood_payERC20ByNativeETH.t_60");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -73,7 +72,6 @@ contract payERC20ByNativeETH is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_payERC20ByNativeETH.t_74");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -114,7 +112,7 @@ contract payERC20ByNativeETH is BaseSetup {
             MAX_ETH_IN,
             PAY_OUT
         );
-        _snapMarket("pay_erc20_by_NativeETH_to_self_first");
+        _snapMarket("testPayERC20ByNativeETH_to_self_first");
 
         assertGt(g1change.amount1(), 0, "eth input used");
         assertGt(g2change.amount1(), 0, "value moved on output side");
@@ -124,7 +122,7 @@ contract payERC20ByNativeETH is BaseSetup {
 
         _warpToFreshRunSlot();
         _payBtcWithNative(users[1], users[1], MAX_ETH_IN * 2, MAX_ETH_IN * 2, PAY_OUT);
-        _snapMarket("pay_erc20_by_NativeETH_to_self_second");
+        _snapMarket("testPayERC20ByNativeETH_to_self_second");
         vm.stopPrank();
     }
 
@@ -137,12 +135,12 @@ contract payERC20ByNativeETH is BaseSetup {
 
         _warpToFreshRunSlot();
         _payBtcWithNative(users[1], recipient, MAX_ETH_IN, MAX_ETH_IN, PAY_OUT);
-        _snapMarket("pay_erc20_by_NativeETH_to_other_user_first");
+        _snapMarket("testPayERC20ByNativeETH_to_other_user_first");
         assertEq(btc.balanceOf(recipient), recipientBtcBefore + PAY_OUT, "recipient got btc");
 
         _warpToFreshRunSlot();
         _payBtcWithNative(users[1], recipient, MAX_ETH_IN * 2, MAX_ETH_IN * 2, PAY_OUT);
-        _snapMarket("pay_erc20_by_NativeETH_to_other_user_second");
+        _snapMarket("testPayERC20ByNativeETH_to_other_user_second");
         vm.stopPrank();
     }
 }

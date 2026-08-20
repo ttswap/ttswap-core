@@ -57,7 +57,7 @@ contract testMarketViews is BaseSetup {
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_testMarketViews.t_59");
+  
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -72,7 +72,7 @@ contract testMarketViews is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_testMarketViews.t_73");
+
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -148,7 +148,6 @@ contract testMarketViews is BaseSetup {
             defaultdata,
             users[1]
         );
-        _snapMarket("market_investGood_testMarketViews.t_148");
         _snapMarket("investGood_queryCommission_setup");
         market.disinvestProof(
             _proofId(users[1], btcGoodId),
@@ -157,7 +156,6 @@ contract testMarketViews is BaseSetup {
             users[1],
             defaultdata
         );
-        _snapMarket("market_disinvestProof_testMarketViews.t_156");
         _snapMarket("disinvestProof_queryCommission_setup");
         vm.stopPrank();
 

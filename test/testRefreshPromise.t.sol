@@ -55,7 +55,7 @@ contract testRefreshPromise is BaseSetup {
             owner,
             defaultdata
         );
-        _snapMarket("market_initGood_testRefreshPromise.t_57");
+        _snapMarket("testRefreshPromise_happyPath_setup");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -68,7 +68,7 @@ contract testRefreshPromise is BaseSetup {
             
             .setPromised(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        _snapMarket("market_modifyGoodByManager_testRefreshPromise.t_69");
+        _snapMarket("testRefreshPromise_emitsPromiseEvent");
         vm.stopPrank();
     }
 
@@ -78,8 +78,7 @@ contract testRefreshPromise is BaseSetup {
         vm.startPrank(users[1]);
         vm.recordLogs();
         market.refreshPromise(proofId);
-        _snapMarket("market_refreshPromise_testRefreshPromise.t_78");
-        _snapMarket("refresh_promise_owner");
+        _snapMarket("testRefreshPromise_owner");
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bool found;
@@ -101,7 +100,6 @@ contract testRefreshPromise is BaseSetup {
         vm.prank(users[2]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 19));
         market.refreshPromise(proofId);
-        _snapMarket("market_refreshPromise_testRefreshPromise.t_100");
-        _snapMarket("refresh_promise_revert_notOwner");
+        _snapMarket("testRefreshPromise_revert_notOwner");
     }
 }

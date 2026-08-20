@@ -54,7 +54,6 @@ contract payERC20ByERC20 is BaseSetup {
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_payERC20ByERC20.t_56");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -69,7 +68,6 @@ contract payERC20ByERC20 is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_payERC20ByERC20.t_70");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -109,7 +107,7 @@ contract payERC20ByERC20 is BaseSetup {
             MAX_USDT_IN,
             PAY_OUT
         );
-        _snapMarket("pay_erc20_by_erc20_to_self_first");
+        _snapMarket("testPayERC20ByERC20_to_self_first");
 
         assertGt(g1change.amount1(), 0, "usdt input used");
         assertGt(g2change.amount1(), 0, "value moved on output side");
@@ -119,7 +117,7 @@ contract payERC20ByERC20 is BaseSetup {
 
         _warpToFreshRunSlot();
         _payBtcWithUsdt(users[1], users[1], MAX_USDT_IN * 2, PAY_OUT);
-        _snapMarket("pay_erc20_by_erc20_to_self_second");
+        _snapMarket("testPayERC20ByERC20_to_self_second");
         vm.stopPrank();
     }
 
@@ -132,12 +130,12 @@ contract payERC20ByERC20 is BaseSetup {
 
         _warpToFreshRunSlot();
         _payBtcWithUsdt(users[1], recipient, MAX_USDT_IN, PAY_OUT);
-        _snapMarket("pay_erc20_by_erc20_to_other_user_first");
+        _snapMarket("testPayERC20ByERC20_to_other_user_first");
         assertEq(btc.balanceOf(recipient), recipientBtcBefore + PAY_OUT, "recipient got btc");
 
         _warpToFreshRunSlot();
         _payBtcWithUsdt(users[1], recipient, MAX_USDT_IN * 2, PAY_OUT);
-        _snapMarket("pay_erc20_by_erc20_to_other_user_second");
+        _snapMarket("testPayERC20ByERC20_to_other_user_second");
         vm.stopPrank();
     }
 }

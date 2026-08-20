@@ -118,7 +118,6 @@ contract testBuyGoodMetaTx is BaseSetup {
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_testBuyGoodMetaTx.t_120");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -133,7 +132,6 @@ contract testBuyGoodMetaTx is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_testBuyGoodMetaTx.t_134");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -224,7 +222,7 @@ contract testBuyGoodMetaTx is BaseSetup {
             address(0),
             TRADER_KEY
         );
-        _snapMarket("buyGood_metaTx_relayer");
+        _snapMarket("testBuyGoodMetaTx_relayer_happyPath");
 
         uint128 feeQty = _expectedRelayerFee();
         assertGt(g1change.amount1(), 0, "input value moved");
@@ -272,8 +270,7 @@ contract testBuyGoodMetaTx is BaseSetup {
             sig,
             uint256(pastDeadline)
         );
-        _snapMarket("market_buyGood_testBuyGoodMetaTx.t_272");
-        _snapMarket("buyGood_metaTx_revert_expiredDeadline");
+        _snapMarket("testBuyGoodMetaTx_revert_expiredDeadline");
     }
 
     // ── TASK-P0-003 relayer fee exceeds output ─────────────────────────────
@@ -307,7 +304,7 @@ contract testBuyGoodMetaTx is BaseSetup {
             bytes(""),
             0
         );
-        _snapMarket("market_buyGood_testBuyGoodMetaTx.t_306");
+        _snapMarket("testBuyGoodMetaTx_revert_invalidSignatureLength");
     }
 
     function testBuyGoodMetaTx_revert_invalidSigner() public {
@@ -336,14 +333,13 @@ contract testBuyGoodMetaTx is BaseSetup {
             badSig,
             0
         );
-        _snapMarket("market_buyGood_testBuyGoodMetaTx.t_334");
+        _snapMarket("testBuyGoodMetaTx_revert_invalidSigner");
     }
 
     function testBuyGoodMetaTx_revert_staleNonce() public {
         vm.prank(trader);
         market.cancelNonce();
-        _snapMarket("market_cancelNonce_testBuyGoodMetaTx.t_339");
-        _snapMarket("cancelNonce_metaTx_setup");
+        _snapMarket("testBuyGoodMetaTx_revert_staleNonce");
 
         _warpToFreshRunSlot();
         bytes memory permitData = _signEip2612(SWAP_IN, TRADER_KEY);
@@ -361,7 +357,7 @@ contract testBuyGoodMetaTx is BaseSetup {
 
         vm.prank(trader);
         market.cancelNonce();
-        _snapMarket("market_cancelNonce_testBuyGoodMetaTx.t_357");
+        _snapMarket("testBuyGoodMetaTx_revert_staleNonce1");
 
         vm.prank(relayer);
         vm.expectRevert(L_SignatureVerification.InvalidSigner.selector);
@@ -375,6 +371,6 @@ contract testBuyGoodMetaTx is BaseSetup {
             sig,
             0
         );
-        _snapMarket("market_buyGood_testBuyGoodMetaTx.t_370");
+        _snapMarket("testBuyGoodMetaTx_revert_staleNonce2");
     }
 }
