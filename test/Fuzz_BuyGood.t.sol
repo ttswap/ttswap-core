@@ -90,8 +90,7 @@ contract Fuzz_BuyGood is FuzzBase {
             defaultdata,
             0
         );
-        _snapMarket("market_buyGood_Fuzz_BuyGood.t_92");
-        _snapMarket("gas_baseline_buy_usdt_btc");
+        _snapMarket("testGas_BuyGood_usdtToBtc");
         vm.stopPrank();
     }
 
@@ -111,8 +110,7 @@ contract Fuzz_BuyGood is FuzzBase {
             defaultdata,
             0
         );
-        _snapMarket("market_buyGood_Fuzz_BuyGood.t_112");
-        _snapMarket("gas_baseline_buy_btc_usdt");
+        _snapMarket("testGas_BuyGood_btcToUsdt");
         vm.stopPrank();
     }
 }

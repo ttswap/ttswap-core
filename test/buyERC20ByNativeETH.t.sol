@@ -61,7 +61,6 @@ contract buyERC20ByNativeETH is BaseSetup {
             owner,
             defaultdata
         );
-        _snapMarket("market_initGood_buyERC20ByNativeETH.t_63");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -82,7 +81,6 @@ contract buyERC20ByNativeETH is BaseSetup {
             owner,
             defaultdata
         );
-        _snapMarket("market_initGood_buyERC20ByNativeETH.t_83");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -206,7 +204,7 @@ contract buyERC20ByNativeETH is BaseSetup {
             defaultdata,
             0
         );
-        _snapMarket("market_buyGood_buyERC20ByNativeETH.t_206");
+        _snapMarket("testBuyERC20ByNativeETH_revert_sameGood");
         vm.stopPrank();
     }
 
@@ -225,7 +223,7 @@ contract buyERC20ByNativeETH is BaseSetup {
             defaultdata,
             0
         );
-        _snapMarket("market_buyGood_buyERC20ByNativeETH.t_224");
+        _snapMarket("testBuyERC20ByNativeETH_revert_slippage");
         vm.stopPrank();
     }
 
@@ -244,7 +242,7 @@ contract buyERC20ByNativeETH is BaseSetup {
             defaultdata,
             0
         );
-        _snapMarket("market_buyGood_buyERC20ByNativeETH.t_242");
+        _snapMarket("testBuyERC20ByNativeETH_revert_traderMismatch");
         vm.stopPrank();
     }
 

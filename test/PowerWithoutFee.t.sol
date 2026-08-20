@@ -73,7 +73,6 @@ contract testPowerWithoutFee is BaseSetup {
             owner,
             defaultdata
         );
-        _snapMarket("market_initGood_PowerWithoutFee.t_75");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -86,7 +85,7 @@ contract testPowerWithoutFee is BaseSetup {
         cfg = (cfg & ~(uint256(0x1f) << LIMIT_POWER_SHIFT)) |
             (field << LIMIT_POWER_SHIFT);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        _snapMarket("market_modifyGoodByManager_PowerWithoutFee.t_87");
+        _snapMarket("testSetLimitPower");
         vm.stopPrank();
     }
 
@@ -95,7 +94,7 @@ contract testPowerWithoutFee is BaseSetup {
         uint256 cfg = market.getGoodState(goodId).goodConfig;
         cfg = (cfg & ~(uint256(0x1f) << POWER_SHIFT)) | (field << POWER_SHIFT);
         market.modifyGoodByGoodOwner(goodId, cfg, owner, defaultdata);
-        _snapMarket("market_modifyGoodByGoodOwner_PowerWithoutFee.t_95");
+        _snapMarket("testSetOwnerPower");
         vm.stopPrank();
     }
 
@@ -105,7 +104,7 @@ contract testPowerWithoutFee is BaseSetup {
         cfg = (cfg & ~(uint256(0x3f) << INVEST_FEE_SHIFT)) |
             (field << INVEST_FEE_SHIFT);
         market.modifyGoodByGoodOwner(goodId, cfg, owner, defaultdata);
-        _snapMarket("market_modifyGoodByGoodOwner_PowerWithoutFee.t_104");
+        _snapMarket("testSetOwnerInvestFee");
         vm.stopPrank();
     }
 
@@ -119,7 +118,7 @@ contract testPowerWithoutFee is BaseSetup {
             defaultdata,
             trader
         );
-        _snapMarket("market_investGood_PowerWithoutFee.t_117");
+        _snapMarket("testInvestNative");
     }
 
     function _disinvest(address trader, uint128 shares) internal {
@@ -130,7 +129,7 @@ contract testPowerWithoutFee is BaseSetup {
             trader,
             defaultdata
         );
-        _snapMarket("market_disinvestProof_PowerWithoutFee.t_127");
+        _snapMarket("testDisinvest");
     }
 
     // ── invest with leverage ───────────────────────────────────────────────
@@ -153,8 +152,7 @@ contract testPowerWithoutFee is BaseSetup {
         S_ProofState memory proofBefore = market.getProofState(proofId);
 
         _investNative(marketcreator, INVEST_QTY);
-        _snapMarket("power_without_fee_invest");
-
+        
         S_GoodTmpState memory after_ = market.getGoodState(nativeValueGoodId);
         S_ProofState memory proofAfter = market.getProofState(proofId);
 
@@ -195,7 +193,7 @@ contract testPowerWithoutFee is BaseSetup {
         uint256 ethBefore = marketcreator.balance;
 
         _disinvest(marketcreator, DISINVEST_SHARES);
-        _snapMarket("power_without_fee_disinvest_first");
+     
 
         S_ProofState memory proofAfter = market.getProofState(proofId);
         S_GoodTmpState memory goodAfter = market.getGoodState(nativeValueGoodId);
@@ -206,9 +204,9 @@ contract testPowerWithoutFee is BaseSetup {
         assertLt(goodAfter.goodConfig.amount1(), goodBefore.goodConfig.amount1(), "V reduced");
 
         _disinvest(marketcreator, DISINVEST_SHARES);
-        _snapMarket("power_without_fee_disinvest_second");
+    
         _disinvest(marketcreator, DISINVEST_SHARES);
-        _snapMarket("power_without_fee_disinvest_third");
+    
 
         assertGt(proofAfter.shares.amount0(), DISINVEST_SHARES, "still has shares after first");
         vm.stopPrank();
@@ -225,7 +223,6 @@ contract testPowerWithoutFee is BaseSetup {
         for (uint256 i = 0; i < 3; i++) {
             _disinvest(marketcreator, DISINVEST_SHARES);
         }
-        _snapMarket("power_without_fee_disinvest_x3");
 
         assertEq(
             market.getProofState(proofId).shares.amount0(),

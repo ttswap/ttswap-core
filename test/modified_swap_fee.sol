@@ -76,7 +76,6 @@ contract testSwapWithFee is BaseSetup {
             usdt.approve(address(market), qty);
         }
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, marketcreator, defaultdata);
-        _snapMarket("market_initGood_modified_swap_fee_78");
         goodId = key.toId();
         vm.stopPrank();
     }

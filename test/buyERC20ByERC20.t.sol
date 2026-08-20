@@ -55,7 +55,6 @@ contract buyERC20ByERC20 is BaseSetup {
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_buyERC20ByERC20.t_57");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -70,7 +69,6 @@ contract buyERC20ByERC20 is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_buyERC20ByERC20.t_71");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -198,7 +196,7 @@ contract buyERC20ByERC20 is BaseSetup {
             defaultdata,
             0
         );
-        _snapMarket("market_buyGood_buyERC20ByERC20.t_198");
+        _snapMarket("testBuyERC20ByERC20_revert_sameGood");
         vm.stopPrank();
     }
 
@@ -218,7 +216,7 @@ contract buyERC20ByERC20 is BaseSetup {
             defaultdata,
             0
         );
-        _snapMarket("market_buyGood_buyERC20ByERC20.t_217");
+        _snapMarket("testBuyERC20ByERC20_revert_slippage");
         vm.stopPrank();
     }
 
@@ -237,7 +235,7 @@ contract buyERC20ByERC20 is BaseSetup {
             defaultdata,
             0
         );
-        _snapMarket("market_buyGood_buyERC20ByERC20.t_235");
+        _snapMarket("testBuyERC20ByERC20_revert_insufficientAllowance");
         vm.stopPrank();
     }
 
@@ -245,7 +243,7 @@ contract buyERC20ByERC20 is BaseSetup {
         vm.startPrank(marketcreator);
         uint256 cfg = market.getGoodState(btcGoodId).goodConfig.setFreeze(true);
         market.modifyGoodByManager(btcGoodId, cfg, marketcreator, defaultdata);
-        _snapMarket("market_modifyGoodByManager_buyERC20ByERC20.t_242");
+        _snapMarket("testBuyERC20ByERC20_revert_frozenGood1");
         vm.stopPrank();
 
         vm.startPrank(users[1]);
@@ -263,7 +261,7 @@ contract buyERC20ByERC20 is BaseSetup {
             defaultdata,
             0
         );
-        _snapMarket("market_buyGood_buyERC20ByERC20.t_259");
+        _snapMarket("testBuyERC20ByERC20_revert_frozenGood2");
         vm.stopPrank();
     }
 

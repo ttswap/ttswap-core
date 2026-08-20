@@ -69,7 +69,6 @@ contract testModifyGood is BaseSetup {
             owner,
             defaultdata
         );
-        _snapMarket("market_initGood_testModifyGood.t_71");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -119,8 +118,7 @@ contract testModifyGood is BaseSetup {
             users[1],
             defaultdata
         );
-        _snapMarket("market_modifyGoodByGoodOwner_testModifyGood.t_120");
-        _snapMarket("modifyGoodByGoodOwner_fees");
+        _snapMarket("testModifyGoodByGoodOwner_updateTradingFees");
 
         assertTrue(ok, "returns true");
         uint256 after_ = _currentConfig();
@@ -137,7 +135,7 @@ contract testModifyGood is BaseSetup {
         uint256 patch = _pack(1, POWER_SHIFT);
 
         market.modifyGoodByGoodOwner(btcGoodId, patch, users[1], defaultdata);
-        _snapMarket("market_modifyGoodByGoodOwner_testModifyGood.t_137");
+        _snapMarket("testModifyGoodByGoodOwner_updatePowerWithinLimit");
 
         uint256 after_ = _currentConfig();
         assertEq(after_.getPower(), 100, "power still 100x");
@@ -154,7 +152,7 @@ contract testModifyGood is BaseSetup {
             users[2],
             defaultdata
         );
-        _snapMarket("market_modifyGoodByGoodOwner_testModifyGood.t_153");
+        _snapMarket("testModifyGoodByGoodOwner_revert_notOwner");
         vm.stopPrank();
     }
 
@@ -167,7 +165,7 @@ contract testModifyGood is BaseSetup {
             users[2],
             defaultdata
         );
-        _snapMarket("market_modifyGoodByGoodOwner_testModifyGood.t_165");
+        _snapMarket("testModifyGoodByGoodOwner_revert_traderMismatch");
         vm.stopPrank();
     }
 
@@ -176,7 +174,7 @@ contract testModifyGood is BaseSetup {
         uint256 patch = _pack(15, POWER_SHIFT);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 23));
         market.modifyGoodByGoodOwner(btcGoodId, patch, users[1], defaultdata);
-        _snapMarket("market_modifyGoodByGoodOwner_testModifyGood.t_173");
+        _snapMarket("testModifyGoodByGoodOwner_revert_powerExceedsLimit");
         vm.stopPrank();
     }
 
@@ -189,7 +187,7 @@ contract testModifyGood is BaseSetup {
             marketcreator,
             defaultdata
         );
-        _snapMarket("market_modifyGoodByGoodOwner_testModifyGood.t_185");
+        _snapMarket("testModifyGoodByGoodOwner_revert_managerCannotCall");
         vm.stopPrank();
     }
 
@@ -203,8 +201,7 @@ contract testModifyGood is BaseSetup {
             before_.setPromised(true);
 
         market.modifyGoodByManager(btcGoodId, patch, marketcreator, defaultdata);
-        _snapMarket("market_modifyGoodByManager_testModifyGood.t_198");
-        _snapMarket("modifyGoodByManager_feeSplit");
+        _snapMarket("testModifyGoodByManager_updateFeeSplit");
 
         uint256 after_ = _currentConfig();
         assertTrue(after_.checkGoodConfig(), "valid fee split");        assertTrue(after_.isPromised(), "promised");
@@ -218,7 +215,7 @@ contract testModifyGood is BaseSetup {
         vm.startPrank(users[1]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 2));
         market.modifyGoodByManager(btcGoodId, patch, users[1], defaultdata);
-        _snapMarket("market_modifyGoodByManager_testModifyGood.t_212");
+        _snapMarket("testModifyGoodByManager_revert_notManager");
         vm.stopPrank();
     }
 
@@ -227,7 +224,7 @@ contract testModifyGood is BaseSetup {
         uint256 patch = _invalidFeeSplit();
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 24));
         market.modifyGoodByManager(btcGoodId, patch, marketcreator, defaultdata);
-        _snapMarket("market_modifyGoodByManager_testModifyGood.t_220");
+        _snapMarket("testModifyGoodByManager_revert_invalidConfig");
         vm.stopPrank();
     }
 
@@ -236,7 +233,7 @@ contract testModifyGood is BaseSetup {
         vm.startPrank(marketcreator);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 39));
         market.modifyGoodByManager(btcGoodId, patch, users[1], defaultdata);
-        _snapMarket("market_modifyGoodByManager_testModifyGood.t_228");
+        _snapMarket("testModifyGoodByManager_revert_traderMismatch");
         vm.stopPrank();
     }
 
@@ -253,8 +250,7 @@ contract testModifyGood is BaseSetup {
             marketcreator,
             defaultdata
         );
-        _snapMarket("market_modifyGoodByAdmin_testModifyGood.t_244");
-        _snapMarket("modifyGoodByAdmin_valueGood");
+        _snapMarket("testModifyGoodByAdmin_setValueGood");
 
         assertTrue(ok, "returns true");
         uint256 after_ = _currentConfig();
@@ -271,7 +267,7 @@ contract testModifyGood is BaseSetup {
         uint256 patch = (before_ & ~uint256(3 << 237)) | _pack(3, 237);
 
         market.modifyGoodByAdmin(btcGoodId, patch, marketcreator, defaultdata);
-        _snapMarket("market_modifyGoodByAdmin_testModifyGood.t_261");
+        _snapMarket("testModifyGoodByAdmin_setErcType");
 
         uint256 after_ = _currentConfig();
         _assertRegionUnchanged(before_, after_, ADMIN_MASK);
@@ -288,7 +284,7 @@ contract testModifyGood is BaseSetup {
             users[1],
             defaultdata
         );
-        _snapMarket("market_modifyGoodByAdmin_testModifyGood.t_277");
+        _snapMarket("testModifyGoodByAdmin_revert_notAdmin");
         vm.stopPrank();
     }
 
@@ -301,7 +297,7 @@ contract testModifyGood is BaseSetup {
             users[1],
             defaultdata
         );
-        _snapMarket("market_modifyGoodByAdmin_testModifyGood.t_289");
+        _snapMarket("testModifyGoodByAdmin_revert_traderMismatch");
         vm.stopPrank();
     }
 
@@ -323,7 +319,7 @@ contract testModifyGood is BaseSetup {
             users[1],
             defaultdata
         );
-        _snapMarket("market_modifyGoodByGoodOwner_testModifyGood.t_310");
+        _snapMarket("testModifyGood_emitsCorrectEvents");
         Vm.Log[] memory ownerLogs = vm.getRecordedLogs();
         assertEq(ownerLogs[ownerLogs.length - 1].topics[0], updateTopic);
         assertEq(uint256(ownerLogs[ownerLogs.length - 1].topics[1]), btcGoodId);
@@ -337,7 +333,7 @@ contract testModifyGood is BaseSetup {
             marketcreator,
             defaultdata
         );
-        _snapMarket("market_modifyGoodByManager_testModifyGood.t_323");
+        _snapMarket("testModifyGood_emitsCorrectEvents");
         Vm.Log[] memory managerLogs = vm.getRecordedLogs();
         assertEq(managerLogs[managerLogs.length - 1].topics[0], modifyTopic);
         vm.stopPrank();
@@ -345,7 +341,7 @@ contract testModifyGood is BaseSetup {
         vm.startPrank(marketcreator);
         vm.recordLogs();
         market.modifyGoodByAdmin(btcGoodId, _currentConfig() | (1 << 255), marketcreator, defaultdata);
-        _snapMarket("market_modifyGoodByAdmin_testModifyGood.t_330");
+        _snapMarket("testModifyGood_emitsCorrectEvents");
         Vm.Log[] memory adminLogs = vm.getRecordedLogs();
         assertEq(adminLogs[adminLogs.length - 1].topics[0], modifyTopic);
         vm.stopPrank();
@@ -356,7 +352,7 @@ contract testModifyGood is BaseSetup {
 
         vm.startPrank(marketcreator);
         market.modifyGoodByAdmin(btcGoodId, _currentConfig() | (1 << 255), marketcreator, defaultdata);
-        _snapMarket("market_modifyGoodByAdmin_testModifyGood.t_340");
+        _snapMarket("testModifyGood_roleIsolation");
         uint256 afterAdmin = _currentConfig();
         vm.stopPrank();
 
@@ -367,7 +363,7 @@ contract testModifyGood is BaseSetup {
             marketcreator,
             defaultdata
         );
-        _snapMarket("market_modifyGoodByManager_testModifyGood.t_350");
+        _snapMarket("testModifyGood_roleIsolation");
         vm.stopPrank();
 
         vm.startPrank(users[1]);
@@ -377,7 +373,7 @@ contract testModifyGood is BaseSetup {
             users[1],
             defaultdata
         );
-        _snapMarket("market_modifyGoodByGoodOwner_testModifyGood.t_359");
+        _snapMarket("testModifyGood_roleIsolation");
         uint256 afterOwner = _currentConfig();
         vm.stopPrank();
 
@@ -390,7 +386,7 @@ contract testModifyGood is BaseSetup {
         uint256 before_ = _currentConfig();
         uint256 patch = _pack(1, 246);
         market.modifyGoodByGoodOwner(btcGoodId, patch, users[1], defaultdata);
-        _snapMarket("market_modifyGoodByGoodOwner_testModifyGood.t_371");
+        _snapMarket("testModifyGood_ownerCannotChangeManagerFlags");
         uint256 after_ = _currentConfig();
         assertFalse(after_.isFreeze(), "freeze bit not writable by owner");
         _assertRegionUnchanged(before_, after_, OWNER_MASK);
@@ -406,7 +402,7 @@ contract testModifyGood is BaseSetup {
             marketcreator,
             defaultdata
         );
-        _snapMarket("market_modifyGoodByManager_testModifyGood.t_386");
+        _snapMarket("testModifyGood_managerCannotChangeAdminFlags");
         uint256 after_ = _currentConfig();
         assertFalse(after_.isvaluegood(), "value-good bit not writable by manager");
         _assertRegionUnchanged(before_, after_, MANAGER_MASK);
@@ -418,8 +414,7 @@ contract testModifyGood is BaseSetup {
     function testLockGood_byManager() public {
         vm.prank(marketcreator);
         market.lockGood(btcGoodId, marketcreator, defaultdata);
-        _snapMarket("market_lockGood_testModifyGood.t_397");
-        _snapMarket("lockGood_byManager");
+        _snapMarket("testLockGood_byManager");
 
         assertTrue(_currentConfig().isFreeze(), "good frozen");
         vm.startPrank(users[2]);
@@ -433,15 +428,14 @@ contract testModifyGood is BaseSetup {
             defaultdata,
             users[2]
         );
-        _snapMarket("market_investGood_testModifyGood.t_411");
+        _snapMarket("testLockGood_revert_investAfterLock");
         vm.stopPrank();
     }
 
     function testLockGood_byOwner() public {
         vm.prank(users[1]);
         market.lockGood(btcGoodId, users[1], defaultdata);
-        _snapMarket("market_lockGood_testModifyGood.t_417");
-        _snapMarket("lockGood_byOwner");
+        _snapMarket("testLockGood_byOwner");
         assertTrue(_currentConfig().isFreeze(), "owner locked good");
     }
 
@@ -449,23 +443,20 @@ contract testModifyGood is BaseSetup {
         vm.prank(users[2]);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 20));
         market.lockGood(btcGoodId, users[2], defaultdata);
-        _snapMarket("market_lockGood_testModifyGood.t_425");
+        _snapMarket("testLockGood_revert_notAuthorized");
     }
 
     function testChangeGoodOwner_happyPath() public {
         vm.prank(marketcreator);
         market.changeGoodOwner(btcGoodId, users[2], marketcreator, defaultdata);
-        _snapMarket("market_changeGoodOwner_testModifyGood.t_430");
-        _snapMarket("changeGoodOwner");
-
+        _snapMarket("testChangeGoodOwner_happyPath");
         S_GoodTmpState memory state = market.getGoodState(btcGoodId);
         assertEq(state.owner, users[2], "owner transferred");
 
         vm.startPrank(users[2]);
         uint256 cfg = state.goodConfig;
         market.modifyGoodByGoodOwner(btcGoodId, cfg, users[2], defaultdata);
-        _snapMarket("market_modifyGoodByGoodOwner_testModifyGood.t_438");
-        _snapMarket("modifyGoodByGoodOwner_after_owner_change");
+        _snapMarket("testModifyGoodByGoodOwner_afterOwnerChange");
         vm.stopPrank();
     }
 }

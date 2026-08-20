@@ -72,7 +72,6 @@ contract testInitGoodWithPrice is BaseSetup {
             marketcreator,
             defaultdata
         );
-        _snapMarket("market_initGood_testInitGoodWithPrice.t_74");
         metaGoodId = usdtKey.toId();
         vm.stopPrank();
     }
@@ -137,7 +136,6 @@ contract testInitGoodWithPrice is BaseSetup {
             trader,
             defaultdata
         );
-        _snapMarket("market_initGood_testInitGoodWithPrice.t_138");
     }
 
 
@@ -153,7 +151,7 @@ contract testInitGoodWithPrice is BaseSetup {
             
             .setPromised(true);
         market.modifyGoodByManager(goodId, cfg, marketcreator, defaultdata);
-        _snapMarket("market_modifyGoodByManager_testInitGoodWithPrice.t_153");
+        _snapMarket("testSetPromised");
         vm.stopPrank();
         vm.startPrank(restoreTrader);
     }
@@ -167,7 +165,7 @@ contract testInitGoodWithPrice is BaseSetup {
         _fundAndApproveBtc(users[1], 10 * BTC_QTY);
 
         uint256 goodId = _initBtcGood(users[1], BTC_VALUE, BTC_QTY);
-        _snapMarket("initGood_BTC_withPrice");
+        _snapMarket("testInitGood_basic");
 
         assertEq(btc.balanceOf(users[1]), 9 * BTC_QTY, "user btc balance");
         assertEq(btc.balanceOf(address(market)), BTC_QTY, "market btc balance");
@@ -196,9 +194,8 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1],
             defaultdata
-        );
-        _snapMarket("market_initGood_testInitGoodWithPrice.t_196");
-        _snapMarket("initGood_NativeETH_withPrice");
+        );  
+        _snapMarket("testInitGood_nativeETH");
 
         assertEq(users[1].balance, 9 * BTC_QTY, "user eth balance");
         assertEq(address(market).balance, BTC_QTY, "market eth balance");
@@ -216,7 +213,7 @@ contract testInitGoodWithPrice is BaseSetup {
             uint128(MIN_VALUE),
             uint128(MIN_QTY)
         );
-
+        _snapMarket("testInitGood_boundary_minimum");
         _assertGoodState(goodId, users[1], uint128(MIN_QTY), uint128(MIN_VALUE));
         assertEq(btc.balanceOf(address(market)), MIN_QTY, "min qty deposited");
         vm.stopPrank();
@@ -228,7 +225,7 @@ contract testInitGoodWithPrice is BaseSetup {
 
         uint128 customValue = uint128(50000 * 10 ** 12);
         uint256 goodId = _initBtcGood(users[2], customValue, BTC_QTY);
-
+        _snapMarket("testInitGood_customPrice");
         _assertGoodState(goodId, users[2], BTC_QTY, customValue);
         vm.stopPrank();
     }
@@ -248,7 +245,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
-        _snapMarket("market_initGood_testInitGoodWithPrice.t_246");
+        _snapMarket("testInitBtcGood_revert_duplicate");
         vm.stopPrank();
     }
 
@@ -264,7 +261,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
-        _snapMarket("market_initGood_testInitGoodWithPrice.t_261");
+        _snapMarket("testInitBtcGood_revert_quantityTooSmall");
         vm.stopPrank();
     }
 
@@ -280,7 +277,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
-        _snapMarket("market_initGood_testInitGoodWithPrice.t_276");
+        _snapMarket("testInitBtcGood_revert_quantityTooLarge");
         vm.stopPrank();
     }
 
@@ -296,7 +293,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
-        _snapMarket("market_initGood_testInitGoodWithPrice.t_291");
+        _snapMarket("testInitBtcGood_revert_valueTooSmall");
         vm.stopPrank();
     }
 
@@ -312,7 +309,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[1],
             defaultdata
         );
-        _snapMarket("market_initGood_testInitGoodWithPrice.t_306");
+        _snapMarket("testInitBtcGood_revert_valueTooLarge");
         vm.stopPrank();
     }
 
@@ -328,7 +325,7 @@ contract testInitGoodWithPrice is BaseSetup {
             users[2],
             defaultdata
         );
-        _snapMarket("market_initGood_testInitGoodWithPrice.t_321");
+        _snapMarket("testInitBtcGood_revert_traderMismatch");
         vm.stopPrank();
     }
 
@@ -344,7 +341,7 @@ contract testInitGoodWithPrice is BaseSetup {
             address(0),
             defaultdata
         );
-        _snapMarket("market_initGood_testInitGoodWithPrice.t_336");
+        _snapMarket("testInitBtcGood_revert_zeroTrader");
         vm.stopPrank();
     }
 
@@ -366,7 +363,6 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
-        _snapMarket("market_investGood_testInitGoodWithPrice.t_357");
         _snapMarket("investGood_poolPrice_first");
 
         S_GoodTmpState memory after1 = market.getGoodState(goodId);
@@ -389,7 +385,6 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
-        _snapMarket("market_investGood_testInitGoodWithPrice.t_379");
         _snapMarket("investGood_poolPrice_second");
 
         S_GoodTmpState memory after2 = market.getGoodState(goodId);
@@ -418,7 +413,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
-        _snapMarket("market_investGood_testInitGoodWithPrice.t_407");
+        _snapMarket("testInvestBtc_revert_highPrice");
         vm.stopPrank();
     }
 
@@ -439,7 +434,6 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[2]
         );
-        _snapMarket("market_investGood_testInitGoodWithPrice.t_427");
         _snapMarket("investGood_nonOwner_poolPrice");
 
         S_GoodTmpState memory state = market.getGoodState(goodId);
@@ -464,7 +458,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[2]
         );
-        _snapMarket("market_investGood_testInitGoodWithPrice.t_451");
+        _snapMarket("testInvestBtc_nonOwner_explicitPrice");
         assertGt(
             market.getGoodState(goodId).currentState.amount1(),
             BTC_QTY,
@@ -487,9 +481,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
-        _snapMarket("market_investGood_testInitGoodWithPrice.t_473");
-        _snapMarket("investGood_owner_samePrice");
-
+        _snapMarket("testInvestBtc_owner_samePrice");
         S_GoodTmpState memory state = market.getGoodState(goodId);
         assertGt(state.currentState.amount1(), BTC_QTY, "same-price invest ok");
         vm.stopPrank();
@@ -511,8 +503,7 @@ contract testInitGoodWithPrice is BaseSetup {
             defaultdata,
             users[1]
         );
-        _snapMarket("market_investGood_testInitGoodWithPrice.t_496");
-        _snapMarket("investGood_metagood_normalUser");
+        _snapMarket("testInitGood_metagood_investByNormalUser");
 
         S_GoodTmpState memory after_ = market.getGoodState(metaGoodId);
         assertGt(

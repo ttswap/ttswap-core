@@ -57,7 +57,7 @@ contract testBuySafeLine is BaseSetup {
             (uint256(80) << TestConfigConstants.SAFE_LINE_UPPER_SHIFT) |
             (uint256(1) << TestConfigConstants.SAFE_LINE_LOWER_SHIFT);
         market.modifyGoodByAdmin(goodId, cfg, marketcreator, defaultdata);
-        _snapMarket("market_modifyGoodByAdmin_testBuySafeLine.t_59");
+        _snapMarket("testSetSafeLine");
         vm.stopPrank();
     }
 
@@ -71,7 +71,6 @@ contract testBuySafeLine is BaseSetup {
         usdt.approve(address(market), qty);
         T_GoodKey memory key = _usdtKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_testBuySafeLine.t_72");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -86,7 +85,6 @@ contract testBuySafeLine is BaseSetup {
         btc.approve(address(market), type(uint256).max);
         T_GoodKey memory key = _btcKey();
         market.initGood(key, toTTSwapUINT256(value, qty), defaultdata, owner, defaultdata);
-        _snapMarket("market_initGood_testBuySafeLine.t_86");
         goodId = key.toId();
         vm.stopPrank();
     }
@@ -107,8 +105,7 @@ contract testBuySafeLine is BaseSetup {
             defaultdata,
             0
         );
-        _snapMarket("market_buyGood_testBuySafeLine.t_106");
-        _snapMarket("buyGood_revert_safeLine");
+        _snapMarket("testBuyGood_revert_safeLine");
         vm.stopPrank();
     }
 }

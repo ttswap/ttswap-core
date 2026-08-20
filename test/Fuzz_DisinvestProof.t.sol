@@ -28,7 +28,6 @@ contract Fuzz_DisinvestProof is FuzzBase {
             defaultdata,
             FUZZ_USER
         );
-        _snapMarket("market_investGood_Fuzz_DisinvestProof.t_30");
         vm.stopPrank();
         proofId = _proofId(FUZZ_USER, btcGoodId);
     }
@@ -55,7 +54,7 @@ contract Fuzz_DisinvestProof is FuzzBase {
             FUZZ_USER,
             defaultdata
         );
-        _snapMarket("market_disinvestProof_Fuzz_DisinvestProof.t_56");
+        _snapMarket("testFuzz_DisinvestProof_partial");
         vm.stopPrank();
 
         assertGe(btc.balanceOf(FUZZ_USER), balBefore, "tokens returned");
@@ -77,8 +76,7 @@ contract Fuzz_DisinvestProof is FuzzBase {
             FUZZ_USER,
             defaultdata
         );
-        _snapMarket("market_disinvestProof_Fuzz_DisinvestProof.t_77");
-        _snapMarket("gas_baseline_disinvest_btc_partial");
+        _snapMarket("testGas_DisinvestProof_partial");
         vm.stopPrank();
     }
 }
