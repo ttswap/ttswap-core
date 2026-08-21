@@ -133,9 +133,11 @@ contract RT_FifthWave is BaseSetup {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // RT-25: dust closeout (proof value < 1e12) substitutes FULL proof qty
-    // while burning only the requested shares. Default 8bps fee on FULL
-    // virtual vs profit on PARTIAL shares → TTSwapError(34).
+    // RT-25 (FIXED with RT-32): dust closeout used to substitute FULL qty while
+    // burning only the requested shares / computing profit on the slice → error
+    // 34 or `profit - actual` underflow. Now shares, qty, value, and profit all
+    // use the full position, so a dust-valued partial request is a fair full
+    // closeout (no revert, no leftover shares).
     // ─────────────────────────────────────────────────────────────────────────
 
     function test_RT25_dust_partial_minValue_hits_error34() public {
@@ -160,24 +162,21 @@ contract RT_FifthWave is BaseSetup {
         emit log_named_uint("RT25 proof shares", shares);
         emit log_named_uint("RT25 proof actual V", state1);
 
-        // Tiny slice: profit (share of investQty) < fee(FULL virtual) → 34.
+        uint256 balBefore = usdt.balanceOf(attacker);
         vm.prank(attacker);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 34));
         market.disinvestProof(proofId, 1, address(0), attacker, defaultdata);
         _snapMarket("market_disinvestProof_RT_FifthWave.t_161");
 
-        // Larger slice still dust-triggers (half of ~2e12 V < 1e12 after ratio)
-        // but profit >= fee, so 34 is skipped. Then `profit - actual` underflows.
-        // Error 34 is not a complete dust-path gate.
-        vm.prank(attacker);
-        vm.expectRevert();
-        market.disinvestProof(proofId, shares / 2, address(0), attacker, defaultdata);
-        _snapMarket("market_disinvestProof_RT_FifthWave.t_168");
+        S_ProofState memory p1 = market.getProofState(proofId);
+        assertEq(p1.shares, 0, "dust slice force-closes all shares");
+        assertEq(p1.invest, 0, "invest zeroed");
+        assertEq(p1.state, 0, "state zeroed");
+        assertGt(usdt.balanceOf(attacker), balBefore, "full-position payout");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // RT-25b: owner zeroes disinvest fee (error 34 off). Dust still underflows
-    // on `profit - actualDisinvestQuantity` because profit is still share-based.
+    // RT-25b (FIXED): fee=0 no longer underflows; dust half-share request is a
+    // full closeout of the proof.
     // ─────────────────────────────────────────────────────────────────────────
 
     function test_RT25b_dust_fee0_still_underflows_on_actual() public {
@@ -199,11 +198,14 @@ contract RT_FifthWave is BaseSetup {
 
         uint256 proofId = _proofId(attacker, usdtGoodId);
         uint128 shares = market.getProofState(proofId).shares.amount0();
+        uint256 balBefore = usdt.balanceOf(attacker);
         vm.prank(attacker);
-        // arithmetic underflow or packed sub overflow — either bricks the dust path
-        vm.expectRevert();
         market.disinvestProof(proofId, shares / 2, address(0), attacker, defaultdata);
         _snapMarket("market_disinvestProof_RT_FifthWave.t_197");
+
+        S_ProofState memory p1 = market.getProofState(proofId);
+        assertEq(p1.shares, 0, "dust half-slice force-closes all shares");
+        assertGt(usdt.balanceOf(attacker), balBefore, "full-position payout at fee=0");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
