@@ -5,6 +5,7 @@ import {BaseSetup} from "../BaseSetup.t.sol";
 import {MyToken} from "../../src/test/MyToken.sol";
 import {T_GoodKey, T_GoodKeyLibrary} from "../../src/type/T_GoodKey.sol";
 import {L_GoodConfigLibrary} from "../../src/libraries/L_GoodConfig.sol";
+import {TTSwapError} from "../../src/libraries/L_Error.sol";
 import {
     L_TTSwapUINT256Library,
     toTTSwapUINT256
@@ -146,5 +147,41 @@ contract RT_MultiTxCrossGood is BaseSetup {
         assertGt(ethProfit, 0, "ETH extracted from pool 2");
         // Each 1000-wei SCAM chunk overprices heavily vs real assets.
         assertGt(btcProfit, 1000, "BTC profit exceeds nominal scam-in");
+    }
+
+    /// @dev Production default (safeLineUpper=100) blocks RT-08: scam input
+    ///      leg cannot grow Q. No admin widen → revert 55, zero drain.
+    function test_RT08_default_safeline_blocks_crossgood_drain() public {
+        vm.startPrank(attacker);
+        scam.mint(attacker, 10 * MIN_INIT_QTY);
+        scam.approve(address(market), type(uint256).max);
+        market.initGood(
+            _scamKey(),
+            toTTSwapUINT256(MIN_INIT_VALUE, MIN_INIT_QTY),
+            defaultdata,
+            attacker,
+            defaultdata
+        );
+        vm.stopPrank();
+        // deliberately NO _relaxSafeLine on scam
+
+        uint256 btcBefore = btc.balanceOf(attacker);
+        scam.mint(attacker, 1000);
+        vm.startPrank(attacker);
+        scam.approve(address(market), 1000);
+        _warpToFreshRunSlot();
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 55));
+        market.buyGood(
+            _scamKey(),
+            _btcKey(),
+            toTTSwapUINT256(uint128(1000), 0),
+            address(0),
+            defaultdata,
+            attacker,
+            defaultdata,
+            0
+        );
+        vm.stopPrank();
+        assertEq(btc.balanceOf(attacker), btcBefore, "no BTC drained");
     }
 }

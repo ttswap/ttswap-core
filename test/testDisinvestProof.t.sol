@@ -525,6 +525,92 @@ contract testDisinvestProof is BaseSetup {
         uint256 activeGateFee = market.queryCommission(ids, gate)[0];
         assertGt(activeGateFee, 1, "active gate accrues commission");
     }
+
+    // ── dust closeout (RT-32 / RT-25) ──────────────────────────────────────
+
+    function _openDustUsdtPosition(
+        address trader,
+        uint128 qty
+    ) internal returns (uint256 proofId) {
+        deal(address(usdt), trader, qty, false);
+        vm.startPrank(trader);
+        usdt.approve(address(market), type(uint256).max);
+        _investUsdt(trader, qty);
+        vm.stopPrank();
+        return _proofId(trader, usdtGoodId);
+    }
+
+    /// @dev A 1-share request on a ~2 USDT proof is dust-valued (<1e12). After
+    ///      RT-32 the path force-closes the whole position (burns all shares,
+    ///      pays fair full-exit, no leftover zombies).
+    function testDisinvestProof_dustSlice_forceClosesFullPosition() public {
+        uint256 proofId = _openDustUsdtPosition(users[4], uint128(2_000_000));
+        S_ProofState memory p0 = market.getProofState(proofId);
+        uint128 shares = p0.shares.amount0();
+        uint128 poolSharesBefore = market
+            .getGoodState(usdtGoodId)
+            .investState
+            .amount0();
+
+        uint256 balBefore = usdt.balanceOf(users[4]);
+        vm.prank(users[4]);
+        _disinvest(users[4], proofId, 1, address(0));
+        _snapMarket("disinvest_dust_slice_force_close");
+
+        S_ProofState memory p1 = market.getProofState(proofId);
+        assertEq(p1.shares, 0, "dust slice burns all shares");
+        assertEq(p1.invest, 0, "invest zeroed");
+        assertEq(p1.state, 0, "state zeroed");
+        assertEq(
+            market.getGoodState(usdtGoodId).investState.amount0(),
+            poolSharesBefore - shares,
+            "pool total shares reduced by full position"
+        );
+        assertGt(usdt.balanceOf(users[4]), balBefore, "payout");
+
+        vm.prank(users[4]);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 41));
+        _disinvest(users[4], proofId, 1, address(0));
+    }
+
+    function testDisinvestProof_dustSlice_payoutEqualsFullExit() public {
+        uint256 proofId = _openDustUsdtPosition(users[4], uint128(2_000_000));
+        uint128 shares = market.getProofState(proofId).shares.amount0();
+
+        uint256 snap = vm.snapshotState();
+        uint256 balFullBefore = usdt.balanceOf(users[4]);
+        vm.prank(users[4]);
+        _disinvest(users[4], proofId, shares, address(0));
+        uint256 fullPayout = usdt.balanceOf(users[4]) - balFullBefore;
+
+        vm.revertToState(snap);
+        uint256 balSliceBefore = usdt.balanceOf(users[4]);
+        vm.prank(users[4]);
+        _disinvest(users[4], proofId, 1, address(0));
+        uint256 slicePayout = usdt.balanceOf(users[4]) - balSliceBefore;
+        _snapMarket("disinvest_dust_slice_eq_full");
+
+        assertEq(slicePayout, fullPayout, "dust slice pays fair full exit");
+    }
+
+    function testDisinvestProof_nonDustPartial_burnsOnlyRequestedShares() public {
+        vm.startPrank(users[1]);
+        _investBtc(users[1], BTC_INVEST);
+        uint256 proofId = _proofId(users[1], btcGoodId);
+        uint128 total = market.getProofState(proofId).shares.amount0();
+        uint128 slice = _partialShares(proofId);
+        assertLt(slice, total, "partial");
+
+        _disinvest(users[1], proofId, slice, address(0));
+        _snapMarket("disinvest_nondust_partial_share_burn");
+
+        assertEq(
+            market.getProofState(proofId).shares.amount0(),
+            total - slice,
+            "only requested shares burned"
+        );
+        vm.stopPrank();
+    }
 }
 
 /// @notice Native ETH value-good disinvest (isolated — single native pool per market).
