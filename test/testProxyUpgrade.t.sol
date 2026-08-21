@@ -204,4 +204,59 @@ contract testProxyUpgrade is BaseSetup {
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 1));
         tts_token_proxy.upgrade(address(newImpl));
     }
+
+    /// @dev RT-31: Token Proxy has no native `disableUpgrade`. DAO can only
+    ///      flip `upgradeable` via impl delegatecall. Freeze first → impl=0 →
+    ///      that path reverts 63, and Token Admin can still `upgrade()` restore.
+    function testTokenProxy_freezeThenDisableUpgrade_unreachable_adminRestores() public {
+        assertTrue(tts_token_proxy.upgradeable(), "starts upgradeable");
+
+        vm.prank(marketcreator);
+        tts_token_proxy.freezeToken();
+        assertEq(tts_token_proxy.implementation(), address(0), "frozen");
+
+        vm.prank(marketcreator);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 63));
+        tts_token.disableUpgrade();
+
+        TTSwap_Token newImpl = new TTSwap_Token(address(usdt));
+        vm.prank(marketcreator);
+        tts_token_proxy.upgrade(address(newImpl));
+        assertEq(tts_token_proxy.implementation(), address(newImpl), "admin restored");
+        assertTrue(tts_token_proxy.upgradeable(), "still upgradeable after freeze");
+    }
+
+    /// @dev Opposite order: disable via impl first. Freeze then also fails
+    ///      (`upgradeable=false`), so Token can never freeze+lock like Market.
+    function testTokenProxy_disableUpgradeViaImpl_thenFreezeReverts() public {
+        vm.prank(marketcreator);
+        tts_token.disableUpgrade();
+        assertFalse(tts_token_proxy.upgradeable(), "impl wrote proxy slot");
+
+        vm.prank(marketcreator);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 1));
+        tts_token_proxy.freezeToken();
+
+        TTSwap_Token newImpl = new TTSwap_Token(address(usdt));
+        vm.prank(marketcreator);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 1));
+        tts_token_proxy.upgrade(address(newImpl));
+    }
+
+    /// @dev Market contrast: freeze THEN native disableUpgrade permanently
+    ///      blocks restore (Token cannot do this).
+    function testMarketProxy_freezeThenDisableUpgrade_blocksRestore() public {
+        vm.prank(marketcreator);
+        market_proxy.freezeMarket();
+
+        vm.prank(marketcreator);
+        market_proxy.disableUpgrade();
+        assertFalse(market_proxy.upgradeable(), "locked");
+
+        TTSwap_Market newImpl = new TTSwap_Market(tts_token);
+        vm.prank(marketcreator);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 1));
+        market_proxy.upgrade(address(newImpl));
+        assertEq(market_proxy.implementation(), address(0), "stays frozen");
+    }
 }

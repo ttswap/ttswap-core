@@ -24,6 +24,7 @@ contract testGoodConfig is Test {
     uint256 internal constant RUN_TIME_SHIFT = TestConfigConstants.RUN_TIME_SHIFT;
     uint256 internal constant POWER_SHIFT = TestConfigConstants.POWER_SHIFT;
     uint256 internal constant DISINVEST_CHIPS_SHIFT = TestConfigConstants.DISINVEST_CHIPS_SHIFT;
+    uint256 internal constant INVEST_THRESHOLD_SHIFT = 154;
     uint256 internal constant INVEST_FEE_SHIFT = TestConfigConstants.INVEST_FEE_SHIFT;
     uint256 internal constant DISINVEST_FEE_SHIFT = TestConfigConstants.DISINVEST_FEE_SHIFT;
     uint256 internal constant BUY_FEE_SHIFT = TestConfigConstants.BUY_FEE_SHIFT;
@@ -145,6 +146,20 @@ contract testGoodConfig is Test {
         assertEq(_pack(0, DISINVEST_CHIPS_SHIFT).getDisinvestChips(10_000), 10_000);
         assertEq(_pack(10, DISINVEST_CHIPS_SHIFT).getDisinvestChips(10_000), 4_000);
         assertEq(INITIAL_CONFIG.getDisinvestChips(10_000), 2_000);
+    }
+
+    function test_getInvestThreshold_zeroKeepsAmount() public pure {
+        assertEq(uint256(0).getInvestThreshold(10_000), 10_000);
+    }
+
+    function test_getInvestThreshold_scalesAndCapsAt30() public pure {
+        assertEq(_pack(10, INVEST_THRESHOLD_SHIFT).getInvestThreshold(10_000), 9_000);
+        // stored 63 > min_invest_threshold(30) → cap at 30% haircut
+        assertEq(_pack(63, INVEST_THRESHOLD_SHIFT).getInvestThreshold(10_000), 7_000);
+    }
+
+    function test_setInitialConfig() public pure {
+        assertEq(L_GoodConfigLibrary.setInitialConfig(), INITIAL_CONFIG);
     }
 
     function test_getInvestFee() public pure {

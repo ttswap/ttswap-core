@@ -55,4 +55,24 @@ contract CurrencyHarness {
         address t = address(1);
         t.transferFrom(from, msg.sender, amount, detail);
     }
+
+    function pullErc20To(
+        address token,
+        address from,
+        address to,
+        address executor,
+        uint256 amount,
+        bytes calldata detail
+    ) external {
+        address t = token;
+        t.transferFrom(from, to, executor, amount, detail);
+    }
+
+    function isNative(address token) external pure returns (bool) {
+        return token.isNative();
+    }
+
+    function toUint160(uint256 amount) external pure returns (uint160) {
+        return L_CurrencyLibrary.to_uint160(amount);
+    }
 }

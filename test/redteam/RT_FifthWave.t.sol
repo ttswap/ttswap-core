@@ -159,7 +159,7 @@ contract RT_FifthWave is BaseSetup {
         S_ProofState memory p = market.getProofState(proofId);
         uint128 shares = p.shares.amount0();
         uint128 state1 = p.state.amount1();
-        emit log_named_uint("RT25 proof shares", shares);
+        emit log_named_uint("RT25 proof shares", shares); 
         emit log_named_uint("RT25 proof actual V", state1);
 
         uint256 balBefore = usdt.balanceOf(attacker);
@@ -366,6 +366,47 @@ contract RT_FifthWave is BaseSetup {
         emit log_named_uint("RT27 same-block USDT drained", profit);
         assertEq(profit, target, "exact-out filled in the init block");
         assertGt(profit, 10_000, "dust fake in, 30% USDT out");
+    }
+
+    /// @dev Same setup as RT-27 but fake good stays at default upper=100.
+    ///      Production config blocks the same-block drain (error 55).
+    function test_RT27_default_safeline_blocks_same_block_payGood() public {
+        MyToken fake = new MyToken("FAKE", "FAKE", 6);
+        T_GoodKey memory fakeKey = T_GoodKey({
+            ercType: 1,
+            contractAddress: address(fake),
+            id: 0
+        });
+        vm.startPrank(attacker);
+        fake.approve(address(market), type(uint256).max);
+        deal(address(fake), attacker, MIN_INIT_QTY + 10_000, false);
+        market.initGood(
+            fakeKey,
+            toTTSwapUINT256(MAX_INIT_VALUE, MIN_INIT_QTY),
+            defaultdata,
+            attacker,
+            defaultdata
+        );
+        vm.stopPrank();
+        _relaxSafeLine(usdtGoodId);
+        // deliberately NO _relaxSafeLine on fake
+
+        uint128 target = uint128((usdt.balanceOf(address(market)) * 3) / 10);
+        uint256 usdtBefore = usdt.balanceOf(attacker);
+        vm.startPrank(attacker);
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 55));
+        market.payGood(
+            fakeKey,
+            _usdtKey(),
+            toTTSwapUINT256(uint128(10_000), target),
+            attacker,
+            defaultdata,
+            attacker,
+            defaultdata,
+            0
+        );
+        vm.stopPrank();
+        assertEq(usdt.balanceOf(attacker), usdtBefore, "no USDT drained");
     }
 
     function test_RT27b_flash_helper_init_and_pay_one_call() public {

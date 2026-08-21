@@ -38,7 +38,7 @@ contract Fuzz_DisinvestProof is FuzzBase {
         if (total < 100) return;
 
         // Stay above the protocol dust path (`disinvestvalue.amount1 < 1e12`),
-        // which rewrites a partial exit into a full-position chip check.
+        // which force-closes the whole proof (see testFuzz_DisinvestProof_dustSlice).
         uint128 minWithdraw = total / 50;
         uint128 maxWithdraw = total / 10;
         if (minWithdraw == 0 || minWithdraw >= maxWithdraw) return;
@@ -78,5 +78,45 @@ contract Fuzz_DisinvestProof is FuzzBase {
         );
         _snapMarket("testGas_DisinvestProof_partial");
         vm.stopPrank();
+    }
+
+    /// @dev Any partial burn of a ~2 USDT proof is dust-valued and must
+    ///      force-close the whole position (no leftover shares).
+    function testFuzz_DisinvestProof_dustSlice(uint128 slice) public {
+        uint128 qty = uint128(2_000_000);
+        deal(address(usdt), FUZZ_USER, qty, false);
+        vm.startPrank(FUZZ_USER);
+        usdt.approve(address(market), type(uint256).max);
+        _warp();
+        market.investGood(
+            _usdtKey(),
+            _packInvest(usdtGoodId, qty),
+            defaultdata,
+            defaultdata,
+            FUZZ_USER
+        );
+        vm.stopPrank();
+
+        uint256 pid = _proofId(FUZZ_USER, usdtGoodId);
+        S_ProofState memory beforeP = market.getProofState(pid);
+        uint128 total = beforeP.shares.amount0();
+        uint128 proofV = beforeP.state.amount1();
+        if (total < 2 || proofV == 0) return;
+        // Keep proportional actual value < 1e12 so the dust branch fires.
+        uint128 maxDust = uint128((uint256(1_000_000_000_000 - 1) * total) / proofV);
+        if (maxDust == 0) maxDust = 1;
+        if (maxDust >= total) maxDust = total - 1;
+        slice = uint128(bound(slice, 1, maxDust));
+
+        vm.startPrank(FUZZ_USER);
+        _warp();
+        market.disinvestProof(pid, slice, address(0), FUZZ_USER, defaultdata);
+        _snapMarket("testFuzz_DisinvestProof_dustSlice");
+        vm.stopPrank();
+
+        S_ProofState memory afterProof = market.getProofState(pid);
+        assertEq(afterProof.shares.amount0(), 0, "dust partial force-closes");
+        assertEq(afterProof.invest, 0, "invest zeroed");
+        assertEq(afterProof.state, 0, "state zeroed");
     }
 }

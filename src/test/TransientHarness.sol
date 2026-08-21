@@ -33,6 +33,33 @@ contract TransientHarness {
     function readDepth() external view returns (uint256) {
         return L_Transient.getDepth();
     }
+
+    function setLock(uint256 lock) external {
+        L_Transient.set(lock);
+    }
+
+    function readLock() external view returns (uint256) {
+        return L_Transient.get();
+    }
+
+    function setValue(uint256 amount) external {
+        L_Transient.setValue(amount);
+    }
+
+    function clearDepth() external {
+        L_Transient.clearDepth();
+    }
+
+    function lockRoundTrip(uint256 lock) external returns (uint256) {
+        L_Transient.set(lock);
+        return L_Transient.get();
+    }
+
+    function valueRoundTrip(uint256 seed, uint256 take) external returns (uint256) {
+        L_Transient.setValue(seed);
+        L_Transient.decreaseValue(take);
+        return L_Transient.getValue();
+    }
 }
 
 contract RejectEthReceiver {

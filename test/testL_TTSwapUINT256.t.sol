@@ -15,6 +15,7 @@ import {
     TTSwapUINT256AddSubOverflow,
     TTSwapUINT256SubAddOverflow,
     TTSwapUINT256ToUint128Overflow,
+    TTSwapUINT256NotValid,
     L_TTSwapUINT256Library
 } from "../src/libraries/L_TTSwapUINT256.sol";
 
@@ -79,6 +80,54 @@ contract testL_TTSwapUINT256 is Test {
     function testToUint128_revert_overflow() public {
         vm.expectRevert(TTSwapUINT256ToUint128Overflow.selector);
         this._toUint128(uint256(type(uint128).max) + 1);
+    }
+
+    function testToUint128_happyPath() public pure {
+        assertEq(toUint128(99), 99);
+    }
+
+    function testAddsub_happyPath() public pure {
+        uint256 c = addsub(toTTSwapUINT256(100, 80), toTTSwapUINT256(10, 30));
+        assertEq(c.amount0(), 110);
+        assertEq(c.amount1(), 50);
+    }
+
+    function testSubadd_happyPath() public pure {
+        uint256 c = subadd(toTTSwapUINT256(100, 80), toTTSwapUINT256(10, 30));
+        assertEq(c.amount0(), 90);
+        assertEq(c.amount1(), 110);
+    }
+
+    function testAmount01_andGet64bit() public pure {
+        uint256 packed = toTTSwapUINT256(7, 9);
+        (uint128 a0, uint128 a1) = packed.amount01();
+        assertEq(a0, 7);
+        assertEq(a1, 9);
+        assertEq(packed.get64bit(), uint64(9));
+    }
+
+    function testCheckUint256Valid() public {
+        uint256 ok = toTTSwapUINT256(1, 10_000);
+        ok.checkUint256Valid();
+
+        vm.expectRevert(TTSwapUINT256NotValid.selector);
+        this._check(toTTSwapUINT256(1, 9_999));
+
+        vm.expectRevert(TTSwapUINT256NotValid.selector);
+        this._check(toTTSwapUINT256(1, uint128(uint256(2 ** 109) + 1)));
+    }
+
+    function testMulDiv_revert_divZero() public {
+        vm.expectRevert();
+        this._get0(toTTSwapUINT256(100, 0), 10);
+    }
+
+    function _check(uint256 a) external pure {
+        a.checkUint256Valid();
+    }
+
+    function _get0(uint256 ratio, uint128 amt) external pure returns (uint128) {
+        return ratio.getamount0fromamount1(amt);
     }
 
     function _add(uint256 a, uint256 b) external pure returns (uint256) {
