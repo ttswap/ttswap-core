@@ -615,7 +615,7 @@ library L_Good {
             normalGoodResult1_ = S_GoodDisinvestReturn(
                 0,
                 0,
-                _params._goodshares, //divest shares
+                proofShares0, //divest shares
                 proofInvest0, // Virtual quantity to divest (normal good)
                 proofInvest1, // Actual quantity to divest (normal good)
                 proofMintTTSValue // Mint TTS value to divest (normal good)
@@ -633,10 +633,11 @@ library L_Good {
         );
         // Calculate the current value of the user's shares based on the *current* state of the pool.
         // This includes any profits or losses accumulated since investment.
+        // Use the shares actually being burned (full position on dust closeout).
         normalGoodResult1_.profit = toTTSwapUINT256(
             _self.currentState.amount0(),
             _self.investState.amount0()
-        ).getamount0fromamount1(_params._goodshares);
+        ).getamount0fromamount1(normalGoodResult1_.shares);
 
         if (normalGoodResult1_.profit < normalGoodResult1_.actual_fee)
             revert TTSwapError(34);
