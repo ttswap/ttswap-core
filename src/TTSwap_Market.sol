@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// version 2.0.0
+// version 2.1.0
 pragma solidity 0.8.29;
 
 import {
@@ -99,7 +99,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
     uint128 internal constant MIN_INIT_VALUE = 500_000_000_000_000;
 
     /// @notice EIP-712 domain version string.
-    string internal constant Version = "2.0.0";
+    string internal constant Version = "2.1.0";
 
     /// @dev Precomputed EIP-712 hashes (runtime still binds `chainId` + `address(this)` for proxy).
     bytes32 private constant _EIP712_DOMAIN_TYPEHASH =

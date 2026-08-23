@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
+// version 2.1.0
 pragma solidity ^0.8.29;
 
 /// @title Investment Proof Interface
-/// @notice Contains a series of interfaces for goods
+/// @notice TTSwap token public API (v2.1.0).
 interface I_TTSwap_Token {
     /// @notice Emitted when environment variables are set
     /// @param marketcontract The address of the market contract

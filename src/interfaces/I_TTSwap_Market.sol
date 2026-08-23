@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
+// version 2.1.0
 pragma solidity ^0.8.29;
 
 import {T_GoodKey} from "../type/T_GoodKey.sol";
 
 /// @title I_TTSwap_Market
-/// @notice Public API for the TTSwap on-chain market (v2.0.0).
+/// @notice Public API for the TTSwap on-chain market (v2.1.0).
 /// @dev **Core concepts**
 ///      - **Good**: one token pool (`T_GoodKey` → `goodId`) with virtual AMM state and fee config.
 ///      - **Proof**: one user's LP position in a good; id = `keccak256(owner, goodId)`.

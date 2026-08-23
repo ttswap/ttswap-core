@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// version 2.1.0
 pragma solidity ^0.8.29;
 
 /// @dev Max V/Q (and related) leg size so AMM `2*a*b` fits in `uint256` under unchecked mul.

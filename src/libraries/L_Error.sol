@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// version 2.1.0
 pragma solidity 0.8.29;
 
 // TTSwap Protocol Errors — single custom error `TTSwapError(seq)` used across Market, Token, Proxy.
