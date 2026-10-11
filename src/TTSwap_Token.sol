@@ -261,6 +261,30 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     }
 
     /**
+     * @notice Allows a user to update or clear their own referral address.
+     * @param newReferral The new referral address, or address(0) to clear.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function updateUserReferral(address newReferral) external override {
+        if (msg.sender == newReferral) revert TTSwapError(1);
+        userConfig[msg.sender] = userConfig[msg.sender].setReferral(newReferral);
+        emit e_addreferral(msg.sender, newReferral);
+    }
+
+    /**
+     * @notice Allows contract admin to reset a referral address in case of dispute or hijacking.
+     * @param user The address of the user whose referral should be reset.
+     * @param newReferral The new referral address, or address(0) to clear.
+     */
+    /// @inheritdoc I_TTSwap_Token
+    function adminResetReferral(address user, address newReferral) external override {
+        if (!userConfig[msg.sender].isTokenAdmin() && !userConfig[msg.sender].isDAOAdmin()) revert TTSwapError(1);
+        if (user == newReferral) revert TTSwapError(1);
+        userConfig[user] = userConfig[user].setReferral(newReferral);
+        emit e_addreferral(user, newReferral);
+    }
+
+    /**
      * @dev Retrieves both the DAO admin address and the referrer address for a given customer
      * @param _customer The address of the customer
      * @return A tuple containing the DAO admin address and the customer's referrer address
