@@ -236,6 +236,15 @@ interface I_TTSwap_Token {
     /// @param referral The address of the referrer
     function setReferral(address user, address referral) external;
 
+    /// @notice Allows a user to update or clear their own referral address
+    /// @param newReferral The new referral address, or address(0) to clear
+    function updateUserReferral(address newReferral) external;
+
+    /// @notice Allows contract admin/owner to reset a referral address in case of dispute/hijacking
+    /// @param user The address of the user whose referral should be reset
+    /// @param newReferral The new referral address, or address(0) to clear
+    function adminResetReferral(address user, address newReferral) external;
+
     /// @notice Stake tokens
     /// @param staker The address of the staker
     /// @param proofvalue The proof value for the stake
