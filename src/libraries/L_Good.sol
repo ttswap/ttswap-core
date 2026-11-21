@@ -641,14 +641,26 @@ library L_Good {
 
         if (normalGoodResult1_.profit < normalGoodResult1_.actual_fee)
             revert TTSwapError(34);
+        // Floor-truncated share minting in investGood can record a proof principal
+        // (proofInvest1) above the pool's gross entitlement for these shares.
+        // Clamp the principal paid out to the entitlement so the checked
+        // subtractions below cannot underflow and freeze the position.
+        uint128 grossRedemption = normalGoodResult1_.profit;
+        uint128 principalReturned = grossRedemption <
+            normalGoodResult1_.actualDisinvestQuantity
+            ? grossRedemption
+            : normalGoodResult1_.actualDisinvestQuantity;
+        // virtualDisinvestQuantity >= actualDisinvestQuantity because enpower >= 100.
+        uint128 virtualLeverageExcess =
+            normalGoodResult1_.virtualDisinvestQuantity -
+            normalGoodResult1_.actualDisinvestQuantity;
+
         // Update main good states
         _self.currentState = sub(
             _self.currentState,
             toTTSwapUINT256(
-                normalGoodResult1_.profit,
-                normalGoodResult1_.virtualDisinvestQuantity +
-                    normalGoodResult1_.profit -
-                    normalGoodResult1_.actualDisinvestQuantity
+                grossRedemption,
+                virtualLeverageExcess + grossRedemption
             )
         );
 
@@ -688,9 +700,7 @@ library L_Good {
         // Calculate final profit and fee for main good
         // Net profit = Gross withdrawn value - Initial invested virtual quantity.
         // (This calculation assumes profit is the excess value above the principal).
-        normalGoodResult1_.profit =
-            normalGoodResult1_.profit -
-            normalGoodResult1_.actualDisinvestQuantity;
+        normalGoodResult1_.profit = grossRedemption - principalReturned;
 
         // Allocate fees for main good
         allocateFee(
@@ -698,8 +708,7 @@ library L_Good {
             normalGoodResult1_.profit,
             _params._gater,
             _params._referral,
-            normalGoodResult1_.actualDisinvestQuantity -
-                normalGoodResult1_.actual_fee,
+            principalReturned - normalGoodResult1_.actual_fee,
             _params._sender
         );
         // Burn the investment proof
