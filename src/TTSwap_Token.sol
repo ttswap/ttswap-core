@@ -513,8 +513,14 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
     function _stakeFee() internal {
         if (stakestate.amount0() + 86400 < block.timestamp) {
             stakestate =  toTTSwapUINT256(uint128(block.timestamp), stakestate.amount1());
-            uint128 leftamount = 200_000_000_000_000_000_000 > totalSupply
-                ? uint128(200_000_000_000_000_000_000 - totalSupply)
+            // Reserve cap headroom for rewards already accrued but not yet
+            // minted: poolstate.amount0() is the unclaimed staking liability.
+            // Without it, totalSupply never moves while rewards sit unclaimed,
+            // the emission never tapers, and a later unstake can push
+            // totalSupply past the 200M cap.
+            uint256 accrued = uint256(poolstate.amount0());
+            uint128 leftamount = 200_000_000_000_000_000_000 > totalSupply + accrued
+                ? uint128(200_000_000_000_000_000_000 - totalSupply - accrued)
                 : 0;
             uint128 mintamount = leftamount < 1000000000000 
                 ? 1000000000000
