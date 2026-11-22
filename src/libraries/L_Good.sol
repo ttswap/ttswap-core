@@ -225,6 +225,10 @@ library L_Good {
             config: _self.goodConfig
         });
         uint128 quantity;
+        // Mirror payGoodInput: chunking is driven by V/100, so a dust-value
+        // pool would loop forever (V in 1..99 -> chunk 0) or divide by zero
+        // (V == 0). Revert cleanly instead.
+        if (swapTemp.current_value < 10000) revert TTSwapError(56);
 
         // --- Phase 2: consume value in ≤1% of V chunks, withdraw tokens ---
         // Formula (withdraw / buy-out):  Δq = 2·Q·ΔV / (2·V + ΔV)
