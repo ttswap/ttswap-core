@@ -52,6 +52,9 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
 
     mapping(address => s_share) internal shares; // all share's mapping
     mapping(uint256 => s_proof) internal stakeproof;
+    // Chips already consumed per share owner (#325): shareMint releases
+    // leftamount / chipsLeft so `chips` unlocks release the full allocation.
+    mapping(address => uint256) internal shareUnlocks;
 
     bytes32 internal constant _PERMITSHARE_TYPEHASH =
         keccak256(
@@ -301,6 +304,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         left_share -= _share.leftamount;
         if (shares[owner].leftamount == 0) {
             shares[owner] = _share;
+            shareUnlocks[owner] = 0;
         } else {
             s_share memory newpart = shares[owner];
             newpart.leftamount += _share.leftamount;
@@ -328,6 +332,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         left_share += shares[owner].leftamount;
         emit e_burnShare(owner);
         delete shares[owner];
+        delete shareUnlocks[owner];
     }
 
     /**
@@ -360,9 +365,18 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
             )
         ) revert TTSwapError(68);
         if (shares[msg.sender].leftamount == 0) revert TTSwapError(69);
+        // Release leftamount / chipsLeft per unlock: each chip releases an
+        // equal share of the ORIGINAL allocation and the final chip sweeps
+        // the remainder, so `chips` unlocks mint the full leftamount (#325).
+        // Previously mintamount was leftamount / chips (chips never
+        // decremented), a geometric decay stranding ~25-37% forever.
+        uint256 unlocks = shareUnlocks[msg.sender];
+        uint256 chips = shares[msg.sender].chips;
+        uint256 chipsLeft = unlocks < chips ? chips - unlocks : 1;
         uint128 mintamount = shares[msg.sender].leftamount /
-            shares[msg.sender].chips;
+            uint128(chipsLeft);
         shares[msg.sender].leftamount -= mintamount;
+        shareUnlocks[msg.sender] = unlocks + 1;
         shares[msg.sender].metric += 1;
         _mint(msg.sender, mintamount);
         emit e_shareMint(mintamount, msg.sender);
