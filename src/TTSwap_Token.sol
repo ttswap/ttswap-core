@@ -52,6 +52,9 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
 
     mapping(address => s_share) internal shares; // all share's mapping
     mapping(uint256 => s_proof) internal stakeproof;
+    // Dedicated nonce space for permitShare signatures so they cannot be
+    // invalidated by (or invalidate) ERC20 permit authorisations (#326).
+    mapping(address => uint256) public shareNonces;
 
     bytes32 internal constant _PERMITSHARE_TYPEHASH =
         keccak256(
@@ -585,7 +588,7 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
                     msg.sender,
                     shares[msg.sender].leftamount,
                     dealline,
-                    nonces[msg.sender]++
+                    shareNonces[msg.sender]++
                 )
             ),
             userConfig[signer].isTokenAdmin() ? signer : address(0)
