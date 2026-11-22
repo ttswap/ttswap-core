@@ -151,8 +151,9 @@ library T_GoodKeyLibrary {
             revert UnsupportedTransferType();
         }
         if (goodkey.isNative()) {
-            // Native ETH: value is tracked via L_Transient; executor must be the payer.
-            if (executor != from) revert TTSwapError(39);
+            // Native ETH: value is tracked via L_Transient; the payer is always
+            // the executor (msg.value of the outer call), so relayer-executed
+            // trades may pull the input budget on the trader's behalf.
             L_Transient.decreaseValue(amount);
             success = true;
         } else if (goodkey.ercType == 1 && detail.length == 0) {

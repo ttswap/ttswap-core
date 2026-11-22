@@ -102,11 +102,14 @@ contract testL_Currency is BaseSetup {
         assertEq(address(harness).balance, 0.5 ether, "native pulled");
     }
 
-    function testL_Currency_pullNative_revert_executorMismatch() public {
+    function testL_Currency_pullNative_relayerExecutor() public {
+        // Relayer (executor != from) may draw the native budget seeded by its
+        // own msg.value; the transient accounting is the real guard.
         vm.deal(users[2], 1 ether);
+        uint256 before_ = address(harness).balance;
         vm.prank(users[2]);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 39));
         harness.pullNative{value: 0.1 ether}(users[1], 0.1 ether, defaultdata);
+        assertEq(address(harness).balance, before_ + 0.1 ether, "relayer-funded native pull");
     }
 
     function testL_Currency_pullErc20_eip2612Permit() public {

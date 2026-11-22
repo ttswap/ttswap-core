@@ -66,14 +66,16 @@ contract testGoodKeyTransfer is BaseSetup {
         harness.transfer(key, users[1], users[1], 100, "");
     }
 
-    function testGoodKey_transfer_revert_nativeExecutorMismatch() public {
+    function testGoodKey_transfer_revert_nativeInsufficientBudget() public {
+        // Native pulls are bounded by the transient msg.value budget; outside a
+        // msgValue-wrapped call the budget is zero and the pull reverts (30).
         T_GoodKey memory key = T_GoodKey({
             ercType: 1,
             contractAddress: address(1),
             id: 0
         });
         vm.deal(users[1], 1 ether);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 39));
+        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 30));
         harness.transfer{value: 1 ether}(key, users[1], users[2], 1 ether, "");
     }
 

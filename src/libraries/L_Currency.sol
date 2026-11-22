@@ -99,8 +99,9 @@ library L_CurrencyLibrary {
     ) internal {
         bool success = false;
         if (token.isNative()) {
-            // Native ETH: value is tracked via L_Transient; executor must be the payer.
-            if (executor != from) revert TTSwapError(39);
+            // Native ETH: value is tracked via L_Transient; the payer is always
+            // the executor (msg.value of the outer call), so relayer-executed
+            // pulls may draw the input budget on the trader's behalf.
             L_Transient.decreaseValue(amount);
             success = true;
         } else if (detail.length == 0) {
