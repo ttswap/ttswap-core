@@ -600,6 +600,14 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                 goods[_goodKey1.toId()].currentState.amount1(),
                 goods[_goodKey1.toId()].investState.amount1()
             );
+            // Fee-on-transfer tokens deliver less than the nominal amount on the
+            // inbound leg while the outbound leg still pays nominal; without a
+            // balance check the Market subsidizes the difference from pool funds.
+            // Native ETH cannot take a transfer fee, so skip the extra SLOADs.
+            bool checkBal = !_goodKey1.isNative();
+            uint256 balBefore = checkBal
+                ? _goodKey1.balanceof(address(this))
+                : 0;
             if (msg.sender == _trader) {
                 _goodKey1.transferFrom(
                     _trader,
@@ -626,6 +634,9 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
                     revert TTSwapError(55);
                 _goodKey1.safeTransfer(_recipient, good2change);
                 good2change = (good2change << 128) + feeQuantity;
+            }
+            if (checkBal && _goodKey1.balanceof(address(this)) < balBefore) {
+                revert TTSwapError(56);
             }
             emit e_payGood(
                 _goodKey1.toId(),
