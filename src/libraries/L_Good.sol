@@ -753,7 +753,13 @@ library L_Good {
 
             _self.commission[_referral] += referFee;
 
-            _self.commission[address(0)] += marketfee;
+            _self.commission[address(0)] += marketfee +
+                (_profit -
+                    liqidFee -
+                    sellerFee -
+                    gaterFee -
+                    referFee -
+                    customerFee);
             _self.commission[_sender] += (liqidFee +
                 customerFee +
                 _divestQuantity);
