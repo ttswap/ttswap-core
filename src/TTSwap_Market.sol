@@ -159,8 +159,10 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         // Storage pointer avoids recomputing the mapping key hash twice
         if (g.goodConfig.isFreeze()) revert TTSwapError(freezeErr);
         if (g.currentState == 0) revert TTSwapError(emptyErr);
-        if (g.goodConfig.getRunBlockConfig() == block.number % 4095)
-            revert TTSwapError(46);
+        if (
+            g.goodConfig.getRunBlockConfig() == block.number % 4095 &&
+            g.goodConfig.getRunEpochConfig() == (block.number / 4095) % 4096
+        ) revert TTSwapError(46);
     }
     /// @notice Batch multiple market calls in one transaction (delegatecall into self).
     /// @dev Must be `payable` with `msgValue` + `multicallEntry` so native ETH budget is set once

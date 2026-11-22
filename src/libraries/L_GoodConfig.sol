@@ -75,6 +75,13 @@ library L_GoodConfigLibrary {
     uint256 internal constant run_time_config_mask =
         0x000000000000001ffe0000000000000000000000000000000000000000000000;
 
+    /// @dev `runEpoch` field mask (bits 184-173, previously reserved/unused).
+    ///      Stores `(block.number / 4095) % 4096` so the anti-replay guard can
+    ///      distinguish a same-block second touch from the first touch 4095
+    ///      blocks later (same slot, different epoch).
+    uint256 internal constant run_epoch_config_mask =
+        uint256(0xFFF) << 173;
+
     uint256 internal constant min_invest_threshold = 30;
 
     /// @notice Returns the protocol default packed configuration.
@@ -111,17 +118,27 @@ library L_GoodConfigLibrary {
     }
 
     /// @notice Records that this good was used in the current block slot (`block.number % 4095`).
-    /// @dev Reverts `TTSwapError(46)` if the same good is touched twice in the same slot —
-    ///      mitigates same-block replay / flash-loan style sequencing on a single pool.
+    /// @dev Reverts `TTSwapError(46)` if the same good is touched twice in the same
+    ///      block — mitigates same-block replay / flash-loan style sequencing on a
+    ///      single pool. The stored `runEpoch` (bits 184-173) distinguishes a true
+    ///      same-block retouch from the first touch one 4095-block epoch later,
+    ///      which shares the slot but not the epoch.
     /// @dev Integrators: advance `block.number` or wait one block between dependent trades on the same good.
     function updateRunBlockConfig(
         uint256 config
     ) internal view returns (uint256 a) {
         uint256 run_time_config = block.number % 4095;
-        if (config.getRunBlockConfig() == run_time_config) {
+        uint256 run_epoch = (block.number / 4095) % 4096;
+        if (
+            config.getRunBlockConfig() == run_time_config &&
+            config.getRunEpochConfig() == run_epoch
+        ) {
             revert TTSwapError(46);
         }
-        return (config & ~run_time_config_mask) | (run_time_config << 185);
+        return
+            (config & ~run_time_config_mask & ~run_epoch_config_mask) |
+            (run_time_config << 185) |
+            (run_epoch << 173);
     }
 
     /// @notice Checks if the good is configured as a value good.
@@ -334,13 +351,24 @@ library L_GoodConfigLibrary {
         }
     }
 
-    /// @notice Anti-replay time slot from bits 190-179.
+    /// @notice Anti-replay time slot from bits 196-185.
     function getRunBlockConfig(
         uint256 config
     ) internal pure returns (uint256 a) {
         unchecked {
             assembly {
                 a := shr(244, shl(59, config))
+            }
+        }
+    }
+
+    /// @notice Anti-replay epoch from bits 184-173 (`(block.number / 4095) % 4096`).
+    function getRunEpochConfig(
+        uint256 config
+    ) internal pure returns (uint256 a) {
+        unchecked {
+            assembly {
+                a := shr(244, shl(71, config))
             }
         }
     }
