@@ -100,6 +100,11 @@ library L_Good {
     function lockGood(S_GoodState storage _self) internal {
         _self.goodConfig = _self.goodConfig.setFreeze(true);
     }
+    /// @notice Unlocks a good by clearing `isFreeze`.
+    /// @param _self Storage pointer to the good state.
+    function unlockGood(S_GoodState storage _self) internal {
+        _self.goodConfig = _self.goodConfig.setFreeze(false);
+    }
     /// @notice First-time pool setup after tokens are received.
     /// @dev No leverage at init: `investQty = Q = deposit`, `goodConfig.amount1()` (`virtualQty`) stays 0.
     ///      `investState` seeds shares and declared value from `_initial`.

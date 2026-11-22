@@ -325,6 +325,13 @@ interface I_TTSwap_Market {
         bytes calldata signature
     ) external;
 
+    /// @notice Unfreeze trading on a good (manager or good owner).
+    function unlockGood(
+        uint256 _goodid,
+        address _trader,
+        bytes calldata signature
+    ) external;
+
     /// @notice Transfer good ownership (market manager only).
     function changeGoodOwner(
         uint256 _goodid,

@@ -925,6 +925,25 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         emit e_updateGoodConfig(_goodid, goods[_goodid].goodConfig, _trader);
     }
 
+    /// @notice Unlocks a good when the caller is market manager or good owner.
+    /// @param _goodid The good to unlock.
+    /// @param _trader Must equal `msg.sender` (enforced by `_checkTrader`).
+    /// @param signature Reserved for ABI compatibility; **not verified** here.
+    /// @inheritdoc I_TTSwap_Market
+    function unlockGood(
+        uint256 _goodid,
+        address _trader,
+        bytes calldata signature
+    ) external override {
+        _checkTrader(_trader);
+        if (
+            !TTS_CONTRACT.userConfig(msg.sender).isMarketManager() &&
+            goods[_goodid].owner != msg.sender
+        ) revert TTSwapError(20);
+        goods[_goodid].unlockGood();
+        emit e_updateGoodConfig(_goodid, goods[_goodid].goodConfig, _trader);
+    }
+
     /// @notice Changes the owner of a good
     /// @param _goodid The ID of the good
     /// @param _to The new owner's address
