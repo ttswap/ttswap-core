@@ -307,9 +307,8 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
             newpart.chips = newpart.chips >= _share.chips
                 ? newpart.chips
                 : _share.chips;
-            newpart.metric = newpart.metric >= _share.metric
-                ? newpart.metric
-                : _share.metric;
+            // Keep the existing metric — merging must not raise the unlock
+            // bar for the previously granted remainder (#322, RT-14b).
             shares[owner] = newpart;
         }
         emit e_addShare(owner, _share.leftamount, _share.metric, _share.chips);
