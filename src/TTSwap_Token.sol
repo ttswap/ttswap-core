@@ -516,8 +516,8 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
             uint128 leftamount = 200_000_000_000_000_000_000 > totalSupply
                 ? uint128(200_000_000_000_000_000_000 - totalSupply)
                 : 0;
-            uint128 mintamount = leftamount < 1000000000000 
-                ? 1000000000000
+            uint128 mintamount = leftamount < 1000000000000
+                ? leftamount
                 : leftamount / 18250; //leftamount /50 /365
             poolstate = add(
                 poolstate,
