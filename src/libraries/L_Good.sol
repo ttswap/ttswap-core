@@ -779,10 +779,18 @@ library L_Good {
         uint256 config = _self.goodConfig;
         uint128 maxpower = config.getPower();
         uint128 virtual_quantity = config.amount1(); // leverage virtualQty (excludes actual investQty)
-        uint128 current_quantity = _self.currentState.amount1() -
-            virtual_quantity; // ≈ actual depth in Q
+        // Swaps reduce Q but never virtualQty, so Q can legally fall below
+        // virtualQty (safe-line floor only bounds Q at ~60% of baseline).
+        // Saturate at zero instead of underflowing — a fully encumbered pool
+        // has no unencumbered depth and gets the minimum power (#328).
+        uint128 q = _self.currentState.amount1();
+        uint128 current_quantity = q > virtual_quantity
+            ? q - virtual_quantity
+            : 0; // ≈ actual depth in Q
         uint128 invest_quantity = _self.currentState.amount0(); // investQty
-        if (current_quantity < invest_quantity) {
+        if (current_quantity == 0 || invest_quantity == 0) {
+            limitpower_ = 100;
+        } else if (current_quantity < invest_quantity) {
             limitpower_ = ((current_quantity * maxpower) / invest_quantity);
             limitpower_ = limitpower_ < 100 ? 100 : limitpower_;
         } else {
