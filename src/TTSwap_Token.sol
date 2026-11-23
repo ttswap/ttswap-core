@@ -437,8 +437,11 @@ contract TTSwap_Token is I_TTSwap_Token, ERC20, IEIP712 {
         _stakeFee();
         uint256 restakeid = uint256(keccak256(abi.encode(_staker, msg.sender)));
         // netconstruct represents the proportional construct fee minted into the pool.
-        // If poolstate.amount1() is zero, no construct fee can be derived yet.
-        netconstruct = poolstate.amount1() == 0
+        // Gate on the stake denominator: with no existing stake there is no
+        // dilution to charge (and division by zero must be avoided).
+        // poolstate.amount1() cannot be used — it only grows via netconstruct
+        // itself, so gating on it kept the fee permanently at zero.
+        netconstruct = stakestate.amount1() == 0
             ? 0
             : mulDiv(poolstate.amount0(), proofvalue, stakestate.amount1());
         // Pool accounting:
