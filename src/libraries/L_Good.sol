@@ -480,6 +480,15 @@ library L_Good {
             investResult_.goodInvestQuantity
         ).getamount0fromamount1(_invest);
 
+        // A deposit too small to mint even one share would be accepted while
+        // its tokens and virtual excess become unowned pool property; once
+        // every share-holding LP exits, the pool reaches investQty == 0 with
+        // Q == virtualQty > 0 and getInvestPower divides by zero — the good is
+        // permanently bricked. Reject dust invests instead.
+        if (investResult_.investShare == 0) {
+            revert TTSwapError(38);
+        }
+
         // currentState: investQty += actual (+fee on amount0 leg); Q += virtual total (+fee on amount1 leg).
         _self.currentState = add(
             _self.currentState,
