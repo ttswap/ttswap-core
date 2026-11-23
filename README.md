@@ -1,5 +1,15 @@
 # 1. TTSWAP
 
+> [!WARNING]
+> ### ⚠️ Project Status: V1 Deprecated & Maintenance Frozen (项目暂停维护提示)
+> **TTSwap V1 (`ttswap-core`) is officially deprecated and maintenance is frozen.**  
+> We are no longer accepting Pull Requests or feature updates for this repository.  
+> 
+> **V1 项目已正式暂停维护，不再接受任何新的 Pull Request (PR) 或功能更新。**  
+> All ongoing development, architecture upgrades, and community contributions have migrated to **Version 2**:  
+> 👉 Please visit and follow the latest repository: [**v2-ttswap-core**](https://github.com/ttswap/v2-ttswap-core)  
+> 👉 请关注并前往最新版项目：[**v2-ttswap-core**](https://github.com/ttswap/v2-ttswap-core)
+
 TTSWAP (token-token swap) protocol is a decentralized automated market-making protocol built on the EVM blockchain. Its underlying principle is based on the transfer of market value triggered by user behavior, and it constructs a platform using value conservation trading strategies.
 The whitepaper explains the design logic of the ttswap project, covering principles and implementations of goods trading, investment, and withdrawal of value goods, as well as ordinary goods investment and withdrawal, and the generation and distribution of goods transaction fees.
 

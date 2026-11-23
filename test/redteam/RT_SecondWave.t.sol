@@ -109,19 +109,23 @@ contract RT_SecondWave is BaseSetup {
         assertEq(usdt.balanceOf(attacker), balBefore, "attacker lost nothing (1 wei round trip)");
 
         // Victim's swap touching USDT in the SAME block now reverts (46).
+        // 2026-09-25: run-slot removed from tree (no error 46, no lastRunSlot
+        // writes) -> censorship class DEAD. Victim must SUCCEED here.
         vm.prank(victim);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
-        market.buyGood(
+        (, uint256 rt09g2) = market.buyGood(
             _usdtKey(), _btcKey(), toTTSwapUINT256(uint128(1e6), 0),
             address(0), defaultdata, victim, defaultdata, 0
         );
         _snapMarket("market_buyGood_RT_SecondWave.t_114");
+        assertGt(rt09g2.amount1(), 0, "RT09 dead: victim swap must succeed");
 
-        // investGood on USDT is equally blocked.
+        // 2026-09-25: run-slot removed -> invest equally NOT blocked.
+        // Hoist the quote view call: vm.prank only covers the next CALL.
+        uint256 rt09pack = _packInvest(usdtGoodId, 1e7);
         vm.prank(victim);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
-        market.investGood(_usdtKey(), _packInvest(usdtGoodId, 1e6), defaultdata, defaultdata, victim);
+        bool rt09ok = market.investGood(_usdtKey(), rt09pack, defaultdata, defaultdata, victim);
         _snapMarket("market_investGood_RT_SecondWave.t_119");
+        assertTrue(rt09ok, "RT09 dead: victim invest must succeed");
     }
 
     function test_RT09_multicall_whole_market_censorship_one_tx() public {
@@ -148,24 +152,27 @@ contract RT_SecondWave is BaseSetup {
         _snapMarket("market_multicall_RT_SecondWave.t_142");
         vm.stopPrank();
 
-        // Any swap on either good this block is dead.
+        // 2026-09-25: run-slot removed from tree -> sealing impossible.
+        // Any swap on either good this block must SUCCEED (class dead).
         deal(address(usdt), victim, 1e9, false);
         vm.startPrank(victim);
         usdt.approve(address(market), type(uint256).max);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
-        market.buyGood(
+        (, uint256 rt09m1) = market.buyGood(
             _usdtKey(), _btcKey(), toTTSwapUINT256(uint128(1e6), 0),
             address(0), defaultdata, victim, defaultdata, 0
         );
         _snapMarket("market_buyGood_RT_SecondWave.t_153");
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
-        market.buyGood(
+        assertGt(rt09m1.amount1(), 0, "RT09 dead: victim swap 1 must succeed");
+        deal(address(btc), victim, 1e8, false);
+        btc.approve(address(market), type(uint256).max);
+        (, uint256 rt09m2) = market.buyGood(
             _btcKey(), _usdtKey(), toTTSwapUINT256(uint128(1e4), 0),
             address(0), defaultdata, victim, defaultdata, 0
         );
         _snapMarket("market_buyGood_RT_SecondWave.t_158");
+        assertGt(rt09m2.amount1(), 0, "RT09 dead: victim swap 2 must succeed");
         vm.stopPrank();
-        emit log("RT09: 2 dust self-pays in 1 tx = whole-market swap halt for the block");
+        emit log("RT09 dead: dust self-pays seal nothing on current tree");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -193,10 +200,13 @@ contract RT_SecondWave is BaseSetup {
         uint256 victimBalBefore = eth.balanceOf(victim);
 
         // Victim invest would mint 0 shares — must revert 56; deposit not taken.
+        // 2026-09-25: hoist the view call — a staticcall inside expectRevert
+        // args consumes the cheatcode and fakes a pass/fail.
+        uint256 rt10packed = _packInvest(goodId, 1e6);
         vm.startPrank(victim);
         eth.approve(address(market), type(uint256).max);
         vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 56));
-        market.investGood(key, _packInvest(goodId, 1e6), defaultdata, defaultdata, victim);
+        market.investGood(key, rt10packed, defaultdata, defaultdata, victim);
         _snapMarket("market_investGood_RT_SecondWave.t_190");
         vm.stopPrank();
 
@@ -340,11 +350,14 @@ contract RT_SecondWave is BaseSetup {
         deal(address(usdt), victim, 1e8, false);
         vm.startPrank(victim);
         usdt.approve(address(market), type(uint256).max);
-        vm.expectRevert(abi.encodeWithSelector(TTSwapError.selector, 46));
-        market.investGood(_usdtKey(), _packInvest(usdtGoodId, 1e8), defaultdata, defaultdata, victim);
+        // 2026-09-25: no lastRunSlot in tree -> fresh good must WORK at any
+        // block (class dead). Hoist view call out of the assertion path.
+        uint256 rt13packed = _packInvest(usdtGoodId, 1e8);
+        bool rt13ok = market.investGood(_usdtKey(), rt13packed, defaultdata, defaultdata, victim);
         _snapMarket("market_investGood_RT_SecondWave.t_327");
         vm.stopPrank();
-        emit log("RT13: untouched good bricked for the whole block N%4095==0");
+        assertTrue(rt13ok, "RT13 dead: fresh good must work at N%4095==0");
+        emit log("RT13 dead: untouched good tradeable at every block");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
