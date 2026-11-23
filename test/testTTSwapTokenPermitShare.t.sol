@@ -54,7 +54,7 @@ contract testTTSwapTokenPermitShare is BaseSetup {
             chips: 2
         });
         uint128 deadline = uint128(block.timestamp + 3600);
-        uint256 nonce = tts_token.nonces(recipient);
+        uint256 nonce = tts_token.shareNonces(recipient);
 
         bytes memory sig = _signPermitShare(
             share,
@@ -69,7 +69,8 @@ contract testTTSwapTokenPermitShare is BaseSetup {
 
         s_share memory stored = tts_token.usershares(recipient);
         assertEq(stored.leftamount, 500_000, "share added");
-        assertEq(tts_token.nonces(recipient), nonce + 1, "nonce bumped");
+        assertEq(tts_token.shareNonces(recipient), nonce + 1, "share nonce bumped");
+        assertEq(tts_token.nonces(recipient), 0, "erc20 nonce untouched");
     }
 
     function testPermitShare_revert_expiredDeadline() public {
@@ -104,7 +105,7 @@ contract testTTSwapTokenPermitShare is BaseSetup {
         address recipient = users[4];
         s_share memory share = s_share({leftamount: 100, metric: 1, chips: 1});
         uint128 deadline = uint128(block.timestamp + 3600);
-        uint256 nonce = tts_token.nonces(recipient);
+        uint256 nonce = tts_token.shareNonces(recipient);
         bytes memory sig = _signPermitShare(share, recipient, 0, deadline, nonce);
 
         vm.startPrank(recipient);
@@ -141,5 +142,102 @@ contract testTTSwapTokenPermitShare is BaseSetup {
             )
         );
         assertEq(fromContract, manual, "shareHash matches typed data");
+    }
+
+    // ── #326: permitShare uses a dedicated nonce space ─────────────────────
+
+    function _signEip2612Tts(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint256 signerKey
+    ) internal view returns (uint8 v, bytes32 r, bytes32 s) {
+        bytes32 structHash = keccak256(
+            abi.encode(
+                keccak256(
+                    "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+                ),
+                owner,
+                spender,
+                value,
+                tts_token.nonces(owner),
+                deadline
+            )
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", tts_token.DOMAIN_SEPARATOR(), structHash)
+        );
+        return vm.sign(signerKey, digest);
+    }
+
+    function testPermitShare_survivesErc20Permit() public {
+        uint256 ownerKey = 0x0B0B;
+        address shareOwner = vm.addr(ownerKey);
+        address spender = users[5];
+
+        s_share memory share = s_share({leftamount: 100, metric: 1, chips: 1});
+        uint128 deadline = uint128(block.timestamp + 3600);
+        bytes memory shareSig = _signPermitShare(
+            share,
+            shareOwner,
+            0,
+            deadline,
+            tts_token.shareNonces(shareOwner)
+        );
+
+        // An unrelated ERC20 permit for the same owner bumps nonces[owner];
+        // it must not invalidate the pending permitShare signature.
+        uint256 permitDeadline = block.timestamp + 3600;
+        (uint8 v, bytes32 r, bytes32 s) = _signEip2612Tts(
+            shareOwner,
+            spender,
+            1,
+            permitDeadline,
+            ownerKey
+        );
+        tts_token.permit(shareOwner, spender, 1, permitDeadline, v, r, s);
+        assertEq(tts_token.nonces(shareOwner), 1, "erc20 nonce bumped");
+
+        vm.prank(shareOwner);
+        tts_token.permitShare(share, deadline, shareSig, tokenAdmin);
+        assertEq(tts_token.usershares(shareOwner).leftamount, 100, "share added");
+        assertEq(tts_token.shareNonces(shareOwner), 1, "share nonce bumped");
+    }
+
+    function testErc20Permit_survivesPermitShare() public {
+        uint256 ownerKey = 0x0C0C;
+        address shareOwner = vm.addr(ownerKey);
+        address spender = users[5];
+
+        s_share memory share = s_share({leftamount: 100, metric: 1, chips: 1});
+        uint128 shareDeadline = uint128(block.timestamp + 3600);
+        bytes memory shareSig = _signPermitShare(
+            share,
+            shareOwner,
+            0,
+            shareDeadline,
+            tts_token.shareNonces(shareOwner)
+        );
+
+        // Executing permitShare first must not consume the ERC20 nonce.
+        vm.prank(shareOwner);
+        tts_token.permitShare(share, shareDeadline, shareSig, tokenAdmin);
+        assertEq(tts_token.nonces(shareOwner), 0, "erc20 nonce untouched");
+
+        uint256 permitDeadline = block.timestamp + 3600;
+        (uint8 v, bytes32 r, bytes32 s) = _signEip2612Tts(
+            shareOwner,
+            spender,
+            1,
+            permitDeadline,
+            ownerKey
+        );
+        tts_token.permit(shareOwner, spender, 1, permitDeadline, v, r, s);
+        assertEq(
+            tts_token.allowance(shareOwner, spender),
+            1,
+            "permit applied"
+        );
     }
 }
