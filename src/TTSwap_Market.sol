@@ -302,6 +302,13 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
         // Convert virtual value to actual value basis (scale down by leverage).
         uint128 investvalue = ((normalInvest_.investValue * 100) / enpower);
 
+        // Actual net deposit (gross minus invest fee). Stored on the proof so a
+        // full disinvest removes exactly the leverage excess `investGood` added
+        // to `goodConfig.amount1`; recomputing it as `investQuantity * 100 /
+        // enpower` can differ by wei and underflow the tracker on exit.
+        uint128 actualDeposit =
+            _invest.amount1() - normalInvest_.investFeeQuantity;
+
         // reset _invest to 0 & store the mint tts value
         _invest = 0;
         if (g.goodConfig.isPromised()||g.goodConfig.isvaluegood()) _invest = investvalue;
@@ -310,10 +317,7 @@ contract TTSwap_Market is I_TTSwap_Market, IMulticall_v4 {
             _goodKey.toId(),
             toTTSwapUINT256(normalInvest_.investShare, _invest.amount1()),
             toTTSwapUINT256(normalInvest_.investValue, investvalue),
-            toTTSwapUINT256(
-                normalInvest_.investQuantity,
-                (normalInvest_.investQuantity * 100) / enpower //real quantity
-            )
+            toTTSwapUINT256(normalInvest_.investQuantity, actualDeposit)
         );
         g.goodConfig = g.goodConfig.updateRunBlockConfig();
         emit e_investGood(
